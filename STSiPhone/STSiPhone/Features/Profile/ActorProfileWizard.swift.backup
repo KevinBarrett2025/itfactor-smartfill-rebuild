@@ -1,0 +1,654 @@
+import SwiftUI
+
+struct ActorProfileWizard: View {
+    @State private var profileManager = ActorProfileManager()
+    @State private var repsVM = RepsViewModel()
+    @State private var currentStep = 1
+    private let totalSteps = 5
+    
+    // Basic Info
+    @State private var name = ""
+    @State private var email = ""
+    @State private var phone = ""
+    @State private var sagStatus: SAGStatus = .nonUnion
+    @State private var sagNumber = ""
+    @State private var ageRange = ""
+    
+    // Appearance/Stats
+    @State private var height = ""
+    @State private var weight = ""
+    @State private var hairColor = ""
+    @State private var eyeColor = ""
+    @State private var shirtSize = ""
+    @State private var pantSize = ""
+    @State private var shoeSize = ""
+    
+    // Uploads
+    @State private var headshots: [String] = []
+    @State private var sizeCards: [String] = []
+    @State private var resumes: [String] = []
+    
+    // File import state
+    @State private var showFileImporter = false
+    @State private var currentUploadType: UploadType = .headshot
+    
+    // Rep management
+    @State private var showingRepForm = false
+    @State private var selectedRepCategory = "Film/TV Agent"
+    
+    var onComplete: () -> Void
+    
+    enum UploadType {
+        case headshot, sizeCard, resume
+    }
+    
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                BrandBackground()
+                    .ignoresSafeArea()
+                
+                VStack(spacing: 0) {
+                    // Header
+                    VStack(spacing: 16) {
+                        Image(systemName: "person.crop.circle.badge.plus")
+                            .font(.system(size: 60))
+                            .foregroundStyle(Theme.primary)
+                        
+                        Text("Let's Get To Know You")
+                            .font(Theme.Font.title)
+                            .foregroundStyle(Theme.textPrimary)
+                        
+                        Text("Set up your actor profile to streamline project creation")
+                            .font(Theme.Font.body)
+                            .foregroundStyle(.gray)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.top, 20)
+                    .padding(.horizontal, 24)
+                    
+                    // Progress Indicator
+                    progressIndicator
+                    
+                    // Content
+                    TabView(selection: $currentStep) {
+                        ForEach(1...totalSteps, id: \.self) { step in
+                            ScrollView {
+                                VStack(spacing: 16) {
+                                    stepContent(for: step)
+                                }
+                                .padding(.horizontal, 24)
+                                .padding(.vertical, 32)
+                            }
+                            .tag(step)
+                        }
+                    }
+                    .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+                    
+                    // Navigation
+                    navigationButton
+                }
+            }
+            .navigationBarHidden(true)
+        }
+        .fileImporter(
+            isPresented: $showFileImporter,
+            allowedContentTypes: currentUploadType == .resume || currentUploadType == .sizeCard ? [.pdf, .jpeg, .png] : [.jpeg, .png],
+            allowsMultipleSelection: currentUploadType == .headshot
+        ) { result in
+            handleFileImport(result: result)
+        }
+        .sheet(isPresented: $showingRepForm) {
+            // Use a simple form for adding reps within the wizard
+            WizardRepForm(category: selectedRepCategory, repsVM: repsVM)
+        }
+    }
+    
+    // ... rest of the implementation stays the same until the rep management section ...
+    
+    // MARK: - Step 4: Representation (simplified)
+    private var representationStep: some View {
+        VStack(spacing: 16) {
+            // Add Rep Section
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Add Your Representation")
+                    .font(Theme.Font.headline)
+                    .foregroundStyle(Theme.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                Text("You can add your representation now or skip and add them later in Settings")
+                    .font(Theme.Font.caption)
+                    .foregroundStyle(.gray)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                HStack {
+                    Text("Add New Rep")
+                        .font(Theme.Font.body)
+                        .foregroundStyle(Theme.textPrimary)
+                    
+                    Spacer()
+                    
+                    Menu {
+                        ForEach(RepsViewModel.categories, id: \.self) { category in
+                            Button(category) {
+                                selectedRepCategory = category
+                                showingRepForm = true
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "plus.circle.fill")
+                                .foregroundStyle(Theme.primary)
+                            Image(systemName: "chevron.down")
+                                .font(.caption)
+                                .foregroundStyle(Theme.primary)
+                        }
+                    }
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color(.systemIndigo).opacity(0.15))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                        )
+                )
+                .shadow(color: Color.black.opacity(0.25), radius: 6, x: 0, y: 4)
+            }
+            
+            // Existing Reps
+            if !repsVM.reps.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Your Team")
+                        .font(Theme.Font.headline)
+                        .foregroundStyle(Theme.textPrimary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    ForEach(repsVM.reps) { rep in
+                        BrandedRowCard(
+                            title: rep.name,
+                            subtitle: rep.category,
+                            roles: [rep.email, rep.phone].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " • "),
+                            isInteractive: false
+                        )
+                    }
+                }
+            } else {
+                VStack(spacing: 16) {
+                    Image(systemName: "person.2.badge.gearshape")
+                        .font(.system(size: 48))
+                        .foregroundStyle(.white.opacity(0.6))
+                    
+                    Text("No representation added yet")
+                        .font(Theme.Font.body)
+                        .foregroundStyle(.gray)
+                    
+                    Text("You can skip this step and add representation later")
+                        .font(Theme.Font.caption)
+                        .foregroundStyle(.gray)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.vertical, 24)
+            }
+        }
+    }
+    
+    // ... all other methods stay the same ...
+    
+    // Add all the missing methods from the previous implementation
+    private var progressIndicator: some View {
+        HStack(spacing: 8) {
+            ForEach(1...totalSteps, id: \.self) { stepNumber in
+                Circle()
+                    .fill(stepNumber <= currentStep ? Theme.primary : Theme.surface.opacity(0.3))
+                    .frame(width: 12, height: 12)
+            }
+        }
+        .padding(.vertical, 16)
+    }
+    
+    @ViewBuilder
+    private func stepContent(for step: Int) -> some View {
+        switch step {
+        case 1:
+            basicInfoStep
+        case 2:
+            appearanceStep
+        case 3:
+            uploadsStep
+        case 4:
+            representationStep
+        case 5:
+            reviewStep
+        default:
+            EmptyView()
+        }
+    }
+    
+    // MARK: - Step 1: Basic Info
+    private var basicInfoStep: some View {
+        VStack(spacing: 16) {
+            WizardInputRow(
+                title: "Full Name",
+                placeholder: "e.g. Sarah Michelle Johnson",
+                text: $name
+            )
+            
+            WizardInputRow(
+                title: "Email",
+                placeholder: "your.email@gmail.com",
+                text: $email
+            )
+            
+            WizardInputRow(
+                title: "Phone",
+                placeholder: "(555) 123-4567",
+                text: $phone
+            )
+            
+            WizardPickerRow(
+                title: "SAG-AFTRA Status",
+                selection: $sagStatus,
+                options: SAGStatus.allCases.map { ($0, $0.displayName) }
+            )
+            
+            if sagStatus == .member {
+                WizardInputRow(
+                    title: "SAG Member Number",
+                    placeholder: "Enter your member number (optional)",
+                    text: $sagNumber
+                )
+            }
+            
+            WizardInputRow(
+                title: "Age Range",
+                placeholder: "e.g. 25-35 (optional)",
+                text: $ageRange
+            )
+        }
+    }
+    
+    // MARK: - Step 2: Appearance
+    private var appearanceStep: some View {
+        VStack(spacing: 16) {
+            WizardInputRow(
+                title: "Height",
+                placeholder: "e.g. 5'8\" or 173cm",
+                text: $height
+            )
+            
+            WizardInputRow(
+                title: "Weight",
+                placeholder: "e.g. 140 lbs (optional)",
+                text: $weight
+            )
+            
+            WizardInputRow(
+                title: "Hair Color",
+                placeholder: "e.g. Brown, Blonde, Black",
+                text: $hairColor
+            )
+            
+            WizardInputRow(
+                title: "Eye Color",
+                placeholder: "e.g. Blue, Brown, Green",
+                text: $eyeColor
+            )
+            
+            WizardInputRow(
+                title: "Shirt Size",
+                placeholder: "e.g. Medium, Large",
+                text: $shirtSize
+            )
+            
+            WizardInputRow(
+                title: "Pant Size",
+                placeholder: "e.g. 32, 34",
+                text: $pantSize
+            )
+            
+            WizardInputRow(
+                title: "Shoe Size",
+                placeholder: "e.g. 9, 10.5",
+                text: $shoeSize
+            )
+        }
+    }
+    
+    // MARK: - Step 3: Uploads
+    private var uploadsStep: some View {
+        VStack(spacing: 16) {
+            // Headshots
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Headshots")
+                    .font(Theme.Font.headline)
+                    .foregroundStyle(Theme.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                WizardFileImportRow(
+                    title: "Upload Headshots",
+                    subtitle: "Add your professional headshots (multiple allowed)",
+                    fileName: headshots.isEmpty ? nil : "\(headshots.count) photo\(headshots.count == 1 ? "" : "s")"
+                ) {
+                    currentUploadType = .headshot
+                    showFileImporter = true
+                }
+                
+                // Show uploaded headshots
+                if !headshots.isEmpty {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 8) {
+                        ForEach(headshots, id: \.self) { headshot in
+                            Text("📷")
+                                .frame(width: 60, height: 60)
+                                .background(Color.gray.opacity(0.3))
+                                .cornerRadius(8)
+                        }
+                    }
+                }
+            }
+            
+            // Size Card
+            WizardFileImportRow(
+                title: "Upload Size Card",
+                subtitle: "Your measurement card (PDF or image)",
+                fileName: sizeCards.first
+            ) {
+                currentUploadType = .sizeCard
+                showFileImporter = true
+            }
+            
+            // Resume
+            WizardFileImportRow(
+                title: "Upload Resume",
+                subtitle: "Your acting resume (PDF, optional)",
+                fileName: resumes.first
+            ) {
+                currentUploadType = .resume
+                showFileImporter = true
+            }
+        }
+    }
+    
+    // MARK: - Step 5: Review
+    private var reviewStep: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Review Your Profile")
+                    .font(Theme.Font.title)
+                    .foregroundStyle(Theme.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.bottom, 16)
+                
+                // Basic Info
+                ProfileReviewSection(title: "Basic Information") {
+                    ProfileReviewItem(label: "Name", value: name.isEmpty ? "Not specified" : name)
+                    ProfileReviewItem(label: "Email", value: email.isEmpty ? "Not specified" : email)
+                    if !phone.isEmpty {
+                        ProfileReviewItem(label: "Phone", value: phone)
+                    }
+                    ProfileReviewItem(label: "SAG Status", value: sagStatus.displayName)
+                    if !sagNumber.isEmpty {
+                        ProfileReviewItem(label: "SAG Number", value: sagNumber)
+                    }
+                    if !ageRange.isEmpty {
+                        ProfileReviewItem(label: "Age Range", value: ageRange)
+                    }
+                }
+                
+                // Appearance
+                if !height.isEmpty || !hairColor.isEmpty || !eyeColor.isEmpty {
+                    ProfileReviewSection(title: "Appearance") {
+                        if !height.isEmpty {
+                            ProfileReviewItem(label: "Height", value: height)
+                        }
+                        if !weight.isEmpty {
+                            ProfileReviewItem(label: "Weight", value: weight)
+                        }
+                        if !hairColor.isEmpty {
+                            ProfileReviewItem(label: "Hair Color", value: hairColor)
+                        }
+                        if !eyeColor.isEmpty {
+                            ProfileReviewItem(label: "Eye Color", value: eyeColor)
+                        }
+                        if !shirtSize.isEmpty || !pantSize.isEmpty || !shoeSize.isEmpty {
+                            ProfileReviewItem(label: "Sizes", value: "\(shirtSize.isEmpty ? "" : "Shirt: \(shirtSize)") \(pantSize.isEmpty ? "" : "Pants: \(pantSize)") \(shoeSize.isEmpty ? "" : "Shoes: \(shoeSize)")".trimmingCharacters(in: .whitespaces))
+                        }
+                    }
+                }
+                
+                // Uploads
+                if !headshots.isEmpty || !sizeCards.isEmpty || !resumes.isEmpty {
+                    ProfileReviewSection(title: "Materials") {
+                        if !headshots.isEmpty {
+                            ProfileReviewItem(label: "Headshots", value: "\(headshots.count) photo\(headshots.count == 1 ? "" : "s")")
+                        }
+                        if !sizeCards.isEmpty {
+                            ProfileReviewItem(label: "Size Cards", value: "\(sizeCards.count) file\(sizeCards.count == 1 ? "" : "s")")
+                        }
+                        if !resumes.isEmpty {
+                            ProfileReviewItem(label: "Resumes", value: "\(resumes.count) file\(resumes.count == 1 ? "" : "s")")
+                        }
+                    }
+                }
+                
+                // Representation
+                if !repsVM.reps.isEmpty {
+                    ProfileReviewSection(title: "Representation") {
+                        ForEach(repsVM.reps) { rep in
+                            ProfileReviewItem(label: rep.category, value: rep.name)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Navigation
+    private var navigationButton: some View {
+        VStack {
+            if currentStep < totalSteps {
+                BrandedPrimaryButton(
+                    label: nextButtonTitle,
+                    icon: nextButtonIcon
+                ) {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        currentStep += 1
+                    }
+                }
+            } else {
+                BrandedPrimaryButton(
+                    label: "Finish Setup",
+                    icon: "checkmark.circle.fill"
+                ) {
+                    saveProfile()
+                    onComplete()
+                }
+                .opacity(name.isEmpty || email.isEmpty ? 0.6 : 1.0)
+            }
+        }
+        .padding(.bottom, 34)
+    }
+    
+    private var nextButtonTitle: String {
+        switch currentStep {
+        case 1: return "Add Appearance Info"
+        case 2: return "Upload Materials"
+        case 3: return "Add Representation"
+        case 4: return "Review Profile"
+        default: return "Continue"
+        }
+    }
+    
+    private var nextButtonIcon: String {
+        switch currentStep {
+        case 1: return "person.fill"
+        case 2: return "photo.fill"
+        case 3: return "person.2.fill"
+        case 4: return "checkmark.circle.fill"
+        default: return "chevron.right"
+        }
+    }
+    
+    // MARK: - File Import
+    private func handleFileImport(result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            let fileNames = urls.map { $0.lastPathComponent }
+            
+            switch currentUploadType {
+            case .headshot:
+                headshots.append(contentsOf: fileNames)
+            case .sizeCard:
+                if let fileName = fileNames.first {
+                    sizeCards = [fileName] // Replace existing
+                }
+            case .resume:
+                if let fileName = fileNames.first {
+                    resumes = [fileName] // Replace existing
+                }
+            }
+            
+        case .failure(let error):
+            print("File import failed: \(error)")
+        }
+    }
+    
+    // MARK: - Save Profile
+    private func saveProfile() {
+        var profile = ActorProfile()
+        
+        // Basic Info
+        profile.name = name
+        profile.email = email
+        profile.phone = phone
+        profile.sagStatus = sagStatus
+        profile.sagNumber = sagNumber
+        profile.ageRange = ageRange
+        
+        // Appearance
+        profile.height = height
+        profile.weight = weight
+        profile.hairColor = hairColor
+        profile.eyeColor = eyeColor
+        profile.shirtSize = shirtSize
+        profile.pantSize = pantSize
+        profile.shoeSize = shoeSize
+        
+        // Uploads
+        profile.headshots = headshots
+        profile.sizeCards = sizeCards
+        profile.resumes = resumes
+        
+        profileManager.saveProfile(profile)
+        profileManager.markProfileComplete()
+    }
+}
+
+// MARK: - Simple Rep Form for Wizard
+private struct WizardRepForm: View {
+    let category: String
+    let repsVM: RepsViewModel
+    
+    @State private var name: String = ""
+    @State private var email: String = ""
+    @State private var phone: String = ""
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                BrandBackground()
+                    .ignoresSafeArea()
+                
+                VStack(spacing: 24) {
+                    VStack(spacing: 16) {
+                        Image(systemName: "person.badge.plus")
+                            .font(.system(size: 60))
+                            .foregroundStyle(Theme.primary)
+                        
+                        Text(category)
+                            .font(Theme.Font.title)
+                            .foregroundStyle(Theme.textPrimary)
+                    }
+                    .padding(.top, 20)
+                    
+                    VStack(spacing: 16) {
+                        WizardInputRow(title: "Name", placeholder: "e.g. Sarah Johnson - CAA", text: $name)
+                        WizardInputRow(title: "Email", placeholder: "email@agency.com (optional)", text: $email)
+                        WizardInputRow(title: "Phone", placeholder: "(310) 555-0123 (optional)", text: $phone)
+                    }
+                    
+                    Spacer()
+                    
+                    VStack(spacing: 16) {
+                        BrandedPrimaryButton(
+                            label: "Save \(category)",
+                            icon: "checkmark.circle.fill"
+                        ) {
+                            repsVM.addRep(category: category, name: name, email: email, phone: phone)
+                            dismiss()
+                        }
+                        .opacity(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.6 : 1.0)
+                        
+                        BrandedSecondaryButton(label: "Cancel") {
+                            dismiss()
+                        }
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 34)
+            }
+            .navigationBarHidden(true)
+        }
+    }
+}
+
+// MARK: - Helper Views
+private struct ProfileReviewSection<Content: View>: View {
+    let title: String
+    let content: Content
+    
+    init(title: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
+    
+    var body: some View {
+        WizardDisplayRow(title: title, value: "")
+            .overlay(
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(title)
+                        .font(Theme.Font.headline)
+                        .foregroundStyle(.white)
+                    
+                    content
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+            )
+    }
+}
+
+private struct ProfileReviewItem: View {
+    let label: String
+    let value: String
+    
+    var body: some View {
+        HStack {
+            Text("\(label):")
+                .font(Theme.Font.caption)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text(value)
+                .font(Theme.Font.body)
+                .foregroundStyle(.gray)
+        }
+    }
+}
+
+#Preview {
+    ActorProfileWizard {
+        print("Profile setup complete!")
+    }
+}

@@ -1,0 +1,161 @@
+import SwiftUI
+
+struct SceneSelectorView: View {
+    @ObservedObject var sessionManager = SessionManager.shared
+
+    // Callback for "That's a Wrap"
+    var onComplete: (() -> Void)?
+
+    init(onComplete: (() -> Void)? = nil) {
+        self.onComplete = onComplete
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            sceneControl
+
+            pillButton(
+                title: "Slate",
+                systemImage: "tv",
+                isDone: slateDone,
+                isActive: sessionManager.isRecordingSlate
+            ) {
+                sessionManager.switchToSlateMode()
+            }
+
+            pillButton(
+                title: "Keyframe",
+                systemImage: "camera.fill",
+                isDone: keyframeDone,
+                isActive: sessionManager.isRecordingKeyframePhoto
+            ) {
+                sessionManager.switchToKeyframePhotoMode()
+            }
+
+            pillButton(
+                title: "Wrap",
+                systemImage: "flag.checkered",
+                isDone: hasAnyTakes,
+                isActive: false // Wrap is never an "active recording mode"
+            ) {
+                onComplete?()
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(.ultraThinMaterial.opacity(0.9), in: Capsule())
+    }
+
+    // MARK: - Scene control
+    @ViewBuilder
+    private var sceneControl: some View {
+        let title = "Scene \(sessionManager.currentScene)"
+        let isSceneActive = !sessionManager.isRecordingSlate && !sessionManager.isRecordingKeyframePhoto
+        
+        if sessionManager.totalScenes > 1 {
+            Menu {
+                ForEach(1...sessionManager.totalScenes, id: \.self) { sceneNumber in
+                    Button {
+                        sessionManager.switchToScene(sceneNumber)
+                        sessionManager.switchToSceneMode()
+                    } label: {
+                        HStack {
+                            Label("Scene \(sceneNumber)",
+                                  systemImage: sceneNumber == sessionManager.currentScene ? "checkmark" : "video.fill")
+                            Spacer()
+                            let count = sessionManager.getTakesForScene(sceneNumber).count
+                            if count > 0 {
+                                Text("(\(count))").font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+            } label: {
+                pillLabel(title: title, systemImage: "video.fill", isDone: sceneHasVideo, isActive: isSceneActive)
+            }
+        } else {
+            // Single-scene project: still show state, just a button
+            Button {
+                sessionManager.switchToSceneMode()
+            } label: {
+                pillLabel(title: title, systemImage: "video.fill", isDone: sceneHasVideo, isActive: isSceneActive)
+            }
+        }
+    }
+
+    // MARK: - Pills
+    private func pillButton(title: String, systemImage: String, isDone: Bool, isActive: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            action()
+        }) {
+            pillLabel(title: title, systemImage: systemImage, isDone: isDone, isActive: isActive)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func pillLabel(title: String, systemImage: String, isDone: Bool, isActive: Bool = false) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: systemImage).imageScale(.medium)
+            Text(title)
+                .font(.system(size: 14, weight: .semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .foregroundColor(isActive ? .white : .primary)
+        .background(
+            isActive ? 
+                // ACTIVE STATE: Blue highlight with stronger opacity
+                Color.blue.opacity(0.8) :
+            isDone ? 
+                // DONE STATE: Green when content exists
+                Color.green.opacity(0.28) : 
+                // DEFAULT STATE: Secondary gray
+                Color.secondary.opacity(0.15)
+        )
+        .overlay(
+            Capsule().stroke(
+                isActive ? 
+                    // ACTIVE STATE: White border for visibility
+                    Color.white.opacity(0.6) :
+                isDone ? 
+                    // DONE STATE: Green border
+                    Color.green : 
+                    // DEFAULT STATE: Subtle white border
+                    Color.white.opacity(0.25), 
+                lineWidth: isActive ? 1.5 : 1
+            )
+        )
+        .clipShape(Capsule())
+        .scaleEffect(isActive ? 1.05 : 1.0) // Subtle scale for active state
+        .animation(.easeInOut(duration: 0.2), value: isActive) // Smooth transitions
+    }
+
+    // MARK: - Progress flags
+    private var sceneHasVideo: Bool {
+        !sessionManager.getTakesForScene(sessionManager.currentScene).isEmpty
+    }
+
+    private var slateDone: Bool {
+        sessionManager.hasRecordedSlate || !sessionManager.getSlateTakesAsTakes().isEmpty
+    }
+
+    private var keyframeDone: Bool {
+        sessionManager.hasRecordedKeyframePhoto || !sessionManager.getKeyframePhotoTakesAsTakes().isEmpty
+    }
+
+    private var hasAnyTakes: Bool {
+        !sessionManager.unifiedTakes.isEmpty || !sessionManager.takes.isEmpty
+    }
+}
+
+#Preview {
+    SceneSelectorView()
+        .background(.black)
+        .onAppear {
+            SessionManager.shared.totalScenes = 3
+            SessionManager.shared.currentScene = 2
+        }
+}

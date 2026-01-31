@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Scheme
+   LastUpgradeVersion = "2600"
+   version = "1.7">
+   <BuildAction
+      parallelizeBuildables = "YES"
+      buildImplicitDependencies = "YES"
+      buildArchitectures = "Automatic">
+      <PostActions>
+         <ExecutionAction
+            ActionType = "Xcode.IDEStandardExecutionActionsCore.ExecutionActionType.ShellScriptAction">
+            <ActionContent
+               title = "Run Script"
+               scriptText = "# Type a #!/bin/bash&#10;set -euo pipefail&#10;&#10;# ---- Config ----&#10;PORT=&quot;${STS_BRAIN_PORT:-51234}&quot;&#10;HOST=&quot;${STS_BRAIN_HOST:-127.0.0.1}&quot;&#10;CATEGORY=&quot;compiler&quot;&#10;SOURCE=&quot;${TARGET_NAME:-STSiPhone}&quot;&#10;LEVEL=&quot;warn&quot;&#10;BRAIN_ROOT=&quot;${HOME}/SelfTapeStudio/Development/BRAIN&quot;&#10;SPOOL_DIR=&quot;${BRAIN_ROOT}/inbox&quot;&#10;RAW_CAPTURE=&quot;${SPOOL_DIR}/last-warning-lines.txt&quot;&#10;mkdir -p &quot;${SPOOL_DIR}&quot;&#10;&#10;# Build metadata&#10;CONFIG=&quot;${CONFIGURATION:-Debug}&quot;&#10;SDK=&quot;${SDK_NAME:-iphoneos}&quot;&#10;ARCHS_VAR=&quot;${ARCHS:-arm64}&quot;&#10;SCHEME=&quot;${SCHEME_NAME:-STSiPhone}&quot;&#10;PROJECT=&quot;${PROJECT_NAME:-SelfTapeStudio}&quot;&#10;SESSION_ID=&quot;${PROJECT}-$(date +%s)&quot;&#10;DEVICE_ID=&quot;mac-$(scutil --get ComputerName 2&gt;/dev/null || hostname)&quot;&#10;&#10;# ---- Find latest xcactivitylog ----&#10;LOG=$(ls -t &quot;$HOME/Library/Developer/Xcode/DerivedData&quot;/SelfTapeStudio-*/Logs/Build/*.xcactivitylog 2&gt;/dev/null | head -n1 || true)&#10;if [[ -z &quot;$LOG&quot; || ! -f &quot;$LOG&quot; ]]; then&#10;  echo &quot;WarningAgent: No build log found. Skipping.&quot;&#10;  exit 0&#10;fi&#10;&#10;# ---- Extract warning-like lines (more inclusive) ----&#10;# 1) Standard Swift/Clang format with file:line:col + &apos;warning:&apos;&#10;# 2) file:line + &apos;warning:&apos; (no column)&#10;# 3) bare &apos;warning:&apos; without file&#10;# 4) common &apos;deprecated in iOS&apos; phrasing (Xcode UI sometimes hides &apos;warning:&apos; label)&#10;LINES=$(strings &quot;$LOG&quot; |   grep -E &apos;:[0-9]+:[0-9]+: warning: |:[0-9]+: warning: |(^| )warning: |deprecated in (iOS|macOS|tvOS|watchOS)&apos;   | sed &apos;s/\r/\n/g&apos; || true)&#10;&#10;# Save raw capture for debugging/visibility&#10;printf &quot;%s\n&quot; &quot;$LINES&quot; &gt; &quot;$RAW_CAPTURE&quot;&#10;&#10;if [[ -z &quot;$LINES&quot; ]]; then&#10;  echo &quot;WarningAgent: No warnings found in $LOG&quot;&#10;  exit 0&#10;fi&#10;&#10;TMP=$(mktemp)&#10;printf &quot;%s\n&quot; &quot;$LINES&quot; &gt; &quot;$TMP&quot;&#10;&#10;# ---- Classify + send (or spool) ----&#10;python3 - &quot;$PORT&quot; &quot;$HOST&quot; &quot;$CATEGORY&quot; &quot;$LEVEL&quot; &quot;$SOURCE&quot; &quot;$CONFIG&quot; &quot;$SDK&quot; &quot;$ARCHS_VAR&quot; &quot;$SCHEME&quot; &quot;$SESSION_ID&quot; &quot;$DEVICE_ID&quot; &quot;$TMP&quot; &quot;$SPOOL_DIR&quot; &lt;&lt; &apos;PYCODE&apos;&#10;import sys, json, os, re, socket, datetime, hashlib, pathlib&#10;&#10;def iso_now():&#10;    return datetime.datetime.utcnow().replace(microsecond=0).isoformat() + &quot;Z&quot;&#10;&#10;# argv&#10;PORT = int(sys.argv[1]); HOST = sys.argv[2]&#10;CATEGORY = sys.argv[3]; LEVEL = sys.argv[4]; SOURCE = sys.argv[5]&#10;CONFIG = sys.argv[6]; SDK = sys.argv[7]; ARCHS_VAR = sys.argv[8]; SCHEME = sys.argv[9]&#10;SESSION_ID = sys.argv[10]; DEVICE_ID = sys.argv[11]; TMP_PATH = sys.argv[12]; SPOOL_DIR = sys.argv[13]&#10;&#10;# Classifier rules&#10;RULES = [&#10;    (re.compile(r&quot;deprecated&quot;, re.I),               (&quot;deprecated&quot;, &quot;high&quot;)),&#10;    (re.compile(r&quot;Sendable|MainActor|nonisolated|actor|concurrency&quot;, re.I), (&quot;concurrency&quot;, &quot;high&quot;)),&#10;    (re.compile(r&quot;result of call to .+ is unused&quot;, re.I), (&quot;unused-result&quot;, &quot;medium&quot;)),&#10;    (re.compile(r&quot;was never used&quot;, re.I),           (&quot;unused-symbol&quot;, &quot;low&quot;)),&#10;    (re.compile(r&quot;will not be applied|ignoring return value&quot;, re.I), (&quot;unused-result&quot;, &quot;medium&quot;)),&#10;    (re.compile(r&quot;always succeeds|always fails|comparing .* to nil always&quot;, re.I), (&quot;logic&quot;, &quot;high&quot;)),&#10;    (re.compile(r&quot;API .* is unavailable&quot;, re.I),    (&quot;availability&quot;, &quot;high&quot;)),&#10;]&#10;&#10;def classify(msg: str):&#10;    for rx, (klass, prio) in RULES:&#10;        if rx.search(msg):&#10;            return klass, prio&#10;    return &quot;general&quot;, &quot;low&quot;&#10;&#10;# Patterns: file:line:col; file:line; bare warning; deprecation without label&#10;RX_FILE_COL = re.compile(r&apos;^(.*?):(\d+):(\d+):\s*warning:\s*(.*)$&apos;)&#10;RX_FILE_LINE = re.compile(r&apos;^(.*?):(\d+):\s*warning:\s*(.*)$&apos;)&#10;RX_BARE     = re.compile(r&apos;^\s*warning:\s*(.*)$&apos;)&#10;RX_DEPR     = re.compile(r&apos;^(.*deprecated in (iOS|macOS|tvOS|watchOS).*)$&apos;, re.I)&#10;&#10;with open(TMP_PATH, &apos;r&apos;, encoding=&apos;utf-8&apos;, errors=&apos;ignore&apos;) as f:&#10;    raw_lines = [ln.rstrip(&apos;\n&apos;) for ln in f]&#10;&#10;events = []&#10;for ln in raw_lines:&#10;    src_file = None; line_no = None; col_no = None; msg = None&#10;&#10;    m = RX_FILE_COL.match(ln)&#10;    if m:&#10;        src_file, line_no, col_no, msg = m.groups()&#10;    else:&#10;        m = RX_FILE_LINE.match(ln)&#10;        if m:&#10;            src_file, line_no, msg = m.groups()&#10;            col_no = None&#10;        else:&#10;            m = RX_BARE.match(ln)&#10;            if m:&#10;                msg = m.group(1)&#10;            else:&#10;                m = RX_DEPR.match(ln)&#10;                if m:&#10;                    msg = m.group(1)&#10;&#10;    if not msg:&#10;        continue&#10;&#10;    klass, prio = classify(msg)&#10;    signature = f&quot;{src_file or &apos;&apos;}:{line_no or &apos;&apos;}:{col_no or &apos;&apos;}:{msg}&quot;&#10;    digest = hashlib.sha1(signature.encode(&apos;utf-8&apos;)).hexdigest()&#10;&#10;    details = {&#10;        &quot;file&quot;: src_file,&#10;        &quot;line&quot;: int(line_no) if line_no and line_no.isdigit() else None,&#10;        &quot;column&quot;: int(col_no) if col_no and str(col_no).isdigit() else None,&#10;        &quot;configuration&quot;: CONFIG,&#10;        &quot;sdk&quot;: SDK,&#10;        &quot;archs&quot;: ARCHS_VAR,&#10;        &quot;scheme&quot;: SCHEME,&#10;        &quot;classification&quot;: klass,&#10;        &quot;priority&quot;: prio,&#10;        &quot;digest&quot;: digest,&#10;        &quot;raw&quot;: ln[:512]&#10;    }&#10;&#10;    events.append({&#10;        &quot;created_at&quot;: iso_now(),&#10;        &quot;device_id&quot;: DEVICE_ID,&#10;        &quot;session_id&quot;: SESSION_ID,&#10;        &quot;category&quot;: CATEGORY,&#10;        &quot;level&quot;: LEVEL,&#10;        &quot;source&quot;: SOURCE,&#10;        &quot;message&quot;: msg[:240],&#10;        &quot;details&quot;: details&#10;    })&#10;&#10;def try_send(evts):&#10;    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM); sock.settimeout(1.5)&#10;    try:&#10;        sock.connect((HOST, PORT))&#10;    except Exception:&#10;        return False&#10;    try:&#10;        for e in evts:&#10;            sock.sendall((json.dumps(e) + &quot;\n&quot;).encode(&quot;utf-8&quot;))&#10;    except Exception:&#10;        try: sock.shutdown(socket.SHUT_WR)&#10;        except Exception: pass&#10;        sock.close(); return False&#10;    try: sock.shutdown(socket.SHUT_WR)&#10;    except Exception: pass&#10;    sock.close(); return True&#10;&#10;if not events:&#10;    print(&quot;WarningAgent: parsed 0 warnings from raw lines&quot;)&#10;elif try_send(events):&#10;    print(f&quot;WarningAgent: sent {len(events)} warnings to Brain&quot;)&#10;else:&#10;    # Fallback: spool&#10;    ts = datetime.datetime.utcnow().strftime(&quot;%Y%m%dT%H%M%SZ&quot;)&#10;    p = pathlib.Path(SPOOL_DIR)/f&quot;compiler-warnings-{ts}.jsonl&quot;&#10;    with open(p, &quot;w&quot;, encoding=&quot;utf-8&quot;) as f:&#10;        for e in events:&#10;            f.write(json.dumps(e) + &quot;\n&quot;)&#10;    print(f&quot;WarningAgent: receiver unavailable, spooled {len(events)} warnings &#x2192; {p}&quot;)&#10;PYCODE&#10;&#10;rm -f &quot;$TMP&quot;script or drag a script file from your workspace to insert its path.&#10;&#10;">
+               <EnvironmentBuildable>
+                  <BuildableReference
+                     BuildableIdentifier = "primary"
+                     BlueprintIdentifier = "D444313B2E70D61F00710295"
+                     BuildableName = "STSiPhone.app"
+                     BlueprintName = "STSiPhone"
+                     ReferencedContainer = "container:ITFactoriPhone.xcodeproj">
+                  </BuildableReference>
+               </EnvironmentBuildable>
+            </ActionContent>
+         </ExecutionAction>
+      </PostActions>
+      <BuildActionEntries>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "D444313B2E70D61F00710295"
+               BuildableName = "STSiPhone.app"
+               BlueprintName = "STSiPhone"
+               ReferencedContainer = "container:ITFactoriPhone.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+      </BuildActionEntries>
+   </BuildAction>
+   <TestAction
+      buildConfiguration = "Debug"
+      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      shouldUseLaunchSchemeArgsEnv = "YES"
+      shouldAutocreateTestPlan = "YES">
+      <Testables>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "D444314A2E70D62000710295"
+               BuildableName = "STSiPhoneTests.xctest"
+               BlueprintName = "STSiPhoneTests"
+               ReferencedContainer = "container:ITFactoriPhone.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "D44431542E70D62000710295"
+               BuildableName = "STSiPhoneUITests.xctest"
+               BlueprintName = "STSiPhoneUITests"
+               ReferencedContainer = "container:ITFactoriPhone.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+      </Testables>
+   </TestAction>
+   <LaunchAction
+      buildConfiguration = "Debug"
+      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      launchStyle = "0"
+      useCustomWorkingDirectory = "NO"
+      ignoresPersistentStateOnLaunch = "NO"
+      debugDocumentVersioning = "YES"
+      debugServiceExtension = "internal"
+      allowLocationSimulation = "YES">
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "D444313B2E70D61F00710295"
+            BuildableName = "STSiPhone.app"
+            BlueprintName = "STSiPhone"
+               ReferencedContainer = "container:ITFactoriPhone.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
+      <CommandLineArguments>
+         <CommandLineArgument
+            argument = ""
+            isEnabled = "YES">
+         </CommandLineArgument>
+      </CommandLineArguments>
+      <EnvironmentVariables>
+         <EnvironmentVariable
+            key = "CG_NUMERICS_SHOW_BACKTRACE"
+            value = "1"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+      </EnvironmentVariables>
+   </LaunchAction>
+   <ProfileAction
+      buildConfiguration = "Release"
+      shouldUseLaunchSchemeArgsEnv = "YES"
+      savedToolIdentifier = ""
+      useCustomWorkingDirectory = "NO"
+      debugDocumentVersioning = "YES">
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "D444313B2E70D61F00710295"
+            BuildableName = "STSiPhone.app"
+            BlueprintName = "STSiPhone"
+            ReferencedContainer = "container:STSiPhone.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
+   </ProfileAction>
+   <AnalyzeAction
+      buildConfiguration = "Debug">
+   </AnalyzeAction>
+   <ArchiveAction
+      buildConfiguration = "Release"
+      revealArchiveInOrganizer = "YES">
+   </ArchiveAction>
+</Scheme>

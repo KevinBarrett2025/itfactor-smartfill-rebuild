@@ -1,0 +1,81 @@
+import Foundation
+import AVFoundation
+import UniformTypeIdentifiers
+import CoreTransferable
+
+public enum ExportKind: String, Codable, Sendable {
+    case take, slate, photo
+}
+
+public struct ExportItem: Identifiable, Hashable, Sendable {
+    public let id: UUID
+    public var url: URL
+    public var kind: ExportKind
+    public var label: String        // "Take 1", "Slate", etc.
+    public var duration: CMTime
+    public var included: Bool
+
+    public init(id: UUID = UUID(),
+                url: URL,
+                kind: ExportKind,
+                label: String,
+                duration: CMTime,
+                included: Bool = true) {
+        self.id = id
+        self.url = url
+        self.kind = kind
+        self.label = label
+        self.duration = duration
+        self.included = included
+    }
+}
+
+// Transferable conformance for drag & drop
+extension ExportItem: Transferable {
+    public static var transferRepresentation: some TransferRepresentation {
+        CodableRepresentation(for: ExportItem.self, contentType: .data)
+    }
+}
+
+// Custom Codable implementation to handle CMTime
+extension ExportItem: Codable {
+    enum CodingKeys: CodingKey {
+        case id, url, kind, label, durationSeconds, included
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        url = try container.decode(URL.self, forKey: .url)
+        kind = try container.decode(ExportKind.self, forKey: .kind)
+        label = try container.decode(String.self, forKey: .label)
+        let seconds = try container.decode(Double.self, forKey: .durationSeconds)
+        duration = CMTime(seconds: seconds, preferredTimescale: 600)
+        included = try container.decode(Bool.self, forKey: .included)
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(url, forKey: .url)
+        try container.encode(kind, forKey: .kind)
+        try container.encode(label, forKey: .label)
+        try container.encode(duration.seconds, forKey: .durationSeconds)
+        try container.encode(included, forKey: .included)
+    }
+}
+
+public struct ExportTimeline: Hashable, Sendable {
+    public var items: [ExportItem]   // order matters
+    public init(items: [ExportItem]) { self.items = items }
+}
+
+// Convenience
+public extension CMTime {
+    var asClockString: String {
+        let total = Int((CMTimeGetSeconds(self).isFinite ? CMTimeGetSeconds(self) : 0).rounded())
+        let m = total / 60
+        let s = total % 60
+        return String(format: "%d:%02d", m, s)
+    }
+}

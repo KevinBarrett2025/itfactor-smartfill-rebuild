@@ -1,0 +1,362 @@
+
+import SwiftUI
+import SceneKit
+import simd
+import UIKit
+
+public struct Spinner3DView: UIViewRepresentable {
+
+    public enum Face { case logo, settings }
+    public enum SpinMode { case free, lockedAxes } // free: yaw+pitch (no roll). lockedAxes: dominant axis per frame.
+
+    // MARK: Config
+    public var modelName: String
+    public var expectedRootName: String? = "Coin_Main"
+    public var startFace: Face = .logo
+    public var mode: SpinMode = .free
+    public var spinSensitivity: CGFloat = 0.004
+    public var friction: CGFloat = 0.985
+    public var clampPitchRadians: CGFloat = .pi * 0.47    // ~85°
+    public var idleTimeout: TimeInterval = 3.0
+    public var wobbleAmplitude: Float = .pi / 180.0 * 1.2 // ~1.2°
+    public var wobbleFrequency: Float = 0.35
+
+    public init(modelName: String = "SpinnerCoin_v2",
+                expectedRootName: String? = "Coin_Main",
+                startFace: Face = .logo,
+                mode: SpinMode = .free) {
+        self.modelName = modelName
+        self.expectedRootName = expectedRootName
+        self.startFace = startFace
+        self.mode = mode
+    }
+
+    // MARK: UIViewRepresentable
+    public func makeUIView(context: Context) -> SCNView {
+        let view = SCNView(frame: .zero)
+        view.scene = SCNScene()
+        view.backgroundColor = .clear
+        view.preferredFramesPerSecond = 120
+        view.antialiasingMode = .multisampling4X
+        view.allowsCameraControl = false
+        view.isUserInteractionEnabled = true
+
+        // Camera
+        let camNode = SCNNode()
+        camNode.camera = SCNCamera()
+        camNode.camera?.usesOrthographicProjection = true
+        camNode.camera?.zNear = 0.001
+        camNode.camera?.zFar  = 1000
+        camNode.position = SCNVector3(0, 0, 3)
+        view.scene?.rootNode.addChildNode(camNode)
+        view.pointOfView = camNode
+
+        // Lights
+        let key = SCNNode()
+        key.light = SCNLight()
+        key.light?.type = .directional
+        key.light?.intensity = 900
+        key.eulerAngles = SCNVector3(-0.5, 0.6, 0.0)
+        view.scene?.rootNode.addChildNode(key)
+
+        let fill = SCNNode()
+        fill.light = SCNLight()
+        fill.light?.type = .omni
+        fill.light?.intensity = 480
+        fill.position = SCNVector3(0.0, 0.3, 2.0)
+        view.scene?.rootNode.addChildNode(fill)
+
+        let amb = SCNNode()
+        amb.light = SCNLight()
+        amb.light?.type = .ambient
+        amb.light?.intensity = 180
+        view.scene?.rootNode.addChildNode(amb)
+
+        // Load model
+        if let node = loadCoin(modelName: modelName, expectedRootName: expectedRootName) {
+            makeMaterialsDoubleSided(node)
+            centerPivotAggregated(node)
+            autoOrientFlatObjectToFaceCamera(node) // NEW: make rim face camera, not edge-on
+            view.scene?.rootNode.addChildNode(node)
+            context.coordinator.coinNode = node
+
+            // Start on requested face
+            context.coordinator.orientation = (startFace == .logo)
+                ? simd_quatf(angle: 0, axis: SIMD3<Float>(0,1,0))
+                : simd_quatf(angle: .pi, axis: SIMD3<Float>(0,1,0))
+            node.simdOrientation = context.coordinator.orientation
+
+            // Initial fit after layout
+            DispatchQueue.main.async { [weak view] in
+                guard let view = view else { return }
+                fitCoin(node, in: view, padding: 1.06)
+            }
+        }
+
+        // Gestures
+        let pan = UIPanGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handlePan(_:)))
+        pan.maximumNumberOfTouches = 1
+        pan.cancelsTouchesInView = true
+        view.addGestureRecognizer(pan)
+
+        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap(_:)))
+        tap.cancelsTouchesInView = true
+        view.addGestureRecognizer(tap)
+
+        // Ticker
+        context.coordinator.displayLink = CADisplayLink(target: context.coordinator, selector: #selector(Coordinator.tick))
+        context.coordinator.displayLink?.preferredFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 120, preferred: 120)
+        context.coordinator.displayLink?.add(to: .main, forMode: .common)
+        context.coordinator.parent = self
+
+        return view
+    }
+
+    public func updateUIView(_ uiView: SCNView, context: Context) {
+        if let coin = context.coordinator.coinNode {
+            fitCoin(coin, in: uiView, padding: 1.06)
+        }
+    }
+
+    public static func dismantleUIView(_ uiView: SCNView, coordinator: Coordinator) {
+        coordinator.displayLink?.invalidate()
+    }
+
+    public func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    // MARK: Helpers
+    private func loadCoin(modelName: String, expectedRootName: String? = "Coin_Main") -> SCNNode? {
+        if let url = Bundle.main.url(forResource: modelName, withExtension: "usdz") {
+            let ref = SCNReferenceNode(url: url); ref?.load()
+            guard let loaded = ref else { return nil }
+            let rootCandidate = (expectedRootName.flatMap { loaded.childNode(withName: $0, recursively: true) }) ?? loaded
+            let container = SCNNode(); container.name = "SpinnerContainer"
+            container.addChildNode(rootCandidate)
+            return container
+        }
+        if let scene = SCNScene(named: "\(modelName).usdz") {
+            let container = SCNNode()
+            for child in scene.rootNode.childNodes { container.addChildNode(child) }
+            return container
+        }
+        return nil
+    }
+
+    private func centerPivotAggregated(_ node: SCNNode) {
+        var minV = SCNVector3Zero, maxV = SCNVector3Zero
+        if node.__getBoundingBoxMin(&minV, max: &maxV) {
+            let c = SCNVector3((minV.x+maxV.x)*0.5, (minV.y+maxV.y)*0.5, (minV.z+maxV.z)*0.5)
+            node.pivot = SCNMatrix4MakeTranslation(c.x, c.y, c.z)
+        }
+    }
+
+    private func makeMaterialsDoubleSided(_ node: SCNNode) {
+        if let geo = node.geometry { for m in geo.materials { m.isDoubleSided = true } }
+        for c in node.childNodes { makeMaterialsDoubleSided(c) }
+    }
+
+    /// Rotate a flat (coin-like) mesh so its thinnest axis faces the camera (Z+).
+    private func autoOrientFlatObjectToFaceCamera(_ node: SCNNode) {
+        var minV = SCNVector3Zero, maxV = SCNVector3Zero
+        guard node.__getBoundingBoxMin(&minV, max: &maxV) else { return }
+        let sx = abs(maxV.x - minV.x)
+        let sy = abs(maxV.y - minV.y)
+        let sz = abs(maxV.z - minV.z)
+
+        if sx <= sy && sx <= sz {
+            // X is thickness → rotate coin 90° around Y so X becomes Z (faces camera)
+            node.eulerAngles.y += .pi / 2
+        } else if sy <= sx && sy <= sz {
+            // Y is thickness → rotate −90° around X so Y becomes Z
+            node.eulerAngles.x -= .pi / 2
+        } else {
+            // Z is thickness → already facing camera
+        }
+    }
+
+    private func fitCoin(_ coin: SCNNode, in view: SCNView, padding: CGFloat = 1.08) {
+        var minV = SCNVector3Zero, maxV = SCNVector3Zero
+        guard coin.__getBoundingBoxMin(&minV, max: &maxV) else { return }
+        let size = SCNVector3(maxV.x - minV.x, maxV.y - minV.y, maxV.z - minV.z)
+        let diameter = CGFloat(max(size.x, max(size.y, size.z)))
+        if let cam = view.pointOfView?.camera {
+            cam.usesOrthographicProjection = true
+            cam.orthographicScale = Double(0.5 * diameter * padding)
+        }
+        coin.position = SCNVector3Zero
+    }
+
+    // MARK: Coordinator
+    public final class Coordinator: NSObject {
+        var parent: Spinner3DView
+        init(_ parent: Spinner3DView) { self.parent = parent }
+
+        weak var coinNode: SCNNode?
+        var displayLink: CADisplayLink?
+
+        enum State { case idle, playing, flippingToSettings, flippingToLogo }
+        var state: State = .idle
+
+        var orientation = simd_quatf(angle: 0, axis: SIMD3<Float>(0,1,0))
+        var yawVelocity: CGFloat = 0
+        var pitchVelocity: CGFloat = 0
+        var lastInteraction: TimeInterval = CACurrentMediaTime()
+
+        var wobbleT: Float = 0
+
+        @objc func handleTap(_ recognizer: UITapGestureRecognizer) {
+            guard let _ = coinNode else { return }
+            let e = eulerAnglesXYZ(orientation)
+            let isLogo = abs(normalizeAngle(e.y)) < (.pi/2)
+            if isLogo { state = .flippingToSettings; flipTo(face: .settings, thenFly: true) }
+            else      { state = .flippingToLogo;     flipTo(face: .logo,     thenFly: false) }
+        }
+
+        @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {
+            guard let view = recognizer.view as? SCNView, let node = coinNode else { return }
+            let p = recognizer.translation(in: view)
+            recognizer.setTranslation(.zero, in: view)
+            lastInteraction = CACurrentMediaTime()
+
+            let yawD   = Float(-p.x) * Float(parent.spinSensitivity)
+            let pitchD = Float(-p.y) * Float(parent.spinSensitivity)
+
+            switch parent.mode {
+            case .free:
+                let qYaw   = simd_quatf(angle: yawD,   axis: SIMD3<Float>(0,1,0))
+                let qPitch = simd_quatf(angle: pitchD, axis: SIMD3<Float>(1,0,0))
+                orientation = qYaw * orientation * qPitch
+                orientation = clampPitch(orientation, limit: Float(parent.clampPitchRadians))
+                node.simdOrientation = orientation
+                yawVelocity = CGFloat(yawD); pitchVelocity = CGFloat(pitchD)
+            case .lockedAxes:
+                if abs(p.x) >= abs(p.y) {
+                    let qYaw = simd_quatf(angle: yawD, axis: SIMD3<Float>(0,1,0))
+                    orientation = qYaw * orientation
+                    node.simdOrientation = orientation
+                    yawVelocity = CGFloat(yawD); pitchVelocity = 0
+                } else {
+                    let qPitch = simd_quatf(angle: pitchD, axis: SIMD3<Float>(1,0,0))
+                    orientation = orientation * qPitch
+                    orientation = clampPitch(orientation, limit: Float(parent.clampPitchRadians))
+                    node.simdOrientation = orientation
+                    yawVelocity = 0; pitchVelocity = CGFloat(pitchD)
+                }
+            }
+            state = .playing
+        }
+
+        @objc func tick() {
+            guard let node = coinNode else { return }
+            let now = CACurrentMediaTime()
+
+            switch state {
+            case .idle:
+                wobbleT += parent.wobbleFrequency * 1.0/60.0
+                let wobbleX = sin(wobbleT) * parent.wobbleAmplitude
+                let wobbleQ = simd_quatf(angle: wobbleX, axis: SIMD3<Float>(1,0,0))
+                let base = (parent.startFace == .logo)
+                    ? simd_quatf(angle: 0, axis: SIMD3<Float>(0,1,0))
+                    : simd_quatf(angle: .pi, axis: SIMD3<Float>(0,1,0))
+                node.simdOrientation = base * wobbleQ
+
+            case .playing:
+                var yv = yawVelocity, pv = pitchVelocity
+                if abs(yv) > 0.00001 || abs(pv) > 0.00001 {
+                    let qYaw   = simd_quatf(angle: Float(yv), axis: SIMD3<Float>(0,1,0))
+                    let qPitch = simd_quatf(angle: Float(pv), axis: SIMD3<Float>(1,0,0))
+                    orientation = qYaw * orientation * qPitch
+                    orientation = clampPitch(orientation, limit: Float(parent.clampPitchRadians))
+                    node.simdOrientation = orientation
+                    yawVelocity *= parent.friction
+                    pitchVelocity *= parent.friction
+                } else if now - lastInteraction > parent.idleTimeout {
+                    flipTo(face: .logo, thenFly: false)
+                    state = .idle
+                }
+
+            case .flippingToSettings, .flippingToLogo:
+                break
+            }
+        }
+
+        // MARK: Animations
+        func flipTo(face: Spinner3DView.Face, thenFly: Bool) {
+            guard let node = coinNode else { return }
+            let target = (face == .logo)
+                ? simd_quatf(angle: 0, axis: SIMD3<Float>(0,1,0))
+                : simd_quatf(angle: .pi, axis: SIMD3<Float>(0,1,0))
+
+            let start = orientation
+            let duration: CFTimeInterval = 0.35
+            let startTime = CACurrentMediaTime()
+
+            func step() {
+                let t = min(1.0, (CACurrentMediaTime() - startTime)/duration)
+                let q = simd_slerp(start, target, Float(t))
+                node.simdOrientation = q
+                if t < 1.0 {
+                    DispatchQueue.main.async { step() }
+                } else {
+                    orientation = target
+                    if thenFly { flyForwardToSettings(node: node) }
+                    state = .idle
+                }
+            }
+            step()
+        }
+
+        func flyForwardToSettings(node: SCNNode) {
+            let scaleUp = SCNAction.scale(to: 1.35, duration: 0.22)
+            scaleUp.timingMode = .easeInEaseOut
+            let fade = SCNAction.fadeOpacity(to: 0.0, duration: 0.22)
+            let group = SCNAction.group([scaleUp, fade])
+            node.runAction(group) {
+                NotificationCenter.default.post(name: .spinnerOpenSettings, object: nil)
+                DispatchQueue.main.async {
+                    node.opacity = 1.0
+                    node.scale = SCNVector3(1,1,1)
+                }
+            }
+        }
+
+        // Utilities
+        func clampPitch(_ q: simd_quatf, limit: Float) -> simd_quatf {
+            let e = eulerAnglesXYZ(q)
+            let clampedX = max(-limit, min(limit, e.x))
+            // zero roll (z)
+            return simd_quatf(eulerXYZ: SIMD3<Float>(clampedX, e.y, 0))
+        }
+
+        func eulerAnglesXYZ(_ q: simd_quatf) -> SIMD3<Float> {
+            let m = simd_float3x3(q)
+            let sy = -asin(max(-1, min(1, m[2,0])))
+            let cy = cos(sy)
+            let x = atan2(m[2,1]/cy, m[2,2]/cy)
+            let y = sy
+            let z = atan2(m[1,0]/cy, m[0,0]/cy)
+            return SIMD3<Float>(x,y,z)
+        }
+
+        func normalizeAngle(_ a: Float) -> Float {
+            var v = fmod(a + .pi, 2 * .pi)
+            if v < 0 { v += 2 * .pi }
+            return v - .pi
+        }
+    }
+}
+
+// Notifications used by overlay/sheet
+extension Notification.Name {
+    static let spinnerOpenSettings = Notification.Name("spinner.open.settings")
+    static let spinnerCloseSettings = Notification.Name("spinner.close.settings")
+}
+
+private extension simd_quatf {
+    init(eulerXYZ angles: SIMD3<Float>) {
+        let qx = simd_quatf(angle: angles.x, axis: SIMD3<Float>(1, 0, 0))
+        let qy = simd_quatf(angle: angles.y, axis: SIMD3<Float>(0, 1, 0))
+        let qz = simd_quatf(angle: angles.z, axis: SIMD3<Float>(0, 0, 1))
+        self = qx * qy * qz
+    }
+}

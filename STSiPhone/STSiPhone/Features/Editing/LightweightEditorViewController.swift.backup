@@ -1,0 +1,1717 @@
+import UIKit
+import AVFoundation
+import AVKit
+import SwiftUI
+import PryntTrimmerView
+import TOCropViewController
+
+/// PROFESSIONAL NON-DESTRUCTIVE VIDEO EDITOR with Apple-style UX and Edit Stack Architecture
+/// INTEGRATED SYSTEM: Trimmer + Crop + SmartFill working together seamlessly
+class LightweightEditorViewController: UIViewController, SmartFillProcessingDelegate, TrimmerViewDelegate, TOCropViewControllerDelegate, EditStackDelegate, UIGestureRecognizerDelegate {
+    
+    // MARK: - Core Properties
+    var originalAsset: AVAsset
+    var onSaveEdits: ((AVAsset, CMTimeRange?, CGRect?) -> Void)?
+    var onCancel: (() -> Void)?
+    
+    // NEW: Non-destructive edit stack architecture
+    internal var editStack: EditStack!
+    
+    // CRITICAL FIX: Layout counter to prevent infinite layout cycles
+    private var layoutCount = 0
+    
+    // Repository for SmartFill integration
+    var repository: ProjectsRepository?
+    var currentTake: ProjectTake?
+    var currentSession: ProjectSession?
+    var currentProject: Project?
+    
+    // Video playback properties
+    internal var player: AVPlayer!
+    internal var playerLayer: AVPlayerLayer!
+    
+    // CLEAN: Removed complex position tracking - let native trimmer handle this
+    // private var isUserScrubbing = false
+    // private var isHandleDragging = false
+    // private var staticPositionTime: CMTime?
+    // private var isPositionBarStatic = false
+    
+    // UI references
+    internal var toolbar: UIToolbar?
+    private var buttonUpdateCounter = 0
+    private var applyTrimButton: UIBarButtonItem?
+    private var cancelTrimButton: UIBarButtonItem?
+    private enum ToolbarMode {
+        case normal
+        case pendingTrim
+    }
+    private var toolbarMode: ToolbarMode = .normal
+    private var playPauseBarButton: UIBarButtonItem?
+    
+    // Time observer for trim preview
+    private var timeObserver: Any?
+    private weak var timeObserverOwner: AVPlayer?
+    
+    private weak var observedPlayerItem: AVPlayerItem?
+    
+    // Video orientation and SmartFill state
+    private var originalVideoOrientation: VideoOrientation?
+    private var isShowingSmartFillVideo = false
+    private var originalVideoPath: String?
+    private var currentVideoPath: String?
+    
+    // PROFESSIONAL TIMECODE SYSTEM: UI Elements for time display
+    private var currentTimeLabel: UILabel!
+    private var startTimeLabel: UILabel!
+    private var endTimeLabel: UILabel!
+    private var durationLabel: UILabel!
+    private var scrubTimeLabel: UILabel!
+    
+    // MARK: - SmartFill Integration (FIXED: Regular instance variables)
+    private var showingSmartFillSettings = false
+    private var currentSmartFillSettings = SmartFillSettings()
+    
+    // NON-DESTRUCTIVE: Edit history UI
+    private var editHistoryView: UIView!
+    private var editHistoryStackView: UIStackView!
+    
+    // MARK: - Trim State
+    internal var hasPendingTrimChanges = false
+    private var pendingTrimStartTime: CMTime?
+    private var pendingTrimEndTime: CMTime?
+    internal var pendingTrimRange: CMTimeRange? = nil
+    
+    // A lightweight HUD label centered above the trimmer showing duration
+    private let trimHud = UILabel()
+    // PROFESSIONAL: Native trimmer integration (CLEAN VERSION!)
+    internal var trimmerView: SimpleTrimmerView!
+    
+    init(asset: AVAsset) {
+        self.originalAsset = asset
+        self.trimmerView = SimpleTrimmerView(frame: .zero)
+        super.init(nibName: nil, bundle: nil)
+        
+        // Initialize non-destructive edit stack
+        editStack = EditStack(sourceAsset: asset)
+        editStack.delegate = self
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    deinit {
+        if let observedItem = observedPlayerItem {
+            observedItem.removeObserver(self, forKeyPath: "status")
+        }
+        removePeriodicTimeObserverIfNeeded()
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    // Setup with repository context
+    func setupWithRepository(
+        _ repository: ProjectsRepository,
+        take: ProjectTake,
+        session: ProjectSession,
+        project: Project
+    ) {
+        self.repository = repository
+        self.currentTake = take
+        self.currentSession = session
+        self.currentProject = project
+        
+        let originalURL = VideoVariantResolver.originalURL(for: take)
+        let effectiveURL = VideoVariantResolver.effectiveURL(for: take)
+        
+        self.originalVideoPath = originalURL.path
+        self.currentVideoPath = effectiveURL.path
+        
+        print("🔧 FIXED URL RESOLUTION:")
+        print("   📁 Original URL: \(originalURL.path)")
+        print("   📁 Effective URL: \(effectiveURL.path)")
+        print("   📱 Orientation: \(take.capturedOrientation?.displayName ?? "Unknown")")
+        
+        self.originalVideoOrientation = take.capturedOrientation
+        self.isShowingSmartFillVideo = take.hasSmartFilledVersion
+        
+        SmartFillProcessingManager.shared.delegate = self
+        
+        // MODULAR EDITOR TEST: Enable modular editor for testing
+        if STS_MODULAR_EDITOR_ENABLED {
+            print("🧠 MODULAR EDITOR: Enabled for testing")
+            self.enableModularEditor(at: effectiveURL)
+        }
+    }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        setupUI()
+        setupPlayer()
+        setupProfessionalTimecodes()
+        setupRealTrimmer()
+        setupEditHistoryView()
+        setupTrimHud()
+        
+        // CRITICAL FIX: Create toolbar immediately instead of complex deferred creation
+        setupToolbarImmediately()
+        
+        // CRITICAL FIX: Add SmartFill completion notification observer
+        setupSmartFillNotifications()
+        
+        // CLEAN: Remove complex monitoring - let native trimmer handle everything
+        print("✅ CLEAN SETUP: Native trimmer handling all interactions")
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        
+        // CRITICAL FIX: Prevent layout cycle by only logging occasionally
+        layoutCount += 1
+        if layoutCount % 50 == 1 {
+            print("📐 LAYOUT: viewDidLayoutSubviews #\(layoutCount) with bounds: \(view.bounds)")
+        }
+        
+        let safeArea = view.safeAreaInsets
+        let availableWidth = view.bounds.width - safeArea.left - safeArea.right
+        let availableHeight = view.bounds.height - safeArea.top - safeArea.bottom
+        
+        let playerHeight: CGFloat = max(200, availableHeight * 0.5)
+        let playerFrame = CGRect(
+            x: safeArea.left,
+            y: safeArea.top,
+            width: availableWidth,
+            height: playerHeight
+        )
+        
+        if let playerLayer = playerLayer {
+            playerLayer.frame = playerFrame
+            playerLayer.isHidden = false
+            playerLayer.opacity = 1.0
+            
+            if let sublayers = view.layer.sublayers, sublayers.contains(playerLayer) {
+                view.layer.insertSublayer(playerLayer, at: 0)
+            }
+        }
+        
+        positionTimecodeDisplays()
+        positionEditHistoryView()
+        
+        guard let trimmerView = self.trimmerView, let toolbar = toolbar else {
+            return
+        }
+        
+        let trimmerHeight: CGFloat = 60
+        let toolbarHeight: CGFloat = 80
+        let margin: CGFloat = 20
+        
+        let trimmerY = view.bounds.height
+            - view.safeAreaInsets.bottom
+            - toolbarHeight
+            - trimmerHeight
+            - 16
+        
+        let newTrimmerFrame = CGRect(
+            x: safeArea.left + margin,
+            y: trimmerY,
+            width: availableWidth - (margin * 2),
+            height: trimmerHeight
+        )
+        
+        // 🔧 LAYOUT FIX: Only update frame if it actually changed
+        if !trimmerView.frame.equalTo(newTrimmerFrame) {
+            print("🔧 LAYOUT: Updating trimmer frame from \(trimmerView.frame) to \(newTrimmerFrame)")
+            trimmerView.frame = newTrimmerFrame
+        } else if layoutCount % 100 == 1 {
+            // Only log occasionally when frame doesn't change
+            print("📐 LAYOUT: Trimmer frame unchanged, skipping update")
+        }
+        
+        // Position toolbar properly
+        let toolbarFrame = CGRect(
+            x: 0,
+            y: view.bounds.height - safeArea.bottom - toolbarHeight,
+            width: view.bounds.width,
+            height: toolbarHeight
+        )
+        
+        // 🔧 LAYOUT FIX: Only update toolbar frame if it actually changed
+        if !toolbar.frame.equalTo(toolbarFrame) {
+            toolbar.frame = toolbarFrame
+            print("🔧 LAYOUT: Updated toolbar frame")
+        }
+        
+        // Ensure toolbar is visible and properly layered
+        view.bringSubviewToFront(toolbar)
+        view.bringSubviewToFront(trimmerView)
+        bringTimecodesToFront()
+    }
+
+    // CRITICAL FIX: Immediate toolbar setup instead of complex deferred creation
+    private func setupToolbarImmediately() {
+        print("🔧 IMMEDIATE TOOLBAR: Creating toolbar immediately in viewDidLoad")
+        
+        let toolbar = UIToolbar()
+        toolbar.backgroundColor = UIColor.black.withAlphaComponent(0.9)
+        toolbar.barTintColor = UIColor.black
+        toolbar.barStyle = .black
+        toolbar.autoresizingMask = [.flexibleWidth, .flexibleTopMargin]
+        
+        // Create Apply/Cancel buttons immediately
+        applyTrimButton = UIBarButtonItem(title: "Apply", style: .done, target: self, action: #selector(applyPendingTrim))
+        applyTrimButton?.tintColor = UIColor.systemGreen
+        
+        cancelTrimButton = UIBarButtonItem(title: "Cancel", style: .plain, target: self, action: #selector(cancelPendingTrim))
+        cancelTrimButton?.tintColor = UIColor.systemRed
+        
+        print("✅ CRITICAL: Apply/Cancel buttons created: apply=\(String(describing: applyTrimButton != nil)), cancel=\(String(describing: cancelTrimButton != nil))")
+        
+        // Add to view hierarchy immediately
+        view.addSubview(toolbar)
+        self.toolbar = toolbar
+        
+        // Set up default toolbar items
+        recreateDefaultToolbarItems()
+        updatePlayPauseButton()
+        
+        print("✅ IMMEDIATE TOOLBAR: Toolbar created and added to view successfully")
+    }
+    
+    private func setupUI() {
+        view.backgroundColor = .black
+        
+        let symbolConfig = UIImage.SymbolConfiguration(
+            pointSize: 22,
+            weight: .semibold,
+            scale: .medium
+        )
+        
+        let closeImage = UIImage(
+            systemName: "xmark.circle.fill",
+            withConfiguration: symbolConfig
+        )
+        
+        let closeButton = UIBarButtonItem(
+            image: closeImage,
+            style: .plain,
+            target: self,
+            action: #selector(cancelEdits)
+        )
+        
+        closeButton.tintColor = UIColor.white
+        closeButton.setBackgroundImage(
+            createCloseButtonBackgroundWithShadow(),
+            for: .normal,
+            barMetrics: .default
+        )
+        
+        navigationItem.leftBarButtonItem = closeButton
+        
+        updateNavigationBarForEditStack()
+    }
+    
+    private func createCloseButtonBackgroundWithShadow() -> UIImage? {
+        let size = CGSize(width: 44, height: 44)
+        
+        return UIGraphicsImageRenderer(size: size).image { context in
+            let rect = CGRect(origin: .zero, size: size)
+            let shadowRect = rect.insetBy(dx: 2, dy: 2)
+            
+            context.cgContext.setShadow(
+                offset: CGSize(width: 0, height: 1),
+                blur: 2,
+                color: UIColor.black.withAlphaComponent(0.3).cgColor
+            )
+            
+            UIColor.black.withAlphaComponent(0.2).setFill()
+            context.cgContext.fillEllipse(in: shadowRect)
+        }
+    }
+    
+    // PROFESSIONAL TIMECODE SYSTEM: Setup comprehensive time displays
+    private func setupProfessionalTimecodes() {
+        print("⏱️ PROFESSIONAL TIMECODES: Setting up clean time display system")
+        
+        currentTimeLabel = createTimecodeLabel(
+            text: "00:00",
+            fontSize: 18,
+            backgroundColor: UIColor.black.withAlphaComponent(0.7),
+            textColor: UIColor.white
+        )
+        view.addSubview(currentTimeLabel)
+        
+        startTimeLabel = createSimpleTimecodeLabel(text: "00:00", fontSize: 14)
+        view.addSubview(startTimeLabel)
+        
+        endTimeLabel = createSimpleTimecodeLabel(text: "00:00", fontSize: 14)
+        view.addSubview(endTimeLabel)
+        
+        durationLabel = createSimpleTimecodeLabel(text: "00:16", fontSize: 14)
+        view.addSubview(durationLabel)
+        
+        scrubTimeLabel = createTimecodeLabel(text: "00:00", fontSize: 16, backgroundColor: UIColor.systemGreen.withAlphaComponent(0.9), textColor: UIColor.white)
+        scrubTimeLabel.isHidden = true
+        view.addSubview(scrubTimeLabel)
+        
+        print("✅ PROFESSIONAL TIMECODES: Clean timecode displays created")
+    }
+    
+    private func createSimpleTimecodeLabel(text: String, fontSize: CGFloat) -> UILabel {
+        let label = UILabel()
+        label.text = text
+        label.font = UIFont.monospacedDigitSystemFont(ofSize: fontSize, weight: .medium)
+        label.textColor = UIColor.white
+        label.backgroundColor = UIColor.clear
+        label.textAlignment = .center
+        label.sizeToFit()
+        
+        label.layer.shadowColor = UIColor.black.cgColor
+        label.layer.shadowOffset = CGSize(width: 0, height: 1)
+        label.layer.shadowRadius = 2
+        label.layer.shadowOpacity = 0.8
+        
+        return label
+    }
+    
+    private func createTimecodeLabel(text: String, fontSize: CGFloat, backgroundColor: UIColor, textColor: UIColor) -> UILabel {
+        let label = UILabel()
+        label.text = text
+        label.font = UIFont.monospacedDigitSystemFont(ofSize: fontSize, weight: .semibold)
+        label.textColor = textColor
+        label.backgroundColor = backgroundColor
+        label.textAlignment = .center
+        label.layer.cornerRadius = 6
+        label.layer.masksToBounds = true
+        label.sizeToFit()
+        
+        label.frame = CGRect(
+            x: label.frame.origin.x,
+            y: label.frame.origin.y,
+            width: label.frame.width + 16,
+            height: label.frame.height + 8
+        )
+        
+        return label
+    }
+    
+    // NON-DESTRUCTIVE: Setup edit history view
+    private func setupEditHistoryView() {
+        print("📝 EDIT HISTORY: Setting up non-destructive edit history view")
+        
+        editHistoryView = UIView()
+        editHistoryView.backgroundColor = UIColor.black.withAlphaComponent(0.8)
+        editHistoryView.layer.cornerRadius = 8
+        view.addSubview(editHistoryView)
+        
+        editHistoryStackView = UIStackView()
+        editHistoryStackView.axis = .horizontal
+        editHistoryStackView.spacing = 12
+        editHistoryStackView.alignment = .center
+        editHistoryStackView.distribution = .equalSpacing
+        editHistoryView.addSubview(editHistoryStackView)
+        
+        updateEditHistoryView()
+    }
+    
+    // NON-DESTRUCTIVE: Update edit history view with current operations
+    private func updateEditHistoryView() {
+        editHistoryStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        
+        if editStack.hasOperations {
+            for operation in editStack.operations {
+                let operationView = createOperationIndicatorView(for: operation)
+                editHistoryStackView.addArrangedSubview(operationView)
+            }
+            
+            let undoButton = createUndoRedoButton(
+                systemName: "arrow.uturn.backward",
+                action: #selector(undoLastEdit),
+                enabled: editStack.canUndo
+            )
+            editHistoryStackView.addArrangedSubview(undoButton)
+            
+            let redoButton = createUndoRedoButton(
+                systemName: "arrow.uturn.forward",
+                action: #selector(redoLastEdit),
+                enabled: editStack.canRedo
+            )
+            editHistoryStackView.addArrangedSubview(redoButton)
+            
+        } else {
+            let noEditsLabel = UILabel()
+            noEditsLabel.text = "No edits applied"
+            noEditsLabel.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+            noEditsLabel.textColor = UIColor.lightGray
+            editHistoryStackView.addArrangedSubview(noEditsLabel)
+        }
+    }
+    
+    private func createOperationIndicatorView(for operation: EditOperation) -> UIView {
+        let container = UIView()
+        container.backgroundColor = UIColor(red: 0.6, green: 0.2, blue: 0.8, alpha: 0.8)
+        container.layer.cornerRadius = 16
+        container.frame.size = CGSize(width: 32, height: 32)
+        
+        let imageView = UIImageView()
+        imageView.image = UIImage(systemName: operation.iconName)
+        imageView.tintColor = UIColor.white
+        imageView.contentMode = .scaleAspectFit
+        imageView.frame = container.bounds.insetBy(dx: 6, dy: 6)
+        container.addSubview(imageView)
+        
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(showOperationDetails))
+        tapGesture.accessibilityLabel = operation.id.uuidString
+        container.addGestureRecognizer(tapGesture)
+        container.isUserInteractionEnabled = true
+        
+        return container
+    }
+    
+    private func createUndoRedoButton(systemName: String, action: Selector, enabled: Bool) -> UIButton {
+        let button = UIButton(type: .system)
+        button.setImage(UIImage(systemName: systemName), for: .normal)
+        button.tintColor = enabled ? UIColor.white : UIColor.darkGray
+        button.backgroundColor = UIColor.black.withAlphaComponent(0.3)
+        button.layer.cornerRadius = 16
+        button.frame.size = CGSize(width: 32, height: 32)
+        button.addTarget(self, action: action, for: .touchUpInside)
+        button.isEnabled = enabled
+        
+        return button
+    }
+    
+    private func positionEditHistoryView() {
+        guard let editHistoryView = editHistoryView else { return }
+        
+        let safeArea = view.safeAreaInsets
+        let playerHeight: CGFloat = max(200, (view.bounds.height - safeArea.top - safeArea.bottom) * 0.5)
+        let editHistoryHeight: CGFloat = 60
+        let margin: CGFloat = 20
+        
+        let editHistoryY = safeArea.top + playerHeight + 20
+        
+        editHistoryView.frame = CGRect(
+            x: safeArea.left + margin,
+            y: editHistoryY,
+            width: view.bounds.width - safeArea.left - safeArea.right - (margin * 2),
+            height: editHistoryHeight
+        )
+        
+        editHistoryStackView.frame = editHistoryView.bounds.insetBy(dx: 16, dy: 12)
+    }
+    
+    private func positionTimecodeDisplays() {
+        guard let currentTimeLabel = currentTimeLabel,
+              let startTimeLabel = startTimeLabel,
+              let endTimeLabel = endTimeLabel,
+              let durationLabel = durationLabel,
+              let scrubTimeLabel = scrubTimeLabel else { return }
+        
+        let safeArea = view.safeAreaInsets
+        let margin: CGFloat = 16
+        
+        currentTimeLabel.frame.origin = CGPoint(x: safeArea.left + margin, y: safeArea.top + margin)
+        
+        if let trimmerView = self.trimmerView {
+            let trimmerFrame = trimmerView.frame
+            
+            startTimeLabel.sizeToFit()
+            startTimeLabel.frame.origin = CGPoint(
+                x: trimmerFrame.origin.x + 8,
+                y: trimmerFrame.origin.y - startTimeLabel.frame.height - 4
+            )
+            
+            endTimeLabel.sizeToFit()
+            endTimeLabel.frame.origin = CGPoint(
+                x: trimmerFrame.origin.x + trimmerFrame.width - endTimeLabel.frame.width - 8,
+                y: trimmerFrame.origin.y - endTimeLabel.frame.height - 4
+            )
+            
+            durationLabel.sizeToFit()
+            durationLabel.frame.origin = CGPoint(
+                x: trimmerFrame.origin.x + (trimmerFrame.width - durationLabel.frame.width) / 2,
+                y: trimmerFrame.origin.y + (trimmerFrame.height - durationLabel.frame.height) / 2
+            )
+            
+            trimHud.sizeToFit()
+            trimHud.frame = CGRect(
+                x: trimmerFrame.origin.x + (trimmerFrame.width - max(trimHud.frame.width, 88)) / 2,
+                y: trimmerFrame.origin.y - trimHud.frame.height - 16,
+                width: max(trimHud.frame.width + 16, 88),
+                height: 32
+            )
+            
+            scrubTimeLabel.sizeToFit()
+            scrubTimeLabel.frame = CGRect(
+                x: trimmerFrame.origin.x + (trimmerFrame.width - scrubTimeLabel.frame.width - 16) / 2,
+                y: trimmerFrame.origin.y - scrubTimeLabel.frame.height - 30,
+                width: scrubTimeLabel.frame.width + 16,
+                height: scrubTimeLabel.frame.height + 8
+            )
+        }
+        
+        print("✅ CLEAN TIMECODE POSITIONING: All timecode labels positioned cleanly")
+    }
+    
+    private func bringTimecodesToFront() {
+        view.bringSubviewToFront(currentTimeLabel)
+        
+        if let trimmerView = self.trimmerView {
+            view.bringSubviewToFront(durationLabel)
+            view.bringSubviewToFront(trimmerView)
+        }
+        
+        view.bringSubviewToFront(startTimeLabel)
+        view.bringSubviewToFront(endTimeLabel)
+        view.bringSubviewToFront(scrubTimeLabel)
+    }
+    
+    private func formatTime(_ time: CMTime) -> String {
+        guard !time.isIndefinite && time.isValid else { return "00:00" }
+        let totalSeconds = Int(CMTimeGetSeconds(time))
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        return String(format: "%02d:%02d", minutes, seconds)
+    }
+    
+    private func updateTimecodeDisplays() {
+        if let player = player {
+            let currentTime = player.currentTime()
+            currentTimeLabel.text = formatTime(currentTime)
+        }
+        
+        if let trimmerView = self.trimmerView,
+           let startTime = trimmerView.startTime,
+           let endTime = trimmerView.endTime {
+            
+            startTimeLabel.text = formatTime(startTime)
+            endTimeLabel.text = formatTime(endTime)
+            
+            let duration = CMTimeSubtract(endTime, startTime)
+            durationLabel.text = formatTime(duration)
+            trimHud.text = "Duration: \(formatTime(duration))"
+        } else {
+            Task {
+                do {
+                    let originalDuration = try await originalAsset.load(.duration)
+                    await MainActor.run {
+                        self.startTimeLabel.text = "00:00"
+                        self.endTimeLabel.text = self.formatTime(originalDuration)
+                        self.durationLabel.text = self.formatTime(originalDuration)
+                    }
+                } catch {
+                    print("❌ Failed to load duration for timecode display: \(error)")
+                }
+            }
+        }
+        
+        // CLEAN: Removed complex scrub time label logic - just hide it
+        scrubTimeLabel.isHidden = true
+    }
+    
+    private func updateNavigationBarForEditStack() {
+        if editStack.hasOperations {
+            navigationItem.rightBarButtonItem = UIBarButtonItem(
+                title: "Export",
+                style: .done,
+                target: self,
+                action: #selector(exportWithCurrentEdits)
+            )
+            navigationItem.rightBarButtonItem?.tintColor = UIColor(red: 0.6, green: 0.2, blue: 0.8, alpha: 1.0)
+        } else {
+            navigationItem.rightBarButtonItem = UIBarButtonItem(
+                title: "No Edits",
+                style: .plain,
+                target: nil,
+                action: nil
+            )
+            navigationItem.rightBarButtonItem?.isEnabled = false
+            navigationItem.rightBarButtonItem?.tintColor = UIColor.darkGray
+        }
+    }
+    
+    @MainActor
+    private func setupPlayer() {
+        print("🎬 PLAYER SETUP: Starting with enhanced video display")
+        
+        let initialAsset = originalAsset
+        
+        let playerItem = AVPlayerItem(asset: initialAsset)
+        player = AVPlayer(playerItem: playerItem)
+        playerLayer = AVPlayerLayer(player: player)
+        
+        playerLayer.backgroundColor = UIColor.black.cgColor
+        playerLayer.videoGravity = .resizeAspect
+        
+        if let originalOrientation = originalVideoOrientation {
+            playerLayer.videoGravity = originalOrientation == .portrait ? .resizeAspectFill : .resizeAspect
+        } else {
+            playerLayer.videoGravity = .resizeAspect
+        }
+        
+        let safeArea = view.safeAreaInsets
+        let initialHeight = max(200, view.bounds.height * 0.4)
+        playerLayer.frame = CGRect(
+            x: safeArea.left,
+            y: safeArea.top + 44,
+            width: view.bounds.width - safeArea.left - safeArea.right,
+            height: initialHeight
+        )
+        
+        view.layer.addSublayer(playerLayer)
+        
+        playerItem.addObserver(self, forKeyPath: "status", options: [.new], context: nil)
+        observedPlayerItem = playerItem
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(itemDidFinishPlaying(_:)),
+            name: .AVPlayerItemDidPlayToEndTime,
+            object: playerItem
+        )
+        
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(togglePlayback))
+        view.addGestureRecognizer(tapGesture)
+        
+        Task {
+            let result = await editStack.getPreviewComposition()
+            if let previewComposition = result.composition {
+                await MainActor.run {
+                    self.updatePlayerWithComposition(previewComposition, videoComposition: result.videoComposition)
+                }
+            }
+        }
+        
+        print("✅ PLAYER SETUP: Complete - starting in paused state")
+    }
+    
+    private func setupRealTrimmer() {
+        print("🎛️ CLEAN NATIVE TRIMMER: Using simple PryntTrimmerView implementation")
+        
+        // CLEAN: Create simple native trimmer
+        trimmerView = SimpleTrimmerView(frame: .zero)
+        
+        // Set delegate immediately - no complex timing needed
+        trimmerView.delegate = self
+        
+        // Basic configuration
+        trimmerView.minDuration = 1.0 // Allow short clips
+        
+        // Simple frame setup
+        let initialFrame = CGRect(x: 20, y: 100, width: max(200, view.bounds.width - 40), height: 60)
+        trimmerView.frame = initialFrame
+        
+        view.addSubview(trimmerView)
+        
+        // Set asset directly - no pendingURL or deferred loading
+        if let originalVideoPath = originalVideoPath {
+            let asset = AVURLAsset(url: URL(fileURLWithPath: originalVideoPath))
+            trimmerView.asset = asset
+            print("✅ CLEAN ASSET: Loaded directly into native trimmer")
+        } else if let currentVideoPath = currentVideoPath {
+            let asset = AVURLAsset(url: URL(fileURLWithPath: currentVideoPath))
+            trimmerView.asset = asset
+        }
+        
+        // No complex timing, no deferred delegate assignment
+        view.bringSubviewToFront(trimmerView)
+        
+        print("✅ CLEAN NATIVE TRIMMER: Setup complete with direct asset loading")
+    }
+    
+    // MARK: - Edit Stack Delegate Methods
+    
+    func editStackDidChange(_ editStack: EditStack) {
+        print("📝 EDIT STACK CHANGED: \(editStack.operationCount) operations")
+        print("🚨 DEBUG CRITICAL: EditStack changed - this should update 'No edits applied' text")
+        
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.updateEditHistoryView()
+            self.updateNavigationBarForEditStack()
+            self.refreshToolbarButtons()
+            self.updateTimecodeDisplays()
+        }
+    }
+    
+    func editStackPreviewDidUpdate(_ editStack: EditStack, composition: AVMutableComposition?, videoComposition: AVVideoComposition?) {
+        print("🔄 PREVIEW UPDATE: Composition available (with video composition: \(videoComposition != nil))")
+        
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if let newComposition = composition {
+                self.updatePlayerWithComposition(newComposition, videoComposition: videoComposition)
+            }
+        }
+    }
+    
+    // NON-DESTRUCTIVE: Update player with new composition and video composition for visual effects
+    private func updatePlayerWithComposition(_ composition: AVMutableComposition, videoComposition: AVVideoComposition? = nil) {
+        let currentTime = player?.currentTime() ?? .zero
+        player?.pause()
+        
+        if let observedItem = observedPlayerItem {
+            observedItem.removeObserver(self, forKeyPath: "status")
+            observedPlayerItem = nil
+        }
+        
+        removePeriodicTimeObserverIfNeeded()
+        
+        let newPlayerItem = AVPlayerItem(asset: composition)
+        
+        // CRITICAL FIX: Apply video composition for crop operations
+        if let videoComposition = videoComposition {
+            newPlayerItem.videoComposition = videoComposition
+            print("✅ CROP FIX: Applied video composition to player item - crop should now be visible")
+        }
+        
+        let newPlayer = AVPlayer(playerItem: newPlayerItem)
+        
+        self.player = newPlayer
+        self.playerLayer?.player = newPlayer
+        
+        newPlayerItem.addObserver(self, forKeyPath: "status", options: [.new], context: nil)
+        observedPlayerItem = newPlayerItem
+        
+        addPeriodicTimeObserver()
+        updatePlayPauseButton()
+        
+        Task { @MainActor in
+            if let duration = try? await composition.load(.duration) {
+                let safeTime = CMTimeMinimum(currentTime, duration)
+                self.player?.seek(to: safeTime, toleranceBefore: .zero, toleranceAfter: .zero, completionHandler: { _ in })
+            }
+        }
+    }
+    
+    // MARK: - Apple-Style UX Methods
+    
+    @objc private func handlePositionBarDrag(_ gesture: UIPanGestureRecognizer) {
+        // Keeping the method in place in case future logic references it, but it does nothing now.
+    }
+    
+    // MARK: - TrimmerViewDelegate Methods (COMPLETE IMPLEMENTATION)
+    
+    // Track previous trim range to detect handle movements
+    private var lastTrimStartTime: CMTime?
+    private var lastTrimEndTime: CMTime?
+    
+    private func onTrimmerRangeChanged(_ range: CMTimeRange) {
+        DispatchQueue.main.async {
+            guard range.duration.seconds.isFinite, range.duration.seconds > 0 else { return }
+            print("🔄 DEBUG onTrimmerRangeChanged fired – duration: \(range.duration.seconds)s")
+            self.hasPendingTrimChanges = true
+            self.pendingTrimRange = range
+            
+            self.trimHud.text = String(format: "  %02d:%02d  ",
+                                       Int(range.duration.seconds) / 60,
+                                       Int(range.duration.seconds) % 60)
+            if self.trimHud.isHidden {
+                self.trimHud.alpha = 0
+                self.trimHud.isHidden = false
+                UIView.animate(withDuration: 0.15) { self.trimHud.alpha = 1 }
+            }
+            
+            // CRITICAL FIX: Toolbar should always exist by now
+            self.updateToolbarForPendingTrim(true)
+        }
+    }
+    
+    // MARK: - TrimmerViewDelegate Methods (CLEAN NATIVE IMPLEMENTATION)
+    
+    func didChangePositionBar(_ playerTime: CMTime) {
+        print("🎯 CLEAN DELEGATE: didChangePositionBar fired with time \(playerTime.seconds)s")
+        
+        // CLEAN: Simple handle movement detection without complex state tracking
+        if let currentStartTime = trimmerView?.startTime,
+           let currentEndTime = trimmerView?.endTime {
+            
+            // Check if this is a handle movement (startTime/endTime changed significantly)
+            let startTimeChanged = lastTrimStartTime == nil ||
+                                 abs(currentStartTime.seconds - (lastTrimStartTime?.seconds ?? 0)) > 0.01
+            let endTimeChanged = lastTrimEndTime == nil ||
+                               abs(currentEndTime.seconds - (lastTrimEndTime?.seconds ?? 0)) > 0.01
+            
+            if startTimeChanged || endTimeChanged {
+                print("✂️ CLEAN TRIM CHANGE: Handle moved - start=\(currentStartTime.seconds)s, end=\(currentEndTime.seconds)s")
+                
+                // Create range and show Apply/Cancel
+                let range = CMTimeRange(start: currentStartTime, duration: CMTimeSubtract(currentEndTime, currentStartTime))
+                hasPendingTrimChanges = true
+                pendingTrimRange = range
+                updateToolbarForPendingTrim(true)
+                
+                // Update tracking
+                lastTrimStartTime = currentStartTime
+                lastTrimEndTime = currentEndTime
+                
+                // 🚫 REMOVED: Force seeking that was conflicting with native behavior
+                // Let native trimmer handle player synchronization automatically
+                print("✅ NATIVE SYNC: Letting native trimmer handle player synchronization")
+            }
+        }
+        
+        // CLEAN: Update displays
+        updateTimecodeDisplays()
+    }
+    
+    func positionBarStoppedMoving(_ playerTime: CMTime) {
+        print("🎯 CLEAN DELEGATE: positionBarStoppedMoving fired")
+        // Clean implementation - just update displays
+        updateTimecodeDisplays()
+    }
+    
+    // MARK: - Playback Monitoring
+    
+    // MARK: - REMOVED: Complex Playback Monitoring Systems
+    // These methods have been removed - native PryntTrimmerView handles synchronization
+    // private func startPlaybackTimeChecker() { ... }
+    // private func stopPlaybackTimeChecker() { ... }
+    // private func updatePlaybackTimeChecker() { ... }
+    // Native trimmer delegates provide all needed position updates
+    
+    private func addPeriodicTimeObserver() {
+        print("⏱️ TIME OBSERVER: Adding periodic time observer for trimmer sync")
+        
+        removePeriodicTimeObserverIfNeeded()
+        guard let player = player else { return }
+        
+        let timeScale = CMTimeScale(NSEC_PER_SEC)
+        let time = CMTime(seconds: 0.1, preferredTimescale: timeScale)
+        
+        timeObserver = player.addPeriodicTimeObserver(forInterval: time, queue: .main) { [weak self] time in
+            self?.handlePeriodicTimeUpdate(time)
+        }
+        timeObserverOwner = player
+    }
+    
+    private func removePeriodicTimeObserverIfNeeded() {
+        if let observer = timeObserver, let owner = timeObserverOwner {
+            owner.removeTimeObserver(observer)
+            timeObserver = nil
+            timeObserverOwner = nil
+            print("⏱️ TIME OBSERVER: Removed safely from owning player")
+        }
+    }
+    
+    private func handlePeriodicTimeUpdate(_ time: CMTime) {
+        // CLEAN: Only update time display - let native trimmer handle position bar
+        currentTimeLabel.text = formatTime(time)
+        
+        // 🚫 REMOVED: Manual trimmer sync that was conflicting with native behavior
+        // Old code: if !hasPendingTrimChanges { trimmerView?.seek(to: time) }
+        // Native trimmer should handle its own position bar updates
+        
+        // Only update our separate timecode displays (not the trimmer itself)
+        if !hasPendingTrimChanges {
+            updateTimecodeDisplays()
+        }
+    }
+    
+    @objc private func itemDidFinishPlaying(_ notification: Notification) {
+        print("🎬 PLAYBACK: Video finished playing")
+        
+        // 🎬 ONLY control the player - let native trimmer sync itself
+        player?.pause()
+        player?.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero, completionHandler: { _ in })
+        
+        // 🚫 REMOVED: Manual trimmer sync - let native handle this
+        // Old code: trimmerView.seek(to: .zero)
+        
+        // IMPORTANT: Update button when video finishes
+        updatePlayPauseButton()
+        updateTimecodeDisplays()
+        
+        print("✅ NATIVE SYNC: Player reset to beginning - native trimmer will sync automatically")
+    }
+    
+    // MARK: - Toolbar Setup
+    
+    internal func updateToolbarForPendingTrim(_ showApplyCancel: Bool) {
+        print("🔄 DEBUG updateToolbarForPendingTrim: showApplyCancel=\(showApplyCancel)")
+        
+        guard let toolbar = toolbar else {
+            print("🚨 CRITICAL ERROR: Toolbar should exist by now!")
+            return
+        }
+        
+        if showApplyCancel {
+            guard let applyButton = applyTrimButton,
+                  let cancelButton = cancelTrimButton else {
+                print("🚨 CRITICAL ERROR: Apply/Cancel buttons not initialized!")
+                return
+            }
+            
+            let flexibleSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+            let fixedSpace = UIBarButtonItem(barButtonSystemItem: .fixedSpace, target: nil, action: nil)
+            fixedSpace.width = 20
+            
+            toolbar.items = [
+                flexibleSpace,
+                cancelButton,
+                fixedSpace,
+                applyButton,
+                flexibleSpace
+            ]
+            toolbarMode = .pendingTrim
+            view.bringSubviewToFront(toolbar)
+            
+            print("✅ TOOLBAR SUCCESS: Showing Apply/Cancel buttons for pending trim")
+        } else {
+            recreateDefaultToolbarItems()
+            updatePlayPauseButton()
+            toolbarMode = .normal
+            view.bringSubviewToFront(toolbar)
+            
+            print("✅ TOOLBAR: Restored to normal mode")
+        }
+    }
+    
+    internal func recreateDefaultToolbarItems() {
+        guard let toolbar = toolbar else { return }
+        
+        print("🔧 TOOLBAR DEBUG: Recreating default toolbar items")
+        
+        let smartFillButton = UIBarButtonItem(
+            image: UIImage(systemName: "rectangle.fill.badge.plus"),
+            style: .plain,
+            target: self,
+            action: #selector(smartFillButtonTapped)
+        )
+        smartFillButton.tintColor = isShowingSmartFillVideo ? UIColor.systemGreen : UIColor(red: 0.6, green: 0.2, blue: 0.8, alpha: 1.0)
+        
+        let playPauseButton = UIBarButtonItem(
+            image: UIImage(systemName: player?.timeControlStatus == .playing ? "pause.circle.fill" : "play.circle.fill"),
+            style: .plain,
+            target: self,
+            action: #selector(togglePlayback)
+        )
+        playPauseButton.tintColor = UIColor(red: 0.6, green: 0.2, blue: 0.8, alpha: 1.0)
+        self.playPauseBarButton = playPauseButton
+        
+        print("🔧 TOOLBAR DEBUG: Created new playPauseButton: \(playPauseButton)")
+        
+        let jumpBackButton = UIBarButtonItem(
+            image: UIImage(systemName: "gobackward.5"),
+            style: .plain,
+            target: self,
+            action: #selector(jumpBack5Seconds)
+        )
+        jumpBackButton.tintColor = UIColor(red: 0.8, green: 0.3, blue: 0.7, alpha: 0.8)
+        
+        let jumpForwardButton = UIBarButtonItem(
+            image: UIImage(systemName: "goforward.5"),
+            style: .plain,
+            target: self,
+            action: #selector(jumpForward5Seconds)
+        )
+        jumpForwardButton.tintColor = UIColor(red: 0.8, green: 0.3, blue: 0.7, alpha: 0.8)
+        
+        let cropButton = UIBarButtonItem(
+            image: UIImage(systemName: "crop"),
+            style: .plain,
+            target: self,
+            action: #selector(cropButtonTapped)
+        )
+        cropButton.tintColor = UIColor(red: 0.6, green: 0.2, blue: 0.8, alpha: 1.0) // Match theme color
+        
+        let clearButton = UIBarButtonItem(
+            title: editStack.hasOperations ? "Clear All" : "No Edits",
+            style: .plain,
+            target: self,
+            action: editStack.hasOperations ? #selector(clearAllEdits) : nil
+        )
+        clearButton.tintColor = editStack.hasOperations ? UIColor.systemRed : UIColor.darkGray
+        clearButton.isEnabled = editStack.hasOperations
+        
+        let flexibleSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        let smallSpace = UIBarButtonItem(barButtonSystemItem: .fixedSpace, target: nil, action: nil)
+        smallSpace.width = 16
+        
+        toolbar.items = [
+            playPauseButton,
+            smallSpace,
+            jumpBackButton,
+            jumpForwardButton,
+            flexibleSpace,
+            smartFillButton,
+            flexibleSpace,
+            cropButton,
+            flexibleSpace,
+            clearButton
+        ]
+    }
+    
+    internal func updatePlayPauseButton() {
+        // Only update play/pause when in normal mode
+        guard toolbarMode == .normal else {
+            print("❌ BUTTON DEBUG: Not in normal mode, toolbarMode=\(toolbarMode)")
+            return
+        }
+        guard let playPauseButton = self.playPauseBarButton else {
+            print("❌ BUTTON DEBUG: playPauseBarButton is nil!")
+            return
+        }
+        
+        // FIX: Handle both playing AND waitingToPlayAtSpecifiedRate as "playing"
+        let timeControlStatus = player?.timeControlStatus ?? .paused
+        let isPlaying = timeControlStatus == .playing || timeControlStatus == .waitingToPlayAtSpecifiedRate
+        let iconName = isPlaying ? "pause.circle.fill" : "play.circle.fill"
+        
+        print("🔄 BUTTON DEBUG: status=\(timeControlStatus.rawValue), isPlaying=\(isPlaying), icon=\(iconName)")
+        
+        playPauseButton.image = UIImage(systemName: iconName)
+        playPauseButton.tintColor = UIColor(red: 0.6, green: 0.2, blue: 0.8, alpha: 1.0)
+        
+        print("✅ BUTTON DEBUG: Button updated successfully")
+    }
+    
+    internal func refreshToolbarButtons() {
+        guard let toolbar = self.toolbar, let items = toolbar.items, let last = items.last else { return }
+        last.title = editStack.hasOperations ? "Clear All" : "No Edits"
+        last.isEnabled = editStack.hasOperations
+        last.tintColor = editStack.hasOperations ? UIColor.systemRed : UIColor.darkGray
+    }
+    
+    // MARK: - CROP FUNCTIONALITY (IMPLEMENTED)
+    
+    @objc internal func cropButtonTapped() {
+        print("✂️ CROP: Starting crop functionality with asset classification")
+        
+        guard let player = player else {
+            print("❌ CROP: No player available")
+            showAlert(title: "Crop Error", message: "Video player not available for cropping")
+            return
+        }
+        
+        // BREAKTHROUGH FIX: Use modular editor if enabled, otherwise use legacy system
+        if STS_MODULAR_EDITOR_ENABLED, let coordinator = self.coordinator {
+            print("🧠 CROP: Using modular editor with proper asset classification")
+            
+            // Get current time for frame extraction
+            let currentTime = player.currentTime()
+            
+            // Use coordinator to handle crop with proper asset type detection
+            coordinator.handle(.openCrop(frame: UIImage(), time: currentTime))
+            return
+        }
+        
+        // LEGACY SYSTEM: Extract frame and use photo crop (will be deprecated)
+        print("⚠️ CROP: Using legacy photo crop system")
+        
+        let currentTime = player.currentTime()
+        
+        // Extract video frame at current time
+        extractVideoFrame(at: currentTime) { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let image):
+                    self?.presentCropViewController(with: image, at: currentTime)
+                case .failure(let error):
+                    print("❌ CROP: Failed to extract video frame: \(error)")
+                    self?.showAlert(title: "Crop Error", message: "Failed to extract video frame for cropping")
+                }
+            }
+        }
+    }
+    
+    // MARK: - Video Frame Extraction
+    
+    private func extractVideoFrame(at time: CMTime, completion: @escaping (Result<UIImage, Error>) -> Void) {
+        print("🎬 CROP: Extracting video frame at \(time.seconds)s")
+        
+        Task {
+            // Use the current composition if available, otherwise use original asset
+            let asset: AVAsset
+            let result = await editStack.getPreviewComposition()
+            if let composition = result.composition {
+                asset = composition
+            } else {
+                asset = originalAsset
+            }
+            
+            let imageGenerator = AVAssetImageGenerator(asset: asset)
+            imageGenerator.appliesPreferredTrackTransform = true
+            imageGenerator.requestedTimeToleranceBefore = .zero
+            imageGenerator.requestedTimeToleranceAfter = .zero
+            
+            // Set maximum size to maintain quality while keeping reasonable memory usage
+            imageGenerator.maximumSize = CGSize(width: 1920, height: 1920)
+            
+            do {
+                let cgImage = try await imageGenerator.image(at: time).image
+                let uiImage = UIImage(cgImage: cgImage)
+                completion(.success(uiImage))
+                print("✅ CROP: Successfully extracted video frame")
+            } catch {
+                print("❌ CROP: Frame extraction failed: \(error)")
+                completion(.failure(error))
+            }
+        }
+    }
+    
+    // MARK: - Crop View Controller
+    
+    private func presentCropViewController(with image: UIImage, at time: CMTime) {
+        print("✂️ CROP: Presenting crop view controller")
+        
+        let cropViewController = TOCropViewController(image: image)
+        cropViewController.delegate = self
+        
+        // Configure crop controller
+        cropViewController.modalPresentationStyle = .fullScreen
+        cropViewController.aspectRatioPreset = .presetOriginal
+        cropViewController.aspectRatioLockEnabled = false
+        cropViewController.resetAspectRatioEnabled = true
+        cropViewController.rotateButtonsHidden = false
+        cropViewController.rotateClockwiseButtonHidden = false
+        cropViewController.aspectRatioPickerButtonHidden = false
+        
+        // Store the time when this crop was initiated for later use
+        cropViewController.view.accessibilityLabel = "crop_time_\(time.seconds)"
+        
+        // Pause playback during cropping
+        player?.pause()
+        updatePlayPauseButton()
+        
+        present(cropViewController, animated: true) {
+            print("✅ CROP: Crop view controller presented")
+        }
+    }
+    
+
+    // MARK: - SmartFill Notification Setup
+    
+    private func setupSmartFillNotifications() {
+        print("🔔 SMARTFILL NOTIFICATIONS: Setting up completion observers")
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleSmartFillCompletionNotification(_:)),
+            name: Notification.Name("STSSmartFillCompleted"),
+            object: nil
+        )
+        
+        print("✅ SMARTFILL NOTIFICATIONS: Observer registered for completion")
+    }
+    // MARK: - Required Selectors / Actions
+    
+    @objc internal func clearAllEdits() {
+        print("🧹 Clearing all edits.")
+        editStack.clearAll()
+        recreateDefaultToolbarItems()
+        updateNavigationBarForEditStack()
+        updateTimecodeDisplays()
+        refreshToolbarButtons()
+    }
+    
+    @objc internal func applyPendingTrim() {
+        let range: CMTimeRange
+        if let pending = pendingTrimRange {
+            range = pending
+        } else if let start = self.trimmerView.startTime, let end = self.trimmerView.endTime {
+            range = CMTimeRange(start: start, duration: CMTimeSubtract(end, start))
+        } else {
+            print("⚠️ APPLY TRIM: No pending trim changes to apply")
+            return
+        }
+        
+        print("✅ APPLYING TRIM: \(formatTime(range.start)) - \(formatTime(CMTimeAdd(range.start, range.duration)))")
+        
+        // Persist trim into the non-destructive stack
+        editStack.replaceTrim(with: range)
+        editStack.regeneratePreview()
+        
+        // Clear pending state
+        hasPendingTrimChanges = false
+        pendingTrimStartTime = nil
+        pendingTrimEndTime = nil
+        pendingTrimRange = nil
+        
+        // Hide HUD
+        if !trimHud.isHidden {
+            UIView.animate(withDuration: 0.15, animations: { self.trimHud.alpha = 0 }) { _ in
+                self.trimHud.isHidden = true
+                self.trimHud.alpha = 1
+            }
+        }
+        
+        // Back to default controls
+        updateToolbarForPendingTrim(false)
+        toolbarMode = .normal
+        
+        // Light feedback
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+    }
+    
+    @objc internal func cancelPendingTrim() {
+        guard hasPendingTrimChanges else {
+            print("⚠️ CANCEL TRIM: No pending trim changes to cancel")
+            return
+        }
+        print("❌ CANCELING TRIM: Reverting pending changes")
+        hasPendingTrimChanges = false
+        pendingTrimStartTime = nil
+        pendingTrimEndTime = nil
+        pendingTrimRange = nil
+        if !trimHud.isHidden {
+            UIView.animate(withDuration: 0.15, animations: { self.trimHud.alpha = 0 }) { _ in
+                self.trimHud.isHidden = true
+                self.trimHud.alpha = 1
+            }
+        }
+        updateToolbarForPendingTrim(false)
+        toolbarMode = .normal
+        updateTimecodeDisplays()
+    }
+    
+    @objc internal func cancelEdits() {
+        print("❌ EDITOR: Canceling edits and dismissing")
+        player?.pause()
+        removePeriodicTimeObserverIfNeeded()
+        if let observedItem = observedPlayerItem {
+            observedItem.removeObserver(self, forKeyPath: "status")
+            observedPlayerItem = nil
+        }
+        if let navigationController = navigationController {
+            navigationController.dismiss(animated: true) { [weak self] in
+                self?.onCancel?()
+            }
+        } else {
+            onCancel?()
+        }
+    }
+    
+    @objc internal func togglePlayback() {
+        guard let player = player else { return }
+        
+        print("🎬 TOGGLE DEBUG: Current status before toggle: \(player.timeControlStatus.rawValue)")
+        
+        if player.timeControlStatus == .playing {
+            player.pause()
+            print("⏸️ TOGGLE DEBUG: Called pause(), new status: \(player.timeControlStatus.rawValue)")
+        } else {
+            // SMART RESTART: If we're at the very end, restart from beginning
+            let currentTime = player.currentTime()
+            let duration = player.currentItem?.duration ?? .zero
+            
+            // Check if we're within 0.1 seconds of the end (to account for floating point precision)
+            let isAtEnd = abs(currentTime.seconds - duration.seconds) < 0.1
+            
+            if isAtEnd && duration.seconds > 0 {
+                print("🔄 TOGGLE DEBUG: Smart restart - seeking to zero then playing")
+                
+                // Restart from beginning with proper button updates
+                player.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] _ in
+                    // 🚫 REMOVED: Manual trimmer sync - let native handle this
+                    // Old code: self?.trimmerView.seek(to: .zero)
+                    
+                    self?.player?.play()
+                    print("▶️ TOGGLE DEBUG: Restarted play - native trimmer will sync")
+                    self?.updateTimecodeDisplays()
+                    
+                    // Update button after play starts
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        self?.updatePlayPauseButton()
+                    }
+                }
+            } else {
+                // Normal play from current position
+                print("▶️ TOGGLE DEBUG: Normal play from \(currentTime.seconds)s")
+                player.play()
+                print("▶️ TOGGLE DEBUG: Called play(), new status: \(player.timeControlStatus.rawValue)")
+            }
+        }
+        
+        // Update button immediately for immediate visual feedback
+        print("🔄 TOGGLE DEBUG: Calling updatePlayPauseButton immediately")
+        updatePlayPauseButton()
+    }
+    
+    @objc internal func jumpForward5Seconds() {
+        guard let player = player else { return }
+        let current = player.currentTime()
+        let newTime = CMTimeAdd(current, CMTime(seconds: 5, preferredTimescale: 600))
+        let maxTime = player.currentItem?.asset.duration ?? .positiveInfinity
+        let jumpTo = CMTimeMinimum(newTime, maxTime)
+        
+        // 🎬 ONLY seek the player - let native trimmer sync itself
+        player.seek(to: jumpTo, toleranceBefore: .zero, toleranceAfter: .zero, completionHandler: { _ in })
+        
+        // 🚫 REMOVED: Manual trimmer sync - let native handle this
+        // Old code: trimmerView.seek(to: jumpTo)
+        
+        updateTimecodeDisplays()
+        print("🎬 JUMP: Jumped forward 5 seconds - native trimmer will sync")
+    }
+    
+    @objc internal func jumpBack5Seconds() {
+        guard let player = player else { return }
+        let current = player.currentTime()
+        let newTime = CMTimeSubtract(current, CMTime(seconds: 5, preferredTimescale: 600))
+        let jumpTo = CMTimeMaximum(newTime, .zero)
+        
+        // 🎬 ONLY seek the player - let native trimmer sync itself
+        player.seek(to: jumpTo, toleranceBefore: .zero, toleranceAfter: .zero, completionHandler: { _ in })
+        
+        // 🚫 REMOVED: Manual trimmer sync - let native handle this
+        // Old code: trimmerView.seek(to: jumpTo)
+        
+        updateTimecodeDisplays()
+        print("🎬 JUMP: Jumped back 5 seconds - native trimmer will sync")
+    }
+    
+    @objc internal func smartFillButtonTapped() {
+        print("🎭 SmartFill settings would open here (stub).")
+    }
+
+    @objc private func handleSmartFillCompletionNotification(_ notification: Notification) {
+        print("🎉 SMARTFILL COMPLETION: Received completion notification!")
+        
+        guard let userInfo = notification.userInfo,
+              let smartFillPath = userInfo["smartFillPath"] as? String else {
+            print("❌ SMARTFILL COMPLETION: Missing smartFillPath in notification")
+            return
+        }
+        
+        print("✅ SMARTFILL COMPLETION: SmartFill completed")
+        print("   📁 SmartFill video: \(URL(fileURLWithPath: smartFillPath).lastPathComponent)")
+        
+        DispatchQueue.main.async { [weak self] in
+            self?.switchToSmartFillVideo(smartFillPath: smartFillPath)
+        }
+    }
+
+    private func switchToSmartFillVideo(smartFillPath: String) {
+        print("🔄 SWITCHING TO SMARTFILL: Loading SmartFill landscape video")
+        
+        guard FileManager.default.fileExists(atPath: smartFillPath) else {
+            print("❌ SWITCH TO SMARTFILL: SmartFill file not found: \(smartFillPath)")
+            showAlert(title: "SmartFill Error", message: "SmartFill video file not found")
+            return
+        }
+        
+        let smartFillURL = URL(fileURLWithPath: smartFillPath)
+        let smartFillAsset = AVURLAsset(url: smartFillURL)
+        
+        self.originalAsset = smartFillAsset
+        self.isShowingSmartFillVideo = true
+        self.currentVideoPath = smartFillPath
+        
+        self.editStack = EditStack(sourceAsset: smartFillAsset)
+        self.editStack.delegate = self
+        
+        updatePlayerWithSmartFillAsset(smartFillAsset)
+        
+        self.trimmerView?.asset = smartFillAsset
+        
+        if STS_MODULAR_EDITOR_ENABLED {
+            Task { @MainActor in
+                let landscapeKind = AssetKind.videoLandscape(url: smartFillURL)
+                if let coordinator = self.coordinator {
+                    coordinator.assetKind = landscapeKind
+                    self.reloadSurface(for: landscapeKind)
+                    self.updateToolbar(for: .playback, kind: landscapeKind)
+                } else {
+                    self.enableModularEditor(at: smartFillURL)
+                }
+            }
+        } else {
+            recreateDefaultToolbarItems()
+            updatePlayPauseButton()
+        }
+        
+        self.navigationItem.title = "Edit SmartFill Video"
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        
+        print("✅ SWITCH TO SMARTFILL: Successfully switched to landscape SmartFill video")
+    }
+
+    private func updatePlayerWithSmartFillAsset(_ asset: AVAsset) {
+        print("🎬 UPDATING PLAYER: Switching to SmartFill landscape video")
+        
+        player?.pause()
+        
+        if let observedItem = observedPlayerItem {
+            observedItem.removeObserver(self, forKeyPath: "status")
+            observedPlayerItem = nil
+        }
+        
+        removePeriodicTimeObserverIfNeeded()
+        
+        let newPlayerItem = AVPlayerItem(asset: asset)
+        let newPlayer = AVPlayer(playerItem: newPlayerItem)
+        
+        self.player = newPlayer
+        self.playerLayer?.player = newPlayer
+        self.playerLayer?.videoGravity = .resizeAspect
+        
+        newPlayerItem.addObserver(self, forKeyPath: "status", options: [.new], context: nil)
+        observedPlayerItem = newPlayerItem
+        
+        addPeriodicTimeObserver()
+        updatePlayPauseButton()
+        updateTimecodeDisplays()
+        
+        print("✅ PLAYER UPDATE: SmartFill landscape video loaded successfully")
+    }
+    
+    @objc internal func undoLastEdit() {
+        if editStack.canUndo {
+            _ = editStack.undo()
+            print("↩️ UNDO: Performed undo")
+        }
+    }
+    
+    @objc internal func redoLastEdit() {
+        if editStack.canRedo {
+            _ = editStack.redo()
+            print("↪️ REDO: Performed redo")
+        }
+    }
+    
+    @objc internal func showOperationDetails(_ gesture: UITapGestureRecognizer) {
+        print("ℹ️ Operation details tapped (stub).")
+    }
+    
+    @objc internal func exportWithCurrentEdits() {
+        print("📤 EXPORT: Starting export with current edits")
+        
+        // Check if we have edits to export
+        guard editStack.hasOperations else {
+            showAlert(title: "No Edits", message: "There are no edits to export. Make some changes first.")
+            return
+        }
+        
+        // Get current video path
+        guard let currentVideoPath = currentVideoPath else {
+            showAlert(title: "Export Error", message: "Unable to determine video file location.")
+            return
+        }
+        
+        // Use EditStack built-in export
+        let originalURL = URL(fileURLWithPath: currentVideoPath)
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("(UUID().uuidString)_export.mov")
+        
+        // Show simple progress alert
+        let alert = UIAlertController(title: "Exporting Video", message: "Please wait...", preferredStyle: .alert)
+        present(alert, animated: true)
+        
+        // Use EditStack export
+        editStack.exportToURL(tempURL, quality: AVAssetExportPresetHighestQuality) { progress in
+            // Update on main thread
+            DispatchQueue.main.async {
+                alert.message = "Exporting... (Int(progress * 100))%"
+            }
+                    // CRITICAL FIX: Extract edit metadata from EditStack operations before clearing
+                    let editMetadata = self.extractEditMetadata(from: self.editStack)
+                    
+                    // Get current take info for repository update
+                    let takeID = self.currentTake?.id
+                    let sessionID = self.currentSession?.id
+                    let projectID = self.currentProject?.id
+                    
+                } completion: { result in
+            DispatchQueue.main.async {
+                alert.dismiss(animated: true) {
+                    switch result {
+                    case .success(_):
+                        // Replace original file with exported version
+                        do {
+                            let backupURL = originalURL.appendingPathExtension("backup")
+                            if FileManager.default.fileExists(atPath: backupURL.path) {
+                                try FileManager.default.removeItem(at: backupURL)
+                            }
+                            try FileManager.default.copyItem(at: originalURL, to: backupURL)
+                            _ = try FileManager.default.replaceItem(at: originalURL, withItemAt: tempURL, backupItemName: nil, options: [], resultingItemURL: nil)
+                            
+                            // Clear edit stack since changes are saved
+                            self.editStack.clearAll()
+                            self.updateNavigationBarForEditStack()
+                            self.refreshToolbarButtons()
+                            
+                            // Show success
+                            let successAlert = UIAlertController(title: "Export Complete", message: "Your edited video has been saved successfully. The original is preserved as a backup.", preferredStyle: .alert)
+                            successAlert.addAction(UIAlertAction(title: "OK", style: .default) { _ in
+                                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                            })
+                            self.present(successAlert, animated: true)
+                            
+                        } catch {
+                            self.showAlert(title: "Export Error", message: "Export completed but failed to save: (error.localizedDescription)")
+                        }
+                    case .failure(let error):
+                        self.showAlert(title: "Export Failed", message: "Export failed: (error.localizedDescription)")
+                    }
+                }
+            }
+        }
+    }
+    
+    private func showAlert(title: String, message: String, completion: (() -> Void)? = nil) {
+        DispatchQueue.main.async {
+            let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default) { _ in
+                completion?()
+            })
+            self.present(alert, animated: true)
+        }
+    }
+    
+    // MARK: - KVO for Player
+    
+    override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+        if keyPath == "status", let playerItem = object as? AVPlayerItem {
+            switch playerItem.status {
+            case .readyToPlay:
+                print("✅ PLAYER: Ready to play")
+                DispatchQueue.main.async {
+                    self.updatePlayPauseButton()
+                    self.updateTimecodeDisplays()
+                }
+            case .failed:
+                print("❌ PLAYER: Failed to load - \(playerItem.error?.localizedDescription ?? "Unknown error")")
+                DispatchQueue.main.async {
+                    self.showAlert(title: "Video Error", message: "Failed to load video: \(playerItem.error?.localizedDescription ?? "Unknown error")")
+                }
+            case .unknown:
+                print("⚠️ PLAYER: Unknown status")
+            @unknown default:
+                break
+            }
+        }
+    }
+    
+    // CRITICAL FIX: Extract edit metadata from EditStack operations
+    private func extractEditMetadata(from editStack: EditStack) -> TakeEditMetadata {
+        var hasTrimming = false
+        var trimStartTime: Double?
+        var trimEndTime: Double?
+        var hasCropping = false
+        var cropRect: CGRect?
+        
+        // Extract trim and crop information from edit stack operations
+        for operation in editStack.operations {
+            switch operation {
+            case let trimOp as TrimOperation:
+                hasTrimming = true
+                trimStartTime = trimOp.trimStartTime.seconds
+                trimEndTime = trimOp.trimEndTime.seconds
+            case let cropOp as CropOperation:
+                hasCropping = true
+                cropRect = cropOp.normalizedCropRect
+            default:
+                print("⚠️ Unknown operation type in edit stack: \(type(of: operation))")
+            }
+        }
+        
+        let metadata = TakeEditMetadata(
+            hasTrimming: hasTrimming,
+            trimStartTime: trimStartTime,
+            trimEndTime: trimEndTime,
+            hasCropping: hasCropping,
+            cropRect: cropRect
+        )
+        
+        print("📝 EDIT METADATA: Extracted - \(metadata.editSummary)")
+        return metadata
+    }
+
+    // MARK: - Trim HUD
+    
+    private func setupTrimHud() {
+        print("🟢 TRIM HUD: Setting up")
+        trimHud.font = UIFont.monospacedDigitSystemFont(ofSize: 16, weight: .semibold)
+        trimHud.textColor = .white
+        trimHud.backgroundColor = UIColor.systemGreen.withAlphaComponent(0.92)
+        trimHud.layer.cornerRadius = 10
+        trimHud.clipsToBounds = true
+        trimHud.textAlignment = .center
+        trimHud.isHidden = true
+        trimHud.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(trimHud)
+    }
+    
+    @objc private func handleTrimmerTap(_ gesture: UITapGestureRecognizer) {
+        return
+    }
+    
+    // MARK: - TrimmerViewDelegate Methods
+    
+    private func handlePeriodicSeek(to time: CMTime) {
+        player?.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero, completionHandler: { _ in })
+    }
+}
+
+// MARK: - SmartFillProcessingDelegate
+extension LightweightEditorViewController {
+    func smartFillDidFinish(takeID: UUID, outputURL: URL) {
+        print("✅ SmartFill completed for take: \(takeID), url: \(outputURL)")
+    }
+    
+    func smartFillDidFail(takeID: UUID, error: Error) {
+        print("❌ SmartFill failed for take: \(takeID) - \(error)")
+    }
+}
+
+// MARK: - TOCropViewControllerDelegate Methods
+extension LightweightEditorViewController {
+    
+    func cropViewController(_ cropViewController: TOCropViewController, didCropToImage image: UIImage, withRect cropRect: CGRect, angle: Int) {
+        print("🚨 ENTERED TOCropViewControllerDelegate didCropToImage!")
+
+        // Extract the original time from the accessibility label if available
+        let timeString = cropViewController.view.accessibilityLabel?.replacingOccurrences(of: "crop_time_", with: "") ?? "0"
+        let cropTime = CMTime(seconds: Double(timeString) ?? 0, preferredTimescale: 600)
+        
+        // Get the original image size to normalize the crop rect
+        let originalImageSize = image.size
+        
+        // Calculate normalized crop rect (0.0 to 1.0 coordinates)
+        let normalizedCropRect = CGRect(
+            x: cropRect.origin.x / originalImageSize.width,
+            y: cropRect.origin.y / originalImageSize.height,
+            width: cropRect.size.width / originalImageSize.width,
+            height: cropRect.size.height / originalImageSize.height
+        )
+        
+        print("📐 CROP: Normalized crop rect: \(normalizedCropRect)")
+        
+        // Create and apply crop operation to edit stack
+        let cropOperation = CropOperation(normalizedCropRect: normalizedCropRect)
+        editStack.apply(operation: cropOperation)
+        
+        print("🎯 CROP DEBUG: Applied crop operation to edit stack")
+        print("🎯 CROP DEBUG: Edit stack now has \(editStack.operationCount) operations")
+        print("🎯 CROP DEBUG: Edit stack operations: \(editStack.operations.map { $0.displayName })")
+
+        // Dismiss the crop controller
+        cropViewController.dismiss(animated: true) { [weak self] in
+            print("✅ CROP: Crop view controller dismissed")
+            
+            // Provide haptic feedback
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            
+            // Update UI to reflect new crop operation
+            self?.updateNavigationBarForEditStack()
+            self?.refreshToolbarButtons()
+            
+            // Resume playback at the original position if it was playing
+            if let player = self?.player {
+                player.seek(to: cropTime, toleranceBefore: .zero, toleranceAfter: .zero) { _ in
+                    // Optionally resume playback - for now leave paused so user can see the crop result
+                }
+            }
+        }
+    }
+    
+    func cropViewController(_ cropViewController: TOCropViewController, didFinishCancelled cancelled: Bool) {
+        print("🚨 ENTERED TOCropViewControllerDelegate didFinishCancelled!")
+
+        cropViewController.dismiss(animated: true) { [weak self] in
+            print("✅ CROP: Crop view controller dismissed after cancellation")
+            
+            // Resume playback state
+            self?.updatePlayPauseButton()
+        }
+    }
+}

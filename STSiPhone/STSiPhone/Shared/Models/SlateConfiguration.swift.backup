@@ -1,0 +1,101 @@
+import Foundation
+
+/// Configuration for slate recording in Self Tape Studio
+struct SlateConfiguration: Codable {
+    let actorName: String
+    let height: String
+    let location: String
+    let unionStatus: UnionStatus
+    let customNotes: String
+    
+    init(
+        actorName: String = "",
+        height: String = "",
+        location: String = "",
+        unionStatus: UnionStatus = .none,
+        customNotes: String = ""
+    ) {
+        self.actorName = actorName
+        self.height = height
+        self.location = location
+        self.unionStatus = unionStatus
+        self.customNotes = customNotes
+    }
+    
+    var isEmpty: Bool {
+        return actorName.isEmpty && height.isEmpty && location.isEmpty && customNotes.isEmpty
+    }
+    
+    var slateText: String {
+        var components: [String] = []
+        
+        if !actorName.isEmpty {
+            components.append("Hi, I'm \(actorName)")
+        }
+        
+        if !height.isEmpty {
+            components.append("I'm \(height)")
+        }
+        
+        if !location.isEmpty {
+            components.append("from \(location)")
+        }
+        
+        if unionStatus != .none {
+            components.append("I'm \(unionStatus.displayName)")
+        }
+        
+        if !customNotes.isEmpty {
+            components.append(customNotes)
+        }
+        
+        return components.isEmpty ? "Hi, I'm ready for my audition." : components.joined(separator: ". ") + "."
+    }
+}
+
+enum UnionStatus: String, Codable, CaseIterable {
+    case none = "none"
+    case sagAftra = "sagAftra"
+    case equity = "equity"
+    case nonUnion = "nonUnion"
+    
+    var displayName: String {
+        switch self {
+        case .none:
+            return ""
+        case .sagAftra:
+            return "SAG-AFTRA"
+        case .equity:
+            return "Equity"
+        case .nonUnion:
+            return "Non-Union"
+        }
+    }
+}
+extension SlateConfiguration {
+    /// Creates a SlateConfiguration from ActorProfile and project information
+    static func from(actorProfile: ActorProfile, project: Project? = nil, customNotes: String = "") -> SlateConfiguration {
+        // Map SAG status to UnionStatus
+        let unionStatus: UnionStatus = {
+            switch actorProfile.sagStatus {
+            case .member:
+                return .sagAftra
+            case .eligible:
+                return .sagAftra
+            case .nonUnion:
+                return .nonUnion
+            }
+        }()
+        
+        // Use project custom notes if available, otherwise fall back to parameter
+        let finalCustomNotes = customNotes
+        
+        return SlateConfiguration(
+            actorName: actorProfile.displayName,
+            height: actorProfile.height,
+            location: "", // Could be added to ActorProfile if needed
+            unionStatus: unionStatus,
+            customNotes: finalCustomNotes
+        )
+    }
+}

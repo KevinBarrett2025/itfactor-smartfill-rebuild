@@ -1,0 +1,774 @@
+import Foundation
+import AVFoundation
+
+// MARK: - Smart Fill Support Types
+public enum VideoOrientation: String, Codable, CaseIterable, Sendable {
+    case landscape
+    case portrait
+    
+    public var displayName: String {
+        switch self {
+        case .landscape: return "Landscape"
+        case .portrait: return "Portrait"
+        }
+    }
+    
+    public var icon: String {
+        switch self {
+        case .landscape: return "rectangle.landscape.rotate"
+        case .portrait: return "rectangle.portrait.rotate"
+        }
+    }
+}
+
+public enum TriState: String, Codable, CaseIterable {
+    case inherit
+    case on
+    case off
+    
+    public var displayName: String {
+        switch self {
+        case .inherit: return "Inherit"
+        case .on: return "On"
+        case .off: return "Off"
+        }
+    }
+}
+
+public enum SessionType: String, Codable, CaseIterable, Identifiable {
+    case selfTape = "Self-Tape"
+    case callback = "Callback"
+    case chemistryRead = "Chemistry Read"
+    case inPerson = "In-Person"
+    public var id: String { rawValue }
+}
+
+// MARK: - Take Classification Types
+public enum TakeType: String, CaseIterable, Codable {
+    case regular = "regular"
+    case merged = "merged"    // This is a merged video combining multiple takes
+    case slate = "slate"      // This is a slate take
+    case exported = "exported" // This is an exported individual file
+    
+    public var displayName: String {
+        switch self {
+        case .regular: return "Take"
+        case .merged: return "Merged Video"
+        case .slate: return "Slate"
+        case .exported: return "Exported Take"
+        }
+    }
+    
+    public var icon: String {
+        switch self {
+        case .regular: return "video.fill"
+        case .merged: return "film.stack.fill"
+        case .slate: return "person.crop.rectangle.fill"
+        case .exported: return "square.and.arrow.up.fill"
+        }
+    }
+}
+
+public struct Contact: Codable, Equatable {
+    public var name: String
+    public var email: String?
+    public var phone: String?
+    public init(name: String, email: String? = nil, phone: String? = nil) {
+        self.name = name; self.email = email; self.phone = phone
+    }
+}
+
+public struct LocationInfo: Codable, Equatable {
+    public var label: String   // e.g., "Casting Office", "Studio"
+    public var address: String?
+    public init(label: String, address: String? = nil) {
+        self.label = label; self.address = address
+    }
+}
+
+// ENHANCED: Video marker model for professional annotation system
+public struct TakeVideoMarker: Identifiable, Codable, Equatable {
+    public let id: UUID
+    public let timestamp: TimeInterval  // Time in seconds
+    public let title: String           // e.g., "Great expression", "Remember line"
+    public let description: String?    // Optional detailed description
+    public let type: MarkerType       // Type of marker for color/icon
+    public let createdAt: Date        // When marker was created
+    
+    public enum MarkerType: String, CaseIterable, Codable {
+        case good = "good"
+        case note = "note"
+        case problem = "problem"
+        case favorite = "favorite"
+        
+        public var iconName: String {
+            switch self {
+            case .good: return "checkmark.circle.fill"
+            case .note: return "note.text"
+            case .problem: return "exclamationmark.triangle.fill"
+            case .favorite: return "star.fill"
+            }
+        }
+        
+        public var displayName: String {
+            switch self {
+            case .good: return "Good"
+            case .note: return "Note"
+            case .problem: return "Issue"
+            case .favorite: return "Star"
+            }
+        }
+    }
+    
+    public init(timestamp: TimeInterval, title: String, description: String? = nil, type: MarkerType, createdAt: Date = Date()) {
+        self.id = UUID() // FIXED: Initialize in constructor instead of default value
+        self.timestamp = timestamp
+        self.title = title
+        self.description = description
+        self.type = type
+        self.createdAt = createdAt
+    }
+}
+
+// NEW: Export tracking metadata for post-export flow
+public struct ExportMetadata: Codable, Equatable {
+    public let exportID: UUID
+    public let exportDate: Date
+    public let exportType: ExportType
+    public let originalTakeIDs: [UUID] // Track which individual takes were included
+    public let exportOptions: ExportOptionsSnapshot
+    
+    public enum ExportType: String, CaseIterable, Codable {
+        case merged = "merged"
+        case separate = "separate"
+        
+        public var displayName: String {
+            switch self {
+            case .merged: return "Merged Video"
+            case .separate: return "Separate Files"
+            }
+        }
+        
+        public var icon: String {
+            switch self {
+            case .merged: return "film.fill"
+            case .separate: return "doc.on.doc.fill"
+            }
+        }
+    }
+    
+    public init(exportID: UUID = UUID(), exportDate: Date = Date(), exportType: ExportType, originalTakeIDs: [UUID], exportOptions: ExportOptionsSnapshot) {
+        self.exportID = exportID
+        self.exportDate = exportDate
+        self.exportType = exportType
+        self.originalTakeIDs = originalTakeIDs
+        self.exportOptions = exportOptions
+    }
+}
+
+// NEW: Snapshot of export options for tracking
+public struct ExportOptionsSnapshot: Codable, Equatable {
+    public let quality: String
+    public let format: String
+    public let includedMarkers: Bool
+    public let takeCount: Int
+    
+    public init(quality: String, format: String, includedMarkers: Bool, takeCount: Int) {
+        self.quality = quality
+        self.format = format
+        self.includedMarkers = includedMarkers
+        self.takeCount = takeCount
+    }
+}
+
+// NEW: Edit tracking metadata for crop/trim operations
+public struct TakeEditMetadata: Codable, Equatable {
+    public let editID: UUID
+    public let editedDate: Date
+    
+    // Trimming data
+    public let hasTrimming: Bool
+    public let trimStartTime: Double? // In seconds
+    public let trimEndTime: Double?   // In seconds
+    
+    // Cropping data
+    public let hasCropping: Bool
+    public let cropRect: CGRect?      // Normalized coordinates (0.0 to 1.0)
+    
+    public init(
+        editID: UUID = UUID(),
+        editedDate: Date = Date(),
+        hasTrimming: Bool = false,
+        trimStartTime: Double? = nil,
+        trimEndTime: Double? = nil,
+        hasCropping: Bool = false,
+        cropRect: CGRect? = nil
+    ) {
+        self.editID = editID
+        self.editedDate = editedDate
+        self.hasTrimming = hasTrimming
+        self.trimStartTime = trimStartTime
+        self.trimEndTime = trimEndTime
+        self.hasCropping = hasCropping
+        self.cropRect = cropRect
+    }
+    
+    // Computed properties
+    public var hasEdits: Bool {
+        return hasTrimming || hasCropping
+    }
+    
+    public var editSummary: String {
+        var parts: [String] = []
+        if hasTrimming {
+            if let start = trimStartTime, let end = trimEndTime {
+                parts.append("Trimmed (\(Int(end - start))s)")
+            } else {
+                parts.append("Trimmed")
+            }
+        }
+        if hasCropping {
+            parts.append("Cropped")
+        }
+        return parts.isEmpty ? "No edits" : parts.joined(separator: ", ")
+    }
+}
+
+public struct ProjectTake: Identifiable, Codable, Equatable {
+    public let id: UUID
+    public let filePath: String
+    public let durationSeconds: Double
+    public let thumbnailPath: String?
+    public var takeNotes: String?  // Make mutable for repository updates
+    public let createdAt: Date
+    public var videoMarkers: [TakeVideoMarker]  // Make mutable for repository updates
+    
+    // UNIFIED: Replace ALL legacy boolean flags with single TakeRating
+    public var rating: TakeRating = .unrated
+    
+    // NEW: Scene organization fields (Phase 2: Data Architecture)
+    public var sceneNumber: Int = 1           // Which scene this take belongs to
+    public var takeNumber: Int = 1            // Take number within the scene
+    public var slateNumber: String? = nil     // Optional slate identifier (e.g., "1A", "2B")
+    public var slateID: String? = nil         // Alternative slate identifier for complex projects
+    
+    // NEW: Video orientation for Smart Fill system
+    public var capturedOrientation: VideoOrientation? = nil  // Portrait/Landscape when recorded
+    public var overrideSmartFill: TriState? = nil            // Override Smart Fill policy
+    
+    // NEW: SmartFill file management - THE CRITICAL FIX FOR PHASE 2-3
+    public var smartFilledFilePath: String? = nil            // Path to _smartfill.mov version
+    public var editedFilePath: String? = nil    // 🚨 NEW: Path to _edited.mov version
+    
+    // NEW: Export tracking for post-export flow
+    public var exportMetadata: ExportMetadata?  // Present for merged/exported videos
+    public var exportedFromTakeIDs: [UUID] = []  // Track export status on individual takes
+    public var lastExportDate: Date?  // When this take was last exported
+    
+    // NEW: Take type classification
+    public var takeType: TakeType = .regular
+    
+    // 🚨 NEW: Edit metadata for crop/trim operations
+    public var editMetadata: TakeEditMetadata? = nil
+    
+    // CUSTOM DECODER: Provide default values for new fields to fix migration
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        id = try container.decode(UUID.self, forKey: .id)
+        filePath = try container.decode(String.self, forKey: .filePath)
+        durationSeconds = try container.decode(Double.self, forKey: .durationSeconds)
+        thumbnailPath = try container.decodeIfPresent(String.self, forKey: .thumbnailPath)
+        takeNotes = try container.decodeIfPresent(String.self, forKey: .takeNotes)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        videoMarkers = try container.decodeIfPresent([TakeVideoMarker].self, forKey: .videoMarkers) ?? []
+        rating = try container.decodeIfPresent(TakeRating.self, forKey: .rating) ?? .unrated
+        
+        // NEW SCENE ORGANIZATION FIELDS: Provide smart defaults for backward compatibility
+        sceneNumber = try container.decodeIfPresent(Int.self, forKey: .sceneNumber) ?? 1
+        takeNumber = try container.decodeIfPresent(Int.self, forKey: .takeNumber) ?? 1
+        slateNumber = try container.decodeIfPresent(String.self, forKey: .slateNumber)
+        slateID = try container.decodeIfPresent(String.self, forKey: .slateID)
+        
+        // NEW: Smart Fill orientation fields with backward compatibility
+        capturedOrientation = try container.decodeIfPresent(VideoOrientation.self, forKey: .capturedOrientation)
+        overrideSmartFill = try container.decodeIfPresent(TriState.self, forKey: .overrideSmartFill)
+        
+        // NEW: SmartFill file path with backward compatibility
+        smartFilledFilePath = try container.decodeIfPresent(String.self, forKey: .smartFilledFilePath)
+        editedFilePath = try container.decodeIfPresent(String.self, forKey: .editedFilePath)
+        
+        // NEW FIELDS: Provide default values for backward compatibility
+        exportMetadata = try container.decodeIfPresent(ExportMetadata.self, forKey: .exportMetadata)
+        exportedFromTakeIDs = try container.decodeIfPresent([UUID].self, forKey: .exportedFromTakeIDs) ?? []
+        lastExportDate = try container.decodeIfPresent(Date.self, forKey: .lastExportDate)
+        takeType = try container.decodeIfPresent(TakeType.self, forKey: .takeType) ?? .regular
+        
+        // 🚨 NEW: Edit metadata with backward compatibility
+        editMetadata = try container.decodeIfPresent(TakeEditMetadata.self, forKey: .editMetadata)
+    }
+    
+    private enum CodingKeys: String, CodingKey {
+        case id, filePath, durationSeconds, thumbnailPath, takeNotes, createdAt, videoMarkers, rating
+        case sceneNumber, takeNumber, slateNumber, slateID  // Scene organization fields
+        case capturedOrientation, overrideSmartFill          // NEW: Smart Fill fields
+        case smartFilledFilePath                             // NEW: SmartFill file path
+        case editedFilePath                                  // 🚨 NEW: Edited file path
+        case exportMetadata, exportedFromTakeIDs, lastExportDate, takeType
+        case editMetadata                                    // 🚨 NEW: Edit metadata
+    }
+    
+    public init(
+        id: UUID = UUID(),
+        filePath: String,
+        durationSeconds: Double,
+        thumbnailPath: String? = nil,
+        takeNotes: String? = nil,
+        createdAt: Date = Date(),
+        videoMarkers: [TakeVideoMarker] = [],
+        rating: TakeRating = .unrated,
+        sceneNumber: Int = 1,           // Scene organization
+        takeNumber: Int = 1,            // Scene organization
+        slateNumber: String? = nil,     // Scene organization
+        slateID: String? = nil,         // Scene organization
+        capturedOrientation: VideoOrientation? = nil,  // NEW: Smart Fill orientation
+        overrideSmartFill: TriState? = nil,           // NEW: Smart Fill override
+        smartFilledFilePath: String? = nil,           // NEW: SmartFill file path
+        editedFilePath: String? = nil,                // 🚨 NEW: Edited file path
+        exportMetadata: ExportMetadata? = nil,
+        exportedFromTakeIDs: [UUID] = [],
+        lastExportDate: Date? = nil,
+        takeType: TakeType = .regular,
+        editMetadata: TakeEditMetadata? = nil         // 🚨 NEW: Edit metadata
+    ) {
+        self.id = id
+        self.filePath = filePath
+        self.durationSeconds = durationSeconds
+        self.thumbnailPath = thumbnailPath
+        self.takeNotes = takeNotes
+        self.createdAt = createdAt
+        self.videoMarkers = videoMarkers
+        self.rating = rating
+        self.sceneNumber = sceneNumber
+        self.takeNumber = takeNumber
+        self.slateNumber = slateNumber
+        self.slateID = slateID
+        self.capturedOrientation = capturedOrientation  // NEW: Smart Fill orientation
+        self.overrideSmartFill = overrideSmartFill     // NEW: Smart Fill override
+        self.smartFilledFilePath = smartFilledFilePath // NEW: SmartFill file path
+        self.editedFilePath = editedFilePath           // 🚨 NEW: Edited file path
+        self.exportMetadata = exportMetadata
+        self.exportedFromTakeIDs = exportedFromTakeIDs
+        self.lastExportDate = lastExportDate
+        self.takeType = takeType
+        self.editMetadata = editMetadata               // 🚨 NEW: Edit metadata
+    }
+    
+    // COMPUTED: Convenience properties for UI compatibility (read-only)
+    public var isFavorite: Bool { rating == .favorite }
+    public var isBest: Bool { rating == .good }
+    public var isRejected: Bool { rating == .bad }
+    
+    // NEW: Export status computed properties
+    public var isMergedVideo: Bool { takeType == .merged }
+    public var isExported: Bool { takeType == .exported || lastExportDate != nil || !exportedFromTakeIDs.isEmpty }
+    public var wasUsedInExport: Bool { !exportedFromTakeIDs.isEmpty }
+    
+    // NEW: Scene organization computed properties
+    public var sceneDisplayName: String {
+        if let slateNumber = slateNumber {
+            return "Scene \(sceneNumber) (\(slateNumber))"
+        } else {
+            return "Scene \(sceneNumber)"
+        }
+    }
+    
+    public var takeDisplayName: String {
+        return "Take \(takeNumber)"
+    }
+    
+    public var fullDisplayName: String {
+        return "\(sceneDisplayName), \(takeDisplayName)"
+    }
+    
+    // NEW: Formatted display strings for export info
+    public var exportStatusDisplay: String {
+        if isMergedVideo, let metadata = exportMetadata {
+            return "\(metadata.exportType.displayName) • \(metadata.originalTakeIDs.count) takes"
+        } else if isExported {
+            return "Exported"
+        } else {
+            return ""
+        }
+    }
+
+    // NEW: Smart Fill computed properties
+    public var needsSmartFillInLandscapeSession: Bool {
+        return capturedOrientation == .portrait
+    }
+    
+    public var orientationDisplayName: String {
+        return capturedOrientation?.displayName ?? "Unknown"
+    }
+
+    // NEW: SmartFill computed properties for UI integration with performance optimization
+    private static var smartFillCache: [UUID: (isValid: Bool, timestamp: Date)] = [:]
+    private static let cacheTimeout: TimeInterval = 5.0 // Cache results for 5 seconds
+    
+    // MARK: - Static Cache Management
+    public static func invalidateSmartFillCache(for takeID: UUID) {
+        smartFillCache.removeValue(forKey: takeID)
+        print("🔄 SmartFill cache invalidated for take: \(takeID)")
+    }
+    
+    public static func clearSmartFillCache() {
+        smartFillCache.removeAll()
+        print("🧹 SmartFill cache cleared")
+    }
+    
+    // 🚨 PHASE 1 FIX: Enhanced SmartFill detection using corrected VideoVariantResolver
+    public var hasSmartFilledVersion: Bool {
+        // PERFORMANCE FIX: Cache results to prevent redundant file system checks per UI refresh
+        if let cached = Self.smartFillCache[id],
+           Date().timeIntervalSince(cached.timestamp) < Self.cacheTimeout {
+            return cached.isValid
+        }
+        
+        let fileName = URL(fileURLWithPath: filePath).lastPathComponent
+        print("🔍 PHASE 1 FIX - ProjectTake.hasSmartFilledVersion for \(fileName)")
+        print("   📁 Original file: \(filePath)")
+        print("   🆔 Take ID: \(id)")
+        print("   📱 Orientation: \(capturedOrientation?.displayName ?? "nil")")
+        print("   📂 SmartFill field: \(smartFilledFilePath ?? "NONE")")
+        
+        // PHASE 1 FIX: Use corrected VideoVariantResolver for consistent file resolution
+        let hasSmartFill = VideoVariantResolver.hasSmartFilledVersion(for: self)
+        
+        // Cache the result
+        Self.smartFillCache[id] = (isValid: hasSmartFill, timestamp: Date())
+        
+        if hasSmartFill {
+            print("   🎉 PHASE 1: SmartFill file VALIDATED - UI will show parent/child for \(fileName)")
+        } else {
+            print("   😞 PHASE 1: No valid SmartFill - UI will show original only for \(fileName)")
+        }
+        
+        return hasSmartFill
+    }
+    
+    // 🚨 CRITICAL FIX: Improved effectiveFilePath that prefers edited version
+    public var effectiveFilePath: String {
+        let originalFileName = URL(fileURLWithPath: filePath).lastPathComponent
+        print("🔍 PATH VOLATILITY FIX - ProjectTake.effectiveFilePath for: \(originalFileName)")
+        print("   📁 Take filePath: \(filePath) (relative: \(!filePath.hasPrefix("/")))")
+        
+        // 🚨 EXPORTED VIDEO FIX: Exported videos should never use edited versions - they ARE the final version
+        print("🚨 EXPORTED VIDEO DEBUG: filePath=\(filePath), takeType=\(takeType), originalFileName=\(originalFileName)")
+        if filePath.contains("/STS_Exports/") || originalFileName.hasPrefix("STS_") {
+            let exportURL = VideoVariantResolver.urlForRelativePath(filePath)
+            print("✅ EXPORTED VIDEO FIX: Using original export file: \(exportURL.lastPathComponent)")
+            return exportURL.path
+        }
+        
+        // CRITICAL FIX: Check for edited version first (for non-exported videos)
+        if let editedPath = editedFilePath {
+            let editedURL = VideoVariantResolver.urlForRelativePath(editedPath)
+            if FileManager.default.fileExists(atPath: editedURL.path) {
+                print("✅ PATH VOLATILITY FIX: effectiveFilePath using EDITED version: \(editedURL.lastPathComponent)")
+                return editedURL.path
+            } else {
+                print("⚠️ PATH VOLATILITY FIX: Edited file missing: \(editedPath)")
+            }
+        }
+        
+        // PHASE 1 FIX: Use VideoVariantResolver with enhanced debugging
+        let effectiveURL = VideoVariantResolver.effectiveURL(for: self)
+        
+        let isUsingSmartFill = VideoVariantResolver.smartFillURL(for: self)?.path == effectiveURL.path
+        
+        if isUsingSmartFill {
+            print("✅ PATH VOLATILITY FIX: effectiveFilePath using VALIDATED SmartFill: \(effectiveURL.lastPathComponent)")
+        } else {
+            print("ℹ️ PATH VOLATILITY FIX: effectiveFilePath using original: \(effectiveURL.lastPathComponent)")
+        }
+        
+        return effectiveURL.path
+    }
+    
+    // 🔥 NEW: Get resolved absolute URL for this take (handles both relative and absolute paths)
+    public var resolvedURL: URL {
+        return VideoVariantResolver.originalURL(for: self)
+    }
+    
+    // 🔥 NEW: Check if file actually exists on disk
+    public var fileExists: Bool {
+        return FileManager.default.fileExists(atPath: resolvedURL.path)
+    }
+    
+    // 🔥 NEW: Get file size from disk (returns 0 if file doesn't exist)
+    public var actualFileSize: Int64 {
+        do {
+            let attributes = try FileManager.default.attributesOfItem(atPath: resolvedURL.path)
+            return attributes[.size] as? Int64 ?? 0
+        } catch {
+            return 0
+        }
+    }
+    
+    // 🔥 NEW: Path type indicator for debugging
+    public var pathType: String {
+        return filePath.hasPrefix("/") ? "absolute" : "relative"
+    }
+    
+    // 🚨 ENHANCED: Robust video file validation with container path support
+    // private func isValidVideoFile(at path: String) -> Bool {
+    // ... (remove this method as validation is now in VideoVariantResolver)
+    
+    public var smartFillStatusText: String {
+        if hasSmartFilledVersion {
+            return "Smart Fill Applied"
+        } else if capturedOrientation == .portrait {
+            return "Portrait (No Smart Fill)"
+        } else {
+            return "Landscape"
+        }
+    }
+    
+    public var smartFillStatusIcon: String {
+        if hasSmartFilledVersion {
+            return "rectangle.fill.badge.checkmark"
+        } else if capturedOrientation == .portrait {
+            return "rectangle.portrait.fill"
+        } else {
+            return "rectangle.fill"
+        }
+    }
+
+    // NEW: Edit status computed properties
+    public var hasEdits: Bool {
+        return editMetadata?.hasEdits ?? false
+    }
+    
+    public var editSummary: String {
+        return editMetadata?.editSummary ?? "No edits"
+    }
+    
+    public var isCropped: Bool {
+        return editMetadata?.hasCropping ?? false
+    }
+    
+    public var isTrimmed: Bool {
+        return editMetadata?.hasTrimming ?? false
+    }
+}
+
+public struct ProjectSession: Identifiable, Codable, Equatable {
+    public var id: UUID  // Make mutable for repository operations
+    public let type: SessionType
+    public var date: Date  // Make mutable for repository operations
+    public let location: LocationInfo?
+    public let contact: Contact?
+    public let notes: String?
+    public var takes: [ProjectTake]
+    public let roleName: String?
+    public let callbackNotes: String?
+    public let parkingInfo: String?
+    public var isArchived: Bool = false
+    
+    // UNIFIED: Keep session-level favorite (not related to take ratings)
+    public var isFavorite: Bool = false
+    
+    // NEW: Smart Fill session settings
+    public var primaryOrientation: VideoOrientation? = nil  // Session's primary orientation
+    public var smartFillEnabled: Bool? = nil                // nil = inherit from global settings
+    
+    // NEW: Computed properties for export functionality
+    public var mergedVideoTakes: [ProjectTake] {
+        takes.filter { $0.takeType == .merged }
+    }
+    
+    public var regularTakes: [ProjectTake] {
+        takes.filter { $0.takeType == .regular }
+    }
+    
+    public var slateTakes: [ProjectTake] {
+        takes.filter { $0.takeType == .slate }
+    }
+    
+    public var exportedTakes: [ProjectTake] {
+        takes.filter { $0.takeType == .exported }
+    }
+    
+    // NEW: Get takes sorted with merged videos at top
+    public var takesSortedForDisplay: [ProjectTake] {
+        let merged = mergedVideoTakes.sorted { $0.createdAt > $1.createdAt }
+        let exported = exportedTakes.sorted { $0.createdAt > $1.createdAt }
+        let regular = regularTakes.sorted { $0.createdAt > $1.createdAt }
+        let slates = slateTakes.sorted { $0.createdAt > $1.createdAt }
+        
+        return merged + exported + regular + slates
+    }
+
+    // CUSTOM DECODER: Add Smart Fill fields with backward compatibility
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        id = try container.decode(UUID.self, forKey: .id)
+        type = try container.decode(SessionType.self, forKey: .type)
+        date = try container.decode(Date.self, forKey: .date)
+        location = try container.decodeIfPresent(LocationInfo.self, forKey: .location)
+        contact = try container.decodeIfPresent(Contact.self, forKey: .contact)
+        notes = try container.decodeIfPresent(String.self, forKey: .notes)
+        takes = try container.decodeIfPresent([ProjectTake].self, forKey: .takes) ?? []
+        roleName = try container.decodeIfPresent(String.self, forKey: .roleName)
+        callbackNotes = try container.decodeIfPresent(String.self, forKey: .callbackNotes)
+        parkingInfo = try container.decodeIfPresent(String.self, forKey: .parkingInfo)
+        isArchived = try container.decodeIfPresent(Bool.self, forKey: .isArchived) ?? false
+        isFavorite = try container.decodeIfPresent(Bool.self, forKey: .isFavorite) ?? false
+        
+        // NEW: Smart Fill fields with backward compatibility
+        primaryOrientation = try container.decodeIfPresent(VideoOrientation.self, forKey: .primaryOrientation)
+        smartFillEnabled = try container.decodeIfPresent(Bool.self, forKey: .smartFillEnabled)
+    }
+    
+    private enum CodingKeys: String, CodingKey {
+        case id, type, date, location, contact, notes, takes, roleName, callbackNotes, parkingInfo
+        case isArchived, isFavorite
+        case primaryOrientation, smartFillEnabled  // NEW: Smart Fill fields
+    }
+    
+    public init(
+        id: UUID = UUID(),
+        type: SessionType,
+        date: Date = Date(),
+        location: LocationInfo? = nil,
+        contact: Contact? = nil,
+        notes: String? = nil,
+        takes: [ProjectTake] = [],
+        roleName: String? = nil,
+        callbackNotes: String? = nil,
+        parkingInfo: String? = nil,
+        isFavorite: Bool = false,
+        isArchived: Bool = false,
+        primaryOrientation: VideoOrientation? = nil,  // NEW: Smart Fill
+        smartFillEnabled: Bool? = nil                 // NEW: Smart Fill
+    ) {
+        self.id = id
+        self.type = type
+        self.date = date
+        self.location = location
+        self.contact = contact
+        self.notes = notes
+        self.takes = takes
+        self.roleName = roleName
+        self.callbackNotes = callbackNotes
+        self.parkingInfo = parkingInfo
+        self.isFavorite = isFavorite
+        self.isArchived = isArchived
+        self.primaryOrientation = primaryOrientation
+        self.smartFillEnabled = smartFillEnabled
+    }
+}
+
+public struct Role: Identifiable, Codable, Equatable {
+    public var id: UUID = .init()
+    public var name: String                   // e.g., "Detective Ramos"
+    
+    public init(id: UUID = UUID(), name: String) {
+        self.id = id
+        self.name = name
+    }
+}
+
+public struct Project: Identifiable, Codable, Equatable {
+    public var id: UUID = .init()
+    public var title: String                  // e.g., "Silver Lake Pilot"
+    public var roles: [Role] = []
+    public var sessions: [ProjectSession] = []
+    public var createdAt: Date = .init()
+    public var castingOffice: String? = nil
+    public var castingDirector: Contact? = nil
+    public var representation: Contact? = nil // agent/manager (optional)
+    // CC/BCC persistence for export/share workflow
+    public var ccContacts: [Contact] = []
+    public var bccContacts: [Contact] = []
+    // Enhanced project states
+    public var isFavorite: Bool = false      // Favorite project
+    public var isArchived: Bool = false      // Archived project
+    public var isCompleted: Bool = false     // Project completed (booked/finished)
+    public var sceneCount: Int = 1          // Number of scenes in the project
+    
+    // SAFE ADDITION: Date fields from NewProjectWizard with backward compatibility
+    public var auditionDueDate: Date? = nil  // Optional audition due date
+    public var shootDate: Date? = nil        // Optional shoot date
+    public var projectType: String = "Feature" // Project type from wizard
+    
+    // CUSTOM DECODER: Provide default values for new fields to ensure backward compatibility
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        id = try container.decode(UUID.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        roles = try container.decodeIfPresent([Role].self, forKey: .roles) ?? []
+        sessions = try container.decodeIfPresent([ProjectSession].self, forKey: .sessions) ?? []
+        createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
+        castingOffice = try container.decodeIfPresent(String.self, forKey: .castingOffice)
+        castingDirector = try container.decodeIfPresent(Contact.self, forKey: .castingDirector)
+        representation = try container.decodeIfPresent(Contact.self, forKey: .representation)
+        ccContacts = try container.decodeIfPresent([Contact].self, forKey: .ccContacts) ?? []
+        bccContacts = try container.decodeIfPresent([Contact].self, forKey: .bccContacts) ?? []
+        isFavorite = try container.decodeIfPresent(Bool.self, forKey: .isFavorite) ?? false
+        isArchived = try container.decodeIfPresent(Bool.self, forKey: .isArchived) ?? false
+        isCompleted = try container.decodeIfPresent(Bool.self, forKey: .isCompleted) ?? false
+        sceneCount = try container.decodeIfPresent(Int.self, forKey: .sceneCount) ?? 1
+        
+        // SAFE NEW FIELDS: Provide default values for backward compatibility with existing projects
+        auditionDueDate = try container.decodeIfPresent(Date.self, forKey: .auditionDueDate)
+        shootDate = try container.decodeIfPresent(Date.self, forKey: .shootDate)
+        projectType = try container.decodeIfPresent(String.self, forKey: .projectType) ?? "Feature"
+    }
+    
+    private enum CodingKeys: String, CodingKey {
+        case id, title, roles, sessions, createdAt, castingOffice, castingDirector, representation
+        case ccContacts, bccContacts, isFavorite, isArchived, isCompleted, sceneCount
+        case auditionDueDate, shootDate, projectType // NEW: Date fields from NewProjectWizard
+    }
+    
+    public init(id: UUID = UUID(), title: String, roles: [Role] = [], sessions: [ProjectSession] = [], createdAt: Date = Date(), castingOffice: String? = nil, castingDirector: Contact? = nil, representation: Contact? = nil, ccContacts: [Contact] = [], bccContacts: [Contact] = [], isFavorite: Bool = false, isArchived: Bool = false, isCompleted: Bool = false, sceneCount: Int = 1, auditionDueDate: Date? = nil, shootDate: Date? = nil, projectType: String = "Feature") {
+        self.id = id
+        self.title = title
+        self.roles = roles
+        self.sessions = sessions
+        self.createdAt = createdAt
+        self.castingOffice = castingOffice
+        self.castingDirector = castingDirector
+        self.representation = representation
+        self.ccContacts = ccContacts
+        self.bccContacts = bccContacts
+        self.isFavorite = isFavorite
+        self.isArchived = isArchived
+        self.isCompleted = isCompleted
+        self.sceneCount = sceneCount
+        self.auditionDueDate = auditionDueDate
+        self.shootDate = shootDate
+        self.projectType = projectType
+    }
+    
+    // NEW: Get all merged videos across all sessions
+    public var allMergedVideos: [ProjectTake] {
+        sessions.flatMap { $0.mergedVideoTakes }
+    }
+    
+    // NEW: Computed properties for date display logic
+    public var isAuditionDueSoon: Bool {
+        guard let dueDate = auditionDueDate else { return false }
+        return dueDate.timeIntervalSinceNow < 86400 * 2 // Less than 2 days
+    }
+    
+    public var daysUntilAuditionDue: Int {
+        guard let dueDate = auditionDueDate else { return -1 }
+        let calendar = Calendar.current
+        let days = calendar.dateComponents([.day], from: Date(), to: dueDate).day ?? 0
+        return max(0, days)
+    }
+}

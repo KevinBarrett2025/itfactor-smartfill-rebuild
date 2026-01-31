@@ -1,0 +1,23 @@
+// English localization strings
+// This file will contain localized strings for the app
+
+// General
+"app_name" = "STS iPhone";
+"ok" = "OK";
+"cancel" = "Cancel";
+"save" = "Save";
+"delete" = "Delete";
+
+// Dashboard
+"dashboard_title" = "Dashboard";
+"dashboard_subtitle" = "Welcome to Self Tape Studio";
+
+// Session Manager
+"session_manager_title" = "Sessions";
+"new_session" = "New Session";
+"recorded_sessions" = "Recorded Sessions";
+
+// Settings
+"settings_title" = "Settings";
+"general_settings" = "General";
+"recording_settings" = "Recording";

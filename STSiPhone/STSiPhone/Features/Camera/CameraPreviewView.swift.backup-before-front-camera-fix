@@ -1,0 +1,114 @@
+import SwiftUI
+import AVFoundation
+
+struct CameraPreviewView: UIViewRepresentable {
+    let session: AVCaptureSession
+
+    func makeUIView(context: Context) -> Preview {
+        let view = Preview()
+        view.videoPreviewLayer.session = session
+        view.videoPreviewLayer.videoGravity = .resizeAspectFill
+        
+        // FIXED: Only set initial orientation once in makeUIView
+        view.updateOrientationOnce()
+        
+        return view
+    }
+
+    func updateUIView(_ uiView: Preview, context: Context) {
+        // FIXED: Remove redundant orientation updates to break the loop
+        // Only update if the session has changed (which it shouldn't in practice)
+        if uiView.videoPreviewLayer.session != session {
+            uiView.videoPreviewLayer.session = session
+        }
+    }
+
+    final class Preview: UIView {
+        override class var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
+        var videoPreviewLayer: AVCaptureVideoPreviewLayer { layer as! AVCaptureVideoPreviewLayer }
+        
+        private var lastOrientation: UIDeviceOrientation?
+        private var orientationUpdateTimer: Timer?
+        
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            // FIXED: Use throttled orientation updates instead of immediate updates
+            scheduleOrientationUpdate()
+        }
+        
+        private func scheduleOrientationUpdate() {
+            // Cancel any existing timer
+            orientationUpdateTimer?.invalidate()
+            
+            // Schedule a single update after a short delay to batch multiple layout calls
+            orientationUpdateTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: false) { [weak self] _ in
+                self?.updateOrientationIfNeeded()
+            }
+        }
+        
+        func updateOrientationOnce() {
+            // FIXED: Initial setup - force one orientation update
+            updateOrientation()
+        }
+        
+        private func updateOrientationIfNeeded() {
+            let currentOrientation = UIDevice.current.orientation
+            
+            // FIXED: Only update if orientation actually changed
+            guard currentOrientation != lastOrientation else {
+                return
+            }
+            
+            lastOrientation = currentOrientation
+            updateOrientation()
+        }
+        
+        private func updateOrientation() {
+            guard let connection = videoPreviewLayer.connection else {
+                print("⚠️ No video preview connection available")
+                return
+            }
+            
+            let deviceOrientation = UIDevice.current.orientation
+            
+            // UPDATED: Use videoRotationAngle with FIXED landscape orientation mapping
+            let rotationAngle: CGFloat
+            
+            switch deviceOrientation {
+            case .portrait:
+                rotationAngle = 90
+                print("📱 Setting video rotation angle: 90° (Portrait)")
+            case .portraitUpsideDown:
+                rotationAngle = 270
+                print("📱 Setting video rotation angle: 270° (Portrait Upside Down)")
+            case .landscapeLeft:
+                rotationAngle = 0  // FIXED: Correct mapping for landscape left
+                print("📱 Setting video rotation angle: 0° (Landscape Left)")
+            case .landscapeRight:
+                rotationAngle = 180  // FIXED: Correct mapping for landscape right
+                print("📱 Setting video rotation angle: 180° (Landscape Right)")
+            default:
+                // FIXED: Simplified fallback that doesn't cause recursion
+                rotationAngle = 90
+                print("📱 Using default rotation angle: 90° (Device orientation: \(deviceOrientation.rawValue))")
+            }
+            
+            // UPDATED: Check if rotation angle is supported before setting
+            if connection.isVideoRotationAngleSupported(rotationAngle) {
+                // FIXED: Only set if different to prevent unnecessary updates
+                if connection.videoRotationAngle != rotationAngle {
+                    connection.videoRotationAngle = rotationAngle
+                    
+                    // FIXED: Remove the dispatch async that was causing recursion
+                    videoPreviewLayer.setNeedsLayout()
+                }
+            } else {
+                print("⚠️ Video rotation angle \(rotationAngle)° not supported by preview connection")
+            }
+        }
+        
+        deinit {
+            orientationUpdateTimer?.invalidate()
+        }
+    }
+}

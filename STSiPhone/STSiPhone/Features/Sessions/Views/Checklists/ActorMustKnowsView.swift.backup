@@ -1,0 +1,173 @@
+import SwiftUI
+
+public struct ActorMustKnowsView: View {
+    @State private var checkedItems: Set<Int> = []
+    @State private var showCamera = false
+    @Environment(\.dismiss) private var dismiss
+    
+    // NEW: Add project and session parameters for resume session flow
+    let project: Project?
+    let session: ProjectSession?
+    let onComplete: (() -> Void)?
+    
+    private let mustKnowItems = [
+        ("Character Breakdown", "person.text.rectangle", "Review your character's background, motivations, and arc"),
+        ("Slate Details", "info.circle", "Name, height, location - keep it professional and brief"),
+        ("Phone Silenced", "iphone.slash", "Put device in silent mode to avoid interruptions"),
+        ("Wardrobe Notes", "tshirt", "Follow breakdown specifications or choose appropriate attire"),
+        ("Camera Framing", "camera.viewfinder", "Ensure proper lighting and framing for your setup"),
+        ("Due Date & Time", "calendar.badge.clock", "Double-check submission deadline and time zone")
+    ]
+    
+    // UPDATED: Multiple initializers for different use cases
+    public init(onComplete: (() -> Void)? = nil) {
+        self.project = nil
+        self.session = nil
+        self.onComplete = onComplete
+    }
+    
+    // NEW: Initialize for resume session flow
+    public init(project: Project, session: ProjectSession, onComplete: (() -> Void)? = nil) {
+        self.project = project
+        self.session = session
+        self.onComplete = onComplete
+    }
+    
+    public var body: some View {
+        NavigationStack {
+            ZStack {
+                BrandBackground()
+                    .ignoresSafeArea()
+                
+                VStack(spacing: 20) {
+                    // Header
+                    VStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.badge.questionmark")
+                            .font(.system(size: 60))
+                            .foregroundStyle(Theme.primary)
+                        
+                        Text("Actor Must-Knows")
+                            .font(Theme.Font.title)
+                            .foregroundStyle(Theme.textPrimary)
+                        
+                        Text("Essential checklist before every self-tape session")
+                            .font(Theme.Font.body)
+                            .foregroundStyle(.gray)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.top, 20)
+                    
+                    // Checklist
+                    List {
+                        ForEach(Array(mustKnowItems.enumerated()), id: \.offset) { index, item in
+                            ChecklistRow(
+                                title: item.0,
+                                icon: item.1,
+                                description: item.2,
+                                isChecked: checkedItems.contains(index)
+                            ) {
+                                if checkedItems.contains(index) {
+                                    checkedItems.remove(index)
+                                } else {
+                                    checkedItems.insert(index)
+                                }
+                            }
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                        }
+                    }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
+                    
+                    // Continue Button - STREAMLINED: Launch camera directly if resuming session
+                    Button(action: {
+                        if project != nil, session != nil {
+                            // STREAMLINED: Launch camera directly for resume session flow
+                            showCamera = true
+                        } else if let onComplete = onComplete {
+                            onComplete()
+                        } else {
+                            dismiss()
+                        }
+                    }) {
+                        HStack(spacing: 8) {
+                            Text(allItemsChecked ? "🎬 Ready to Record" : "Continue Anyway")
+                                .font(.headline.bold())
+                                .padding(.vertical, 8)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 18)
+                        .background(allItemsChecked ? Color.green.gradient : Color.orange.gradient)
+                        .foregroundStyle(.white)
+                        .clipShape(Capsule())
+                        .shadow(color: .black.opacity(0.20), radius: 8, x: 0, y: 4)
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 34)
+                }
+            }
+            .navigationBarHidden(true)
+        }
+        .sheet(isPresented: $showCamera) {
+            // STREAMLINED: Direct camera launch for resume session flow
+            if let project = project, let session = session {
+                CameraCaptureView(
+                    project: project,
+                    session: session,
+                    onComplete: {
+                        showCamera = false
+                        onComplete?()
+                        dismiss()
+                    }
+                )
+                .interactiveDismissDisabled(true)
+            }
+        }
+    }
+    
+    private var allItemsChecked: Bool {
+        checkedItems.count == mustKnowItems.count
+    }
+}
+
+private struct ChecklistRow: View {
+    let title: String
+    let icon: String
+    let description: String
+    let isChecked: Bool
+    let onToggle: () -> Void
+    
+    var body: some View {
+        Button(action: onToggle) {
+            STSCard {
+                HStack(spacing: 16) {
+                    Image(systemName: icon)
+                        .font(.title2)
+                        .foregroundStyle(Theme.primary)
+                        .frame(width: 30)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(title)
+                            .font(Theme.Font.body)
+                            .foregroundStyle(Theme.textPrimary)
+                        
+                        Text(description)
+                            .font(Theme.Font.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: isChecked ? "checkmark.circle.fill" : "circle")
+                        .font(.title2)
+                        .foregroundStyle(isChecked ? .green : .gray)
+                }
+            }
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+#Preview {
+    ActorMustKnowsView()
+}

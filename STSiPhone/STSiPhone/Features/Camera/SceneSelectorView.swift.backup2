@@ -1,0 +1,135 @@
+import SwiftUI
+
+struct SceneSelectorView: View {
+    @ObservedObject var sessionManager = SessionManager.shared
+
+    // Callback for "That's a Wrap"
+    var onComplete: (() -> Void)?
+
+    init(onComplete: (() -> Void)? = nil) {
+        self.onComplete = onComplete
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            sceneControl
+
+            pillButton(
+                title: "Slate",
+                systemImage: "tv",
+                isDone: slateDone
+            ) {
+                sessionManager.switchToSlateMode()
+            }
+
+            pillButton(
+                title: "Keyframe",
+                systemImage: "camera.fill",
+                isDone: keyframeDone
+            ) {
+                sessionManager.switchToKeyframePhotoMode()
+            }
+
+            pillButton(
+                title: "Wrap",
+                systemImage: "flag.checkered",
+                isDone: hasAnyTakes
+            ) {
+                onComplete?()
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(.ultraThinMaterial.opacity(0.9), in: Capsule())
+    }
+
+    // MARK: - Scene control
+    @ViewBuilder
+    private var sceneControl: some View {
+        let title = "Scene \(sessionManager.currentScene)"
+        if sessionManager.totalScenes > 1 {
+            Menu {
+                ForEach(1...sessionManager.totalScenes, id: \.self) { sceneNumber in
+                    Button {
+                        sessionManager.switchToScene(sceneNumber)
+                        sessionManager.switchToSceneMode()
+                    } label: {
+                        HStack {
+                            Label("Scene \(sceneNumber)",
+                                  systemImage: sceneNumber == sessionManager.currentScene ? "checkmark" : "video.fill")
+                            Spacer()
+                            let count = sessionManager.getTakesForScene(sceneNumber).count
+                            if count > 0 {
+                                Text("(\(count))").font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+            } label: {
+                pillLabel(title: title, systemImage: "video.fill", isDone: sceneHasVideo)
+            }
+        } else {
+            // Single-scene project: still show state, just a button
+            Button {
+                sessionManager.switchToSceneMode()
+            } label: {
+                pillLabel(title: title, systemImage: "video.fill", isDone: sceneHasVideo)
+            }
+        }
+    }
+
+    // MARK: - Pills
+    private func pillButton(title: String, systemImage: String, isDone: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            action()
+        }) {
+            pillLabel(title: title, systemImage: systemImage, isDone: isDone)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func pillLabel(title: String, systemImage: String, isDone: Bool) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: systemImage).imageScale(.medium)
+            Text(title)
+                .font(.system(size: 14, weight: .semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .foregroundColor(.primary)
+        .background(isDone ? Color.green.opacity(0.28) : Color.secondary.opacity(0.15))
+        .overlay(
+            Capsule().stroke(isDone ? Color.green : Color.white.opacity(0.25), lineWidth: 1)
+        )
+        .clipShape(Capsule())
+    }
+
+    // MARK: - Progress flags
+    private var sceneHasVideo: Bool {
+        !sessionManager.getTakesForScene(sessionManager.currentScene).isEmpty
+    }
+
+    private var slateDone: Bool {
+        sessionManager.hasRecordedSlate || !sessionManager.getSlateTakesAsTakes().isEmpty
+    }
+
+    private var keyframeDone: Bool {
+        sessionManager.hasRecordedKeyframePhoto || !sessionManager.getKeyframePhotoTakesAsTakes().isEmpty
+    }
+
+    private var hasAnyTakes: Bool {
+        !sessionManager.unifiedTakes.isEmpty || !sessionManager.takes.isEmpty
+    }
+}
+
+#Preview {
+    SceneSelectorView()
+        .background(.black)
+        .onAppear {
+            SessionManager.shared.totalScenes = 3
+            SessionManager.shared.currentScene = 2
+        }
+}

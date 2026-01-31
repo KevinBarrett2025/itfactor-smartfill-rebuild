@@ -1,0 +1,163 @@
+import SwiftUI
+
+struct SettingsView: View {
+    @State private var showingRepsForm = false
+    @State private var showingCameraAudioSettings = false
+    @State private var showingSmartFillSettings = false  // NEW: Smart Fill settings
+    
+    var body: some View {
+        ZStack {
+            BrandBackground()
+                .ignoresSafeArea()
+            
+            List {
+                Section("Actor Profile") {
+                    SettingsRow(
+                        icon: "person.crop.circle.fill",
+                        title: "My Profile",
+                        subtitle: "Personal information and details",
+                        action: {
+                            // TODO: Navigate to ActorProfileWizard or similar
+                        }
+                    )
+                    .listRowBackground(Color.clear)
+                }
+                
+                Section("Professional") {
+                    SettingsRow(
+                        icon: "person.2.badge.gearshape",
+                        title: "My Reps",
+                        subtitle: "Manage your representation team",
+                        action: {
+                            showingRepsForm = true
+                        }
+                    )
+                    .listRowBackground(Color.clear)
+                }
+                
+                Section("Recording & Export") {
+                    SettingsRow(
+                        icon: "camera.fill",
+                        title: "Camera & Audio",
+                        subtitle: "Recording quality settings",
+                        action: {
+                            showingCameraAudioSettings = true
+                        }
+                    )
+                    .listRowBackground(Color.clear)
+                    
+                    // NEW: Smart Fill settings
+                    SettingsRow(
+                        icon: "rectangle.fill.badge.checkmark",
+                        title: "Smart Portrait Fill",
+                        subtitle: "Enhance portrait videos in landscape sessions",
+                        action: {
+                            showingSmartFillSettings = true
+                        }
+                    )
+                    .listRowBackground(Color.clear)
+                }
+                
+                Section("Support") {
+                    SettingsRow(
+                        icon: "questionmark.circle",
+                        title: "Help & FAQ",
+                        subtitle: "Get help using the app",
+                        action: {
+                            // TODO: Help system
+                        }
+                    )
+                    .listRowBackground(Color.clear)
+                    
+                    SettingsRow(
+                        icon: "envelope",
+                        title: "Contact Support",
+                        subtitle: "Report issues or feedback",
+                        action: {
+                            // TODO: Support contact
+                        }
+                    )
+                    .listRowBackground(Color.clear)
+                }
+                
+                Section("About") {
+                    SettingsRow(
+                        icon: "info.circle",
+                        title: "Version",
+                        subtitle: "1.0.0 (Phase 4 - Smart Fill)",
+                        action: {
+                            // TODO: About/version info
+                        }
+                    )
+                    .listRowBackground(Color.clear)
+                }
+            }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+        }
+        .navigationTitle("Settings")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showingRepsForm) {
+            RepsFormView()
+        }
+        .sheet(isPresented: $showingCameraAudioSettings) {
+            CameraAudioSettingsView()
+        }
+        // NEW: Smart Fill settings sheet
+        .sheet(isPresented: $showingSmartFillSettings) {
+            NavigationView {
+                SmartFillSettingsView()
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("Done") {
+                                showingSmartFillSettings = false
+                            }
+                        }
+                    }
+            }
+        }
+    }
+}
+
+// Simple replacement for RowIconButton
+struct SettingsRow: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundStyle(Theme.primary)
+                    .frame(width: 28, height: 28)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.body)
+                        .foregroundStyle(Theme.textPrimary)
+                    
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.vertical, 8)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+#Preview {
+    NavigationStack {
+        SettingsView()
+    }
+}

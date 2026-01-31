@@ -1,0 +1,256 @@
+import SwiftUI
+
+struct SceneSelectorView: View {
+    @ObservedObject var sessionManager = SessionManager.shared
+    @State private var showWrapConfirmation = false
+    @State private var wrapMessage = ""
+
+    // Callback for "That's a Wrap"
+    var onComplete: (() -> Void)?
+
+    init(onComplete: (() -> Void)? = nil) {
+        self.onComplete = onComplete
+    }
+
+    var body: some View {
+        // Always use horizontal layout, but adapt sizing for orientation
+        GeometryReader { geometry in
+            let isPortrait = geometry.size.width < geometry.size.height
+            
+            HStack(spacing: isPortrait ? 6 : 8) {
+                sceneControl
+                
+                pillButton(
+                    title: isPortrait ? "Slate" : "Slate",
+                    systemImage: "tv",
+                    isDone: slateDone,
+                    isActive: sessionManager.isRecordingSlate,
+                    isPortrait: isPortrait
+                ) {
+                    sessionManager.switchToSlateMode()
+                }
+
+                pillButton(
+                    title: isPortrait ? "Photo" : "Keyframe",
+                    systemImage: "camera.fill",
+                    isDone: keyframeDone,
+                    isActive: sessionManager.isRecordingKeyframePhoto,
+                    isPortrait: isPortrait
+                ) {
+                    sessionManager.switchToKeyframePhotoMode()
+                }
+
+                pillButton(
+                    title: "Wrap",
+                    systemImage: "flag.checkered",
+                    isDone: allCategoriesComplete, // NEW: Only green when everything is done
+                    isActive: false,
+                    isPortrait: isPortrait
+                ) {
+                    handleWrapAction()
+                }
+            }
+            .padding(.horizontal, isPortrait ? 6 : 8)
+            .padding(.vertical, isPortrait ? 8 : 6)
+            .background(.ultraThinMaterial.opacity(0.9), in: Capsule())
+        }
+        .frame(height: 40) // Consistent height
+        .alert("Complete Session", isPresented: $showWrapConfirmation) {
+            Button("Continue Anyway", role: .destructive) {
+                onComplete?()
+            }
+            Button("Keep Recording", role: .cancel) { }
+        } message: {
+            Text(wrapMessage)
+        }
+    }
+
+    // MARK: - Wrap validation logic
+    private func handleWrapAction() {
+        let missingItems = getMissingCategories()
+        
+        if missingItems.isEmpty {
+            // Everything is complete - proceed directly
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            onComplete?()
+        } else {
+            // Show confirmation for missing items
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred() // Different haptic for warning
+            wrapMessage = createWrapMessage(for: missingItems)
+            showWrapConfirmation = true
+        }
+    }
+    
+    private func getMissingCategories() -> [String] {
+        var missing: [String] = []
+        
+        // Check if we have scene content
+        if !sceneHasVideo {
+            missing.append("scene")
+        }
+        
+        // Check if we have slate content
+        if !slateDone {
+            missing.append("slate")
+        }
+        
+        // Check if we have keyframe photo content
+        if !keyframeDone {
+            missing.append("photo")
+        }
+        
+        return missing
+    }
+    
+    private func createWrapMessage(for missing: [String]) -> String {
+        let count = missing.count
+        
+        if count == 1 {
+            switch missing.first! {
+            case "scene":
+                return "You haven't recorded any scene takes yet. Are you sure you want to wrap?"
+            case "slate":
+                return "You haven't recorded a slate for identification. Are you sure you want to wrap?"
+            case "photo":
+                return "You haven't taken a photo for your video thumbnail. Are you sure you want to wrap?"
+            default:
+                return "Are you sure you want to wrap?"
+            }
+        } else if count == 2 {
+            let first = missing[0]
+            let second = missing[1]
+            
+            if first == "scene" && second == "slate" {
+                return "You haven't recorded any scene takes or slate. Are you sure you want to wrap?"
+            } else if first == "scene" && second == "photo" {
+                return "You haven't recorded any scene takes or taken a photo for thumbnail. Are you sure you want to wrap?"
+            } else if first == "slate" && second == "photo" {
+                return "You haven't recorded a slate or taken a photo for thumbnail. Are you sure you want to wrap?"
+            } else {
+                return "You're missing \(first) and \(second). Are you sure you want to wrap?"
+            }
+        } else {
+            return "You haven't recorded any content yet (scene, slate, or photo). Are you sure you want to wrap?"
+        }
+    }
+
+    // MARK: - Scene control (adaptive)
+    @ViewBuilder
+    private var sceneControl: some View {
+        GeometryReader { geometry in
+            let isPortrait = geometry.size.width < geometry.size.height
+            let title = isPortrait ? "S\(sessionManager.currentScene)" : "Scene \(sessionManager.currentScene)"
+            let isSceneActive = !sessionManager.isRecordingSlate && !sessionManager.isRecordingKeyframePhoto
+            
+            if sessionManager.totalScenes > 1 {
+                Menu {
+                    ForEach(1...sessionManager.totalScenes, id: \.self) { sceneNumber in
+                        Button {
+                            sessionManager.switchToScene(sceneNumber)
+                            sessionManager.switchToSceneMode()
+                        } label: {
+                            HStack {
+                                Label("Scene \(sceneNumber)",
+                                      systemImage: sceneNumber == sessionManager.currentScene ? "checkmark" : "video.fill")
+                                Spacer()
+                                let count = sessionManager.getTakesForScene(sceneNumber).count
+                                if count > 0 {
+                                    Text("(\(count))").font(.caption).foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    pillLabel(title: title, systemImage: "video.fill", isDone: sceneHasVideo, isActive: isSceneActive, isPortrait: isPortrait)
+                }
+            } else {
+                Button {
+                    sessionManager.switchToSceneMode()
+                } label: {
+                    pillLabel(title: title, systemImage: "video.fill", isDone: sceneHasVideo, isActive: isSceneActive, isPortrait: isPortrait)
+                }
+            }
+        }
+    }
+
+    // MARK: - Adaptive pills
+    private func pillButton(title: String, systemImage: String, isDone: Bool, isActive: Bool, isPortrait: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            action()
+        }) {
+            pillLabel(title: title, systemImage: systemImage, isDone: isDone, isActive: isActive, isPortrait: isPortrait)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func pillLabel(title: String, systemImage: String, isDone: Bool, isActive: Bool = false, isPortrait: Bool = false) -> some View {
+        HStack(spacing: isPortrait ? 4 : 6) {
+            Image(systemName: systemImage)
+                .imageScale(isPortrait ? .small : .medium)
+                .font(isPortrait ? .caption : .body)
+            
+            if !isPortrait || title.count <= 5 {
+                // Show full text in landscape, or short text in portrait
+                Text(title)
+                    .font(.system(size: isPortrait ? 11 : 14, weight: .semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+        }
+        .padding(.horizontal, isPortrait ? 6 : 10)
+        .padding(.vertical, isPortrait ? 6 : 7)
+        .foregroundColor(isActive ? .white : .primary)
+        .background(
+            isActive ? 
+                Color.blue.opacity(0.8) :
+            isDone ? 
+                Color.green.opacity(0.28) : 
+                Color.secondary.opacity(0.15)
+        )
+        .overlay(
+            Capsule().stroke(
+                isActive ? 
+                    Color.white.opacity(0.6) :
+                isDone ? 
+                    Color.green : 
+                    Color.white.opacity(0.25), 
+                lineWidth: isActive ? 1.5 : 1
+            )
+        )
+        .clipShape(Capsule())
+        .scaleEffect(isActive ? 1.05 : 1.0)
+        .animation(.easeInOut(duration: 0.2), value: isActive)
+    }
+
+    // MARK: - Progress flags
+    private var sceneHasVideo: Bool {
+        !sessionManager.getTakesForScene(sessionManager.currentScene).isEmpty
+    }
+
+    private var slateDone: Bool {
+        sessionManager.hasRecordedSlate || !sessionManager.getSlateTakesAsTakes().isEmpty
+    }
+
+    private var keyframeDone: Bool {
+        sessionManager.hasRecordedKeyframePhoto || !sessionManager.getKeyframePhotoTakesAsTakes().isEmpty
+    }
+
+    private var hasAnyTakes: Bool {
+        !sessionManager.unifiedTakes.isEmpty || !sessionManager.takes.isEmpty
+    }
+    
+    // NEW: Only true when ALL categories have content
+    private var allCategoriesComplete: Bool {
+        sceneHasVideo && slateDone && keyframeDone
+    }
+}
+
+#Preview {
+    SceneSelectorView()
+        .background(.black)
+        .onAppear {
+            SessionManager.shared.totalScenes = 3
+            SessionManager.shared.currentScene = 2
+        }
+}

@@ -1,0 +1,166 @@
+import SwiftUI
+
+struct CompactAudioControlsPanel: View {
+    @ObservedObject var engine: CameraEngine
+    @Binding var isVisible: Bool
+
+    var body: some View {
+        VStack(spacing: 12) {
+            // Dismiss handle/X button on top left
+            HStack {
+                Button(action: { withAnimation { isVisible = false } }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 19, weight: .bold))
+                        .foregroundColor(.white)
+                }
+                
+                // Device selection button
+                if !engine.availableAudioDevices.isEmpty {
+                    Button(action: { selectNextAudioDevice() }) {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                }
+                Spacer()
+            }
+
+            // Enhanced audio source display with device type indicator
+            HStack(spacing: 8) {
+                Image(systemName: deviceIcon)
+                    .font(.caption2)
+                    .foregroundColor(.blue)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Audio Input")
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.7))
+                    
+                    HStack(spacing: 4) {
+                        Text(engine.audioSource)
+                            .font(.caption)
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                        
+                        // External mic indicator
+                        if engine.isExternalMicConnected {
+                            Image(systemName: "dot.radiowaves.left.and.right")
+                                .font(.caption2)
+                                .foregroundColor(.green)
+                        }
+                    }
+                }
+                
+                // Device selection button
+                if !engine.availableAudioDevices.isEmpty {
+                    Button(action: { selectNextAudioDevice() }) {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                }
+                Spacer()
+            }
+
+            // Audio level meter
+            HStack(spacing: 8) {
+                Image(systemName: "waveform")
+                    .font(.caption2)
+                    .foregroundColor(.green)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Level")
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.7))
+                    
+                    // Audio meter bar
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            // Background bar
+                            Rectangle()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(height: 8)
+                                .cornerRadius(4)
+                            
+                            // Level indicator
+                            Rectangle()
+                                .fill(audioLevelColor)
+                                .frame(width: max(0, audioLevelWidth(geometry.size.width)), height: 8)
+                                .cornerRadius(4)
+                                .animation(.linear(duration: 0.1), value: engine.audioLevel)
+                        }
+                    }
+                    .frame(height: 8)
+                    
+                    Text("\(Int(engine.audioLevel)) dB")
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.7))
+                }
+            }
+        }
+        .padding(14)
+        .background(.ultraThinMaterial.opacity(0.93))
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(Color.white.opacity(0.22), lineWidth: 1)
+        )
+        .shadow(radius: 7)
+        .padding(.bottom, 65) // raised above the FAB, visually just above the icon
+        .padding(.leading, 15)
+        .frame(maxWidth: 200)
+        .animation(.easeInOut(duration: 0.21), value: isVisible)
+    }
+    
+    private func audioLevelWidth(_ totalWidth: CGFloat) -> CGFloat {
+        // Guard against NaN values that cause CoreGraphics errors
+        guard !engine.audioLevel.isNaN && !engine.audioLevel.isInfinite else {
+            return 0
+        }
+        
+        // Convert dB (-50 to 0) to percentage (0 to 1)
+        let percentage = (engine.audioLevel + 50) / 50
+        let clampedPercentage = max(0, min(1, percentage))
+        
+        // Ensure totalWidth is valid
+        guard !totalWidth.isNaN && !totalWidth.isInfinite && totalWidth > 0 else {
+            return 0
+        }
+        
+        return CGFloat(clampedPercentage) * totalWidth
+    }
+    
+    
+    private func selectNextAudioDevice() {
+        let devices = engine.availableAudioDevices
+        guard !devices.isEmpty else { return }
+        
+        if let currentDevice = engine.selectedAudioDevice,
+           let currentIndex = devices.firstIndex(of: currentDevice) {
+            let nextIndex = (currentIndex + 1) % devices.count
+            let nextDevice = devices[nextIndex]
+            engine.switchToAudioDevice(nextDevice)
+        } else if let firstDevice = devices.first {
+            engine.switchToAudioDevice(firstDevice)
+        }
+    }
+    
+    private var deviceIcon: String {
+        return engine.audioDeviceType.icon
+    }
+    private var audioLevelColor: Color {
+        // Guard against NaN values
+        guard !engine.audioLevel.isNaN && !engine.audioLevel.isInfinite else {
+            return .gray.opacity(0.8)
+        }
+        
+        if engine.audioLevel > -6 {
+            return .red // Too loud
+        } else if engine.audioLevel > -12 {
+            return .orange // Good level
+        } else if engine.audioLevel > -24 {
+            return .green // Normal level
+        } else {
+            return .gray.opacity(0.8) // Too quiet
+        }
+    }
+}

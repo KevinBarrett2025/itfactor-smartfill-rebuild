@@ -1,0 +1,931 @@
+import SwiftUI
+
+@MainActor
+
+// MARK: - TakeReviewPage (Deliverables tab hidden, list stays)
+struct TakeReviewPage: View {
+    // MARK: - Input/Callbacks
+    @State private var currentSession: ProjectSession
+    @State private var currentProject: Project
+    let repository: ProjectsRepository
+    let onSessionAction: (SessionAction) -> Void
+    let onTakeAction: (TakeAction, ProjectTake) -> Void
+    let onVideoPlayerRequest: ([ProjectTake], Int, ViewType, Int?) -> Void
+
+    // CRITICAL FIX: Add SwipeableMediaPlayerView state for proper photo/video handling
+    @State private var showSwipeablePlayer = false
+    @State private var swipeablePlayerTakes: [ProjectTake] = []
+    @State private var swipeablePlayerInitialIndex = 0    
+    // MARK: - Local UI State
+    @Environment(\.dismiss) private var dismiss
+    @State private var exportManagerData: ExportManagerData?
+    @State private var showCameraForResume = false
+    @State private var showingDeleteConfirmation = false
+    @State private var takeToDelete: ProjectTake?
+    @State private var showingShareSheet = false
+    @State private var shareItems: [Any] = []
+    @State private var selectedViewType: ViewType = .scenes
+    @State private var selectedSceneNumber: Int = 1
+    private let hasPreservedState: Bool
+    @State private var isExporting = false
+    @State private var showingBottomButtons = true
+    @State private var isSubmitted = false
+    
+    // MARK: - Public init (so we can seed @State)
+    init(
+        session: ProjectSession,
+        project: Project,
+        repository: ProjectsRepository,
+        initialViewType: ViewType? = nil,
+        initialSceneNumber: Int? = nil,
+        onSessionAction: @escaping (SessionAction) -> Void,
+        onTakeAction: @escaping (TakeAction, ProjectTake) -> Void,
+        onVideoPlayerRequest: @escaping ([ProjectTake], Int, ViewType, Int?) -> Void
+    ) {
+        self._currentSession = State(initialValue: session)
+        self._currentProject = State(initialValue: project)
+        self.repository = repository
+        self.onSessionAction = onSessionAction
+        self.onTakeAction = onTakeAction
+        self.onVideoPlayerRequest = onVideoPlayerRequest
+        let vt = initialViewType ?? .scenes
+        let scn = initialSceneNumber ?? 1
+        self._selectedViewType = State(initialValue: vt)
+        self._selectedSceneNumber = State(initialValue: scn)
+        self.hasPreservedState = (initialViewType != nil || initialSceneNumber != nil)
+    }
+    
+    // MARK: - ViewType (deliverables kept for context, hidden from tabs)
+    enum ViewType: CaseIterable {
+        case scenes, slates, keyframes, deliverables
+        
+        var displayName: String {
+            switch self {
+            case .scenes: return "Scenes"
+            case .slates: return "Slates"
+            case .keyframes: return "Photos"
+            case .deliverables: return "Deliverables"
+            }
+        }
+        var icon: String {
+            switch self {
+            case .scenes: return "video.fill"
+            case .slates: return "tv"
+            case .keyframes: return "camera"
+            case .deliverables: return "doc.badge.plus"
+            }
+        }
+        var debugName: String {
+            switch self {
+            case .scenes: return "scenes"
+            case .slates: return "slates"
+            case .keyframes: return "keyframes"
+            case .deliverables: return "deliverables"
+            }
+                }
+        static var allCases: [ViewType] { return [.scenes, .slates, .keyframes] }
+    }
+    
+    // MARK: - Body
+    var body: some View {
+        NavigationView {
+            ZStack {
+                BrandBackground().ignoresSafeArea()
+                VStack(spacing: 0) {
+                    ScrollView {
+                        LazyVStack(spacing: Theme.Layout.cardSpacing) {
+                            sessionInfoHeader
+                            SmartFillStatusIndicator(sessionID: currentSession.id)
+                            horizontalTabs
+                            
+                            if selectedViewType == .scenes {
+                                if !originalTakes.isEmpty { sceneBasedTakeSection }
+                            } else if selectedViewType == .slates {
+                                if !slateTakes.isEmpty {
+                                    takeSection(title: "Slates", takes: slateTakes, icon: "tv", color: .purple)
+                                }
+                            } else if selectedViewType == .keyframes {
+                                if !keyframeTakes.isEmpty {
+                                    takeSection(title: "Keyframe Photos", takes: keyframeTakes, icon: "camera", color: .orange)
+                                }
+                            }
+                            
+                            // Always show at bottom (not a tab)
+                            if !mergedVideos.isEmpty || !exportedTakes.isEmpty {
+                                takeSection(title: "Deliverables", takes: deliverables, icon: "doc.badge.plus", color: .blue)
+                            }
+                            
+                            Color.clear.frame(height: calculateBottomContentPadding())
+                        }
+                        .padding(.horizontal, Theme.Layout.screenPadding)
+                        .padding(.top, Theme.Layout.padding)
+                    }
+                    
+                    if showingBottomButtons {
+                        enterpriseBottomActionBar
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+                }
+            }
+            .navigationTitle("\(currentSession.type.rawValue) Session")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        withAnimation(Theme.Animation.modalDismiss) { dismiss() }
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(Theme.textPrimary)
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showCameraForResume) {
+            CameraCaptureView(
+                project: currentProject,
+                session: currentSession,
+                sidesURL: nil,
+                breakdownURL: nil,
+                onComplete: {
+                    showCameraForResume = false
+                    reloadSessionData()
+                }
+            )
+            .interactiveDismissDisabled(true)
+            .onAppear {
+                let lastActiveScene = getLastSceneWithTakes()
+                SessionManager.shared.restoreSceneState(sceneNumber: lastActiveScene)
+            }
+        }
+        .sheet(item: $exportManagerData, onDismiss: {
+            exportManagerData = nil
+            reloadSessionData()
+        }) { data in
+            ExportManagerView(
+                takes: data.takes,
+                project: data.project,
+                session: data.session,
+                repository: data.repository,
+                onDismiss: {
+                    exportManagerData = nil
+                    reloadSessionData()
+                }
+            )
+        }
+        .sheet(isPresented: $showingShareSheet) {
+            ActivityViewController(activityItems: shareItems)
+        }
+        // CRITICAL FIX: Add SwipeableMediaPlayerView for proper photo/video handling
+        .fullScreenCover(isPresented: $showSwipeablePlayer) {
+            SwipeableMediaPlayerView(
+                takes: swipeablePlayerTakes,
+                session: currentSession,
+                sidesURL: nil,
+                breakdownURL: nil,
+                project: currentProject,
+                initialIndex: swipeablePlayerInitialIndex,
+                onDismiss: {
+                    showSwipeablePlayer = false
+                },
+                onTakeAction: { action, take in
+                    handleSwipeablePlayerAction(action, for: take)
+                }
+            )        }
+        .alert("Delete Take", isPresented: $showingDeleteConfirmation, presenting: takeToDelete) { take in
+            Button("Delete", role: .destructive) { handleDeleteConfirmed(take) }
+            Button("Cancel", role: .cancel) { takeToDelete = nil }
+        } message: { _ in
+            Text("Are you sure you want to permanently delete this take? This action cannot be undone.")
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("STSExportCompleted"))) { n in
+            if let sid = n.userInfo?["sessionID"] as? UUID, sid == currentSession.id {
+                DispatchQueue.main.async { reloadSessionData() }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("STSSmartFillCompleted"))) { n in
+            if let sid = n.userInfo?["sessionID"] as? UUID, sid == currentSession.id {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    if let takeID = n.userInfo?["takeID"] as? UUID {
+                        ProjectTake.invalidateSmartFillCache(for: takeID)
+                    }
+                    reloadSessionData()
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SmartFillProcessingDidComplete"))) { n in
+            if let sid = n.userInfo?["sessionID"] as? UUID, sid == currentSession.id {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    if let takeID = n.userInfo?["takeID"] as? UUID {
+                        ProjectTake.invalidateSmartFillCache(for: takeID)
+                    }
+                    reloadSessionData()
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("STSTakeRatingUpdated"))) { n in
+            if let sid = n.userInfo?["sessionID"] as? UUID, sid == currentSession.id {
+                DispatchQueue.main.async { reloadSessionData() }
+            }
+        }
+        .onAppear {
+            reloadSessionData()
+            if !hasPreservedState {
+                selectedSceneNumber = getLastSceneWithTakes()
+            }
+            withAnimation(Theme.Animation.comfortable.delay(0.3)) {
+                showingBottomButtons = true
+            }
+        }
+    }
+    
+    // MARK: - Bottom padding to avoid covering content
+    private func calculateBottomContentPadding() -> CGFloat {
+        let actionBarHeight: CGFloat = 140
+        let safeBottom = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first?.windows.first?.safeAreaInsets.bottom ?? 34
+        return actionBarHeight + safeBottom + Theme.Layout.padding
+    }
+    
+    // MARK: - Bottom Action Bar
+    @ViewBuilder private var enterpriseBottomActionBar: some View {
+        VStack(spacing: 0) {
+            LinearGradient(
+                gradient: Gradient(colors: [Color.clear,
+                                            Color(red: 0.19, green: 0.05, blue: 0.25).opacity(0.3),
+                                            Color(red: 0.11, green: 0.11, blue: 0.27).opacity(0.8),
+                                            Color(red: 0.07, green: 0.08, blue: 0.17)]),
+                startPoint: .top, endPoint: .bottom
+            ).frame(height: 20)
+            VStack(spacing: Theme.Layout.compactPadding) {
+                if currentSession.type == .selfTape {
+                    HStack(spacing: Theme.Layout.compactPadding) {
+                        EnterpriseActionButton(icon: "video.badge.plus",
+                                               label: "Resume",
+                                               style: .secondary,
+                                               isLoading: false) { handleResumeSession() }
+                        if !currentSession.takes.isEmpty {
+                            EnterpriseActionButton(icon: "square.and.arrow.up.circle.fill",
+                                                   label: "Export & Share",
+                                                   style: .primary,
+                                                   isLoading: isExporting) { handleExportAndShare() }
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, Theme.Layout.screenPadding)
+            .padding(.vertical, Theme.Layout.compactPadding)
+            .background(
+                RoundedRectangle(cornerRadius: Theme.Layout.cardCornerRadius, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Theme.Layout.cardCornerRadius, style: .continuous)
+                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                    )
+            )
+            .padding(.horizontal, Theme.Layout.screenPadding)
+            .shadow(color: Theme.Shadow.dramatic.color,
+                    radius: Theme.Shadow.dramatic.radius,
+                    x: Theme.Shadow.dramatic.x,
+                    y: Theme.Shadow.dramatic.y)
+        }
+        .background(
+            Rectangle()
+                .fill(LinearGradient(gradient: Gradient(colors: [
+                    Color(red: 0.19, green: 0.05, blue: 0.25),
+                    Color(red: 0.11, green: 0.11, blue: 0.27),
+                    Color(red: 0.07, green: 0.08, blue: 0.17)
+                ]), startPoint: .top, endPoint: .bottom))
+                .ignoresSafeArea(.container, edges: .bottom)
+        )
+    }
+    
+    // MARK: - Data reload
+    private func reloadSessionData() {
+        if let freshProject = repository.project(by: currentProject.id) {
+            currentProject = freshProject
+            if let freshSession = freshProject.sessions.first(where: { $0.id == currentSession.id }) {
+                currentSession = freshSession
+            }
+        }
+    }
+    
+    // MARK: - Delete / Share
+    private func handleDeleteConfirmed(_ take: ProjectTake) {
+        onTakeAction(.deleteTake, take)
+        takeToDelete = nil
+        if !shareItems.isEmpty {
+            let takeFileName = URL(fileURLWithPath: take.filePath).lastPathComponent
+            if let sharedURL = shareItems.first as? URL, sharedURL.lastPathComponent == takeFileName {
+                shareItems = []; showingShareSheet = false
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { reloadSessionData() }
+    }
+    private func handleShareAction(for take: ProjectTake) {
+        do {
+            let fileName = URL(fileURLWithPath: take.effectiveFilePath).lastPathComponent
+            let videoURL = try VideoFileManager.shared.getVideoURL(for: fileName)
+            guard FileManager.default.fileExists(atPath: videoURL.path) else { return }
+            self.shareItems = [videoURL]
+            self.showingShareSheet = true
+        } catch {
+            print("Share failed: \(error)")
+        }
+    }
+    
+    // MARK: - Header
+    @ViewBuilder private var sessionInfoHeader: some View {
+        STSCard(elevation: .elevated) {
+            VStack(alignment: .leading, spacing: Theme.Layout.compactPadding) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(currentProject.title).font(Theme.Font.cardTitle).foregroundStyle(Theme.textPrimary)
+                    if let roleName = getRoleName() {
+                        Text(roleName).font(Theme.Font.cardSubtitle).foregroundStyle(Theme.Colors.secondaryText)
+                    }
+                    HStack(spacing: 8) {
+                        Text(currentSession.type.rawValue).font(Theme.Font.cardSubtitle).foregroundStyle(Theme.primary)
+                        Text("•").font(Theme.Font.cardSubtitle).foregroundStyle(Theme.Colors.secondaryText)
+                        Text("Created on \(currentSession.date.formatted(date: .abbreviated, time: .shortened))")
+                            .font(Theme.Font.cardSubtitle).foregroundStyle(Theme.Colors.secondaryText)
+                    }
+                }
+                HStack(spacing: Theme.Layout.compactPadding) {
+                    HStack { Image(systemName: "video.fill").font(.caption)
+                        Text("\(currentSession.takes.count) take\(currentSession.takes.count == 1 ? "" : "s")")
+                            .font(Theme.Font.smallCaption).foregroundStyle(Theme.Colors.secondaryText) }
+                    let goodTakes = currentSession.takes.filter { $0.rating == .good }.count
+                    if goodTakes > 0 {
+                        HStack { Image(systemName: "checkmark.circle.fill").font(.caption).foregroundStyle(.green)
+                            Text("\(goodTakes) good").font(Theme.Font.smallCaption).foregroundStyle(Theme.Colors.secondaryText) }
+                    }
+                    let sceneCount = getSceneCount()
+                    if sceneCount > 1 {
+                        HStack { Image(systemName: "video.fill").font(.caption).foregroundStyle(.blue)
+                            Text("\(sceneCount) scene\(sceneCount == 1 ? "" : "s")")
+                                .font(Theme.Font.smallCaption).foregroundStyle(Theme.Colors.secondaryText) }
+                    }
+                    let slateCount = getSlateCount()
+                    if slateCount > 0 {
+                        HStack { Image(systemName: "tv").font(.caption).foregroundStyle(.purple)
+                            Text("\(slateCount) slate\(slateCount == 1 ? "" : "s")")
+                                .font(Theme.Font.smallCaption).foregroundStyle(Theme.Colors.secondaryText) }
+                    }
+                    let photoCount = getKeyframePhotoCount()
+                    if photoCount > 0 {
+                        HStack { Image(systemName: "camera").font(.caption).foregroundStyle(.orange)
+                            Text("\(photoCount) photo\(photoCount == 1 ? "" : "s")")
+                                .font(Theme.Font.smallCaption).foregroundStyle(Theme.Colors.secondaryText) }
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Tabs
+    @ViewBuilder private var horizontalTabs: some View {
+        STSCard(elevation: .subtle) {
+            VStack(spacing: Theme.Layout.compactPadding) {
+                HStack(spacing: 0) {
+                    ForEach(ViewType.allCases, id: \.self) { viewType in
+                        Button {
+                            withAnimation(Theme.Animation.selection) {
+                                selectedViewType = viewType
+                                if viewType == .scenes { selectedSceneNumber = 1 }
+                            }
+                        } label: {
+                            HStack(spacing: Theme.Spacing.xs) {
+                                Image(systemName: viewType.icon).font(.caption)
+                                Text(viewType.displayName).font(.caption).fontWeight(.medium)
+                                let count = getCountForViewType(viewType)
+                                if count > 0 { Text("(\(count))").font(.caption2).foregroundStyle(Theme.primary) }
+                            }
+                            .foregroundStyle(selectedViewType == viewType ? .white : Theme.Colors.secondaryText)
+                            .padding(.horizontal, Theme.Layout.compactPadding)
+                            .padding(.vertical, Theme.Layout.smallPadding)
+                            .background(
+                                RoundedRectangle(cornerRadius: Theme.Layout.smallCornerRadius)
+                                    .fill(selectedViewType == viewType ? Theme.primary : Color.clear)
+                            )
+                        }.buttonStyle(PlainButtonStyle())
+                    }
+                }
+                if selectedViewType == .scenes && getSceneCount() > 1 {
+                    HStack(spacing: Theme.Layout.smallPadding) {
+                        Text("Scene:").font(.caption).foregroundStyle(Theme.Colors.secondaryText)
+                        ForEach(1...getSceneCount(), id: \.self) { n in
+                            Button {
+                                withAnimation(Theme.Animation.selection) { selectedSceneNumber = n }
+                            } label: {
+                                Text("\(n)").font(.caption).fontWeight(.medium)
+                                    .foregroundStyle(selectedSceneNumber == n ? .white : Theme.Colors.secondaryText)
+                                    .padding(.horizontal, 10).padding(.vertical, 6)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .fill(selectedSceneNumber == n ? Color.blue : Color.clear)
+                                            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.blue.opacity(0.3), lineWidth: 1))
+                                    )
+                            }.buttonStyle(PlainButtonStyle())
+                        }
+                        Spacer()
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Scene section
+    @ViewBuilder private var sceneBasedTakeSection: some View {
+        let sceneTakes = originalTakes.filter { $0.sceneNumber == selectedSceneNumber }
+        if !sceneTakes.isEmpty {
+            takeSection(title: "Scene \(selectedSceneNumber)",
+                        takes: sceneTakes,
+                        icon: "video.fill",
+                        color: .blue)
+        } else {
+            STSCard(elevation: .subtle) {
+                VStack(spacing: Theme.Layout.compactPadding) {
+                    Image(systemName: "tv.slash").font(.system(size: 32)).foregroundStyle(.gray)
+                    Text("No takes for Scene \(selectedSceneNumber)").font(.headline).foregroundStyle(Theme.textPrimary)
+                    Text("Switch to a different scene or record some takes")
+                        .font(.caption).foregroundStyle(Theme.Colors.secondaryText).multilineTextAlignment(.center)
+                }.padding()
+            }
+        }
+    }
+    
+    private func getCountForViewType(_ viewType: ViewType) -> Int {
+        switch viewType {
+        case .scenes: return originalTakes.count
+        case .slates: return slateTakes.count
+        case .keyframes: return keyframeTakes.count
+        case .deliverables: return deliverables.count
+        }
+    }
+    
+    // MARK: - Sections
+    @ViewBuilder
+    private func takeSection(title: String, takes: [ProjectTake], icon: String, color: Color) -> some View {
+        STSCard(elevation: .elevated) {
+            VStack(alignment: .leading, spacing: Theme.Layout.compactPadding) {
+                HStack {
+                    Image(systemName: icon).font(.headline).foregroundStyle(color)
+                    Text(title).font(Theme.Font.cardTitle).foregroundStyle(Theme.textPrimary)
+                    Spacer()
+                    Text("\(takes.count)").font(Theme.Font.smallCaption).foregroundStyle(Theme.Colors.secondaryText)
+                }
+                LazyVStack(spacing: Theme.Layout.tinyPadding) {
+                    ForEach(takes.indices, id: \.self) { index in
+                        let take = takes[index]
+                        TakeRowSimplified(
+                            take: take,
+                            takeNumber: take.takeType == .merged ? 0 : (index + 1),
+                            sessionTakes: currentSession.takes,
+                            onAction: { action in
+                                handleTakeAction(action, for: take, isFromDeliverables: (title == "Deliverables"))
+                            },
+                            onDelete: { takeToDelete = take; showingDeleteConfirmation = true },
+                            onShare: { handleShareAction(for: take) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Computed
+    private var mergedVideos: [ProjectTake] {
+        currentSession.takes.filter { $0.takeType == .merged }
+    }
+    private var originalTakes: [ProjectTake] {
+        currentSession.takes.filter { $0.takeType == .regular || $0.takeType == .slate }
+    }
+    private var slateTakes: [ProjectTake] {
+        currentSession.takes.filter { $0.takeType == .slate }
+    }
+    private var keyframeTakes: [ProjectTake] {
+        currentSession.takes.filter {
+            $0.durationSeconds == 0.0 && (
+                $0.filePath.lowercased().contains("photo") ||
+                $0.filePath.lowercased().contains("keyframe") ||
+                $0.takeNotes?.lowercased().contains("photo") == true ||
+                $0.takeNotes?.lowercased().contains("keyframe") == true
+            )
+        }
+    }
+    private var exportedTakes: [ProjectTake] {
+        currentSession.takes.filter { $0.takeType == .exported }
+    }
+    private var deliverables: [ProjectTake] {
+        let merged = mergedVideos.sorted { $0.createdAt > $1.createdAt }
+        let exported = exportedTakes.sorted { $0.createdAt > $1.createdAt }
+        return merged + exported
+    }
+    
+    private func getSceneCount() -> Int {
+        let sceneNumbers = Set(currentSession.takes.filter { $0.takeType == .regular && $0.sceneNumber > 0 }.map { $0.sceneNumber })
+        return sceneNumbers.count
+    }
+    private func getSlateCount() -> Int {
+        currentSession.takes.filter { $0.takeType == .slate }.count
+    }
+    private func getKeyframePhotoCount() -> Int {
+        currentSession.takes.filter {
+            $0.durationSeconds == 0.0 && (
+                $0.filePath.lowercased().contains("photo") ||
+                $0.filePath.lowercased().contains("keyframe") ||
+                $0.takeNotes?.lowercased().contains("photo") == true ||
+                $0.takeNotes?.lowercased().contains("keyframe") == true
+            )
+        }.count
+    }
+    
+    // MARK: - Actions
+    private func handleExportAndShare() {
+        withAnimation(Theme.Animation.smooth) { isExporting = true }
+        let enhancedTakes = convertSessionToEnhancedTakes(currentSession)
+        exportManagerData = ExportManagerData(
+            project: currentProject,
+            session: currentSession,
+                sidesURL: nil,
+                breakdownURL: nil,
+            takes: enhancedTakes,
+            repository: repository
+        )
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            withAnimation(Theme.Animation.smooth) { isExporting = false }
+        }
+    }
+    private func handleResumeSession() {
+        let lastScene = getLastSceneWithTakes()
+        SessionManager.shared.restoreSceneState(sceneNumber: lastScene)
+        showCameraForResume = true
+    }
+    private func getLastSceneWithTakes() -> Int {
+        let sceneNumbers = Set(currentSession.takes.filter { $0.takeType == .regular }.map { $0.sceneNumber })
+        return sceneNumbers.max() ?? 1
+    }
+    private func handleTakeAction(_ action: TakeAction, for take: ProjectTake, isFromDeliverables: Bool = false) {
+        switch action {
+        case .play:
+            if isPhotoTake(take) {
+                // CRITICAL FIX: Launch SwipeableMediaPlayerView for proper photo handling
+                launchSwipeablePlayer(for: take, isFromDeliverables: isFromDeliverables)
+            } else {
+                launchVideoPlayerViaParent(for: take, forceOriginal: false, isFromDeliverables: isFromDeliverables)
+            }
+        case .playOriginal:
+            launchVideoPlayerViaParent(for: take, forceOriginal: true, isFromDeliverables: isFromDeliverables)
+        case .share:
+            handleShareAction(for: take)
+        case .deleteTake:
+            takeToDelete = take; showingDeleteConfirmation = true
+        case .setRating(_):
+            onTakeAction(action, take)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { reloadSessionData() }
+        default:
+            onTakeAction(action, take)
+        }
+    }
+    private func isPhotoTake(_ take: ProjectTake) -> Bool {
+        take.durationSeconds == 0.0 && (
+            take.filePath.lowercased().contains("photo") ||
+            take.filePath.lowercased().contains("keyframe") ||
+            take.takeNotes?.lowercased().contains("photo") == true ||
+            take.takeNotes?.lowercased().contains("keyframe") == true
+        )
+    }
+    // CRITICAL FIX: Launch SwipeableMediaPlayerView instead of onVideoPlayerRequest for proper photo handling
+    private func launchSwipeablePlayer(for selectedTake: ProjectTake, isFromDeliverables: Bool = false) {
+        let contextTakes = isFromDeliverables ? deliverables : getContextualSwipeableTakes()
+        let initialIndex = contextTakes.firstIndex(where: { $0.id == selectedTake.id }) ?? 0
+        
+        swipeablePlayerTakes = contextTakes
+        swipeablePlayerInitialIndex = initialIndex
+        showSwipeablePlayer = true
+        
+        print("🎬 TakeReviewPage: Launching SwipeableMediaPlayerView with \(contextTakes.count) contextual takes, starting at index \(initialIndex)")
+    }
+    // CRITICAL FIX: Handle actions from SwipeableMediaPlayerView
+    private func handleSwipeablePlayerAction(_ action: TakeAction, for take: ProjectTake) {
+        switch action {
+        case .setRating(let rating):
+            // Update via repository
+            onTakeAction(.setRating(rating), take)
+            reloadSessionData()
+        case .share:
+            handleShareAction(for: take)
+        default:
+            onTakeAction(action, take)
+        }
+    }
+    private func launchVideoPlayerViaParent(for selectedTake: ProjectTake, forceOriginal: Bool = false, isFromDeliverables: Bool = false) {
+        let contextTakes = isFromDeliverables ? deliverables : getContextualSwipeableTakes()
+        let initialIndex = contextTakes.firstIndex(where: { $0.id == selectedTake.id }) ?? 0
+        onVideoPlayerRequest(contextTakes, initialIndex, isFromDeliverables ? .deliverables : selectedViewType, selectedViewType == .scenes ? selectedSceneNumber : nil)
+    }
+    private func getContextualSwipeableTakes() -> [ProjectTake] {
+        switch selectedViewType {
+        case .scenes: return originalTakes.filter { $0.sceneNumber == selectedSceneNumber }
+        case .slates: return slateTakes
+        case .keyframes: return keyframeTakes
+        case .deliverables: return deliverables
+        }
+    }
+    
+    private func convertSessionToEnhancedTakes(_ session: ProjectSession) -> [EnhancedTake] {
+        return session.takes.enumerated().map { index, take in
+            EnhancedTake(
+                fileName: URL(fileURLWithPath: take.filePath).lastPathComponent,
+                projectID: currentProject.id,
+                sessionID: session.id,
+                filePath: take.filePath,
+                duration: take.durationSeconds,
+                fileSize: estimateFileSize(for: take.filePath),
+                cameraPosition: "back",
+                sceneNumber: 1,
+                takeNumber: index + 1,
+                isSlate: take.takeType == .slate,
+                createdAt: take.createdAt
+            )
+        }
+    }
+    private func estimateFileSize(for filePath: String) -> Int64 {
+        if FileManager.default.fileExists(atPath: filePath) {
+            do { return (try FileManager.default.attributesOfItem(atPath: filePath))[.size] as? Int64 ?? 0 }
+            catch { return 0 }
+        }
+        return 0
+    }
+    private func getRoleName() -> String? {
+        if let n = currentSession.roleName, !n.isEmpty { return n }
+        if let first = currentProject.roles.first { return first.name }
+        return nil
+    }
+    
+    // MARK: - Nested Views
+    struct TakeRowSimplified: View {
+        let take: ProjectTake
+        let takeNumber: Int
+        let sessionTakes: [ProjectTake]
+        let onAction: (TakeAction) -> Void
+        let onDelete: () -> Void
+        let onShare: () -> Void
+        
+        var body: some View {
+            VStack(spacing: 0) { mainTakeRow }
+        }
+        
+        @ViewBuilder private var mainTakeRow: some View {
+            HStack(spacing: Theme.Layout.compactPadding) {
+                videoThumbnail
+                takeInfo
+                Spacer()
+                takeRatingActions
+                takeActionsMenu            }
+            .padding(Theme.Layout.compactPadding)
+            .background(RoundedRectangle(cornerRadius: Theme.Layout.smallCornerRadius).fill(takeRowBackgroundColor))
+        }
+        
+        @ViewBuilder private var videoThumbnail: some View {
+            Button { onAction(.play) } label: {
+                ZStack {
+                    Group {
+                        if isPhotoTake {
+                            let fileName = URL(fileURLWithPath: take.filePath).lastPathComponent
+                            if let url = try? VideoFileManager.shared.getVideoURL(for: fileName) {
+                                AsyncImage(url: url) { img in img.resizable().aspectRatio(contentMode: .fill) } placeholder: {
+                                    Rectangle().fill(.gray.opacity(0.3)).overlay { Image(systemName: "photo").foregroundColor(.gray) }
+                                }
+                            } else {
+                                Rectangle().fill(.gray.opacity(0.3)).overlay { Image(systemName: "photo").foregroundColor(.gray) }
+                            }
+                        } else {
+                            ThumbnailPreviewView(unifiedTake: createUnifiedTakeForThumbnail())
+                        }
+                    }
+                    .frame(width: 60, height: 36)
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.Layout.smallCornerRadius))
+                    if !isPhotoTake {
+                        Image(systemName: "play.fill").font(.caption).foregroundStyle(.white)
+                            .background(Circle().fill(.black.opacity(0.6)).frame(width: 24, height: 24))
+                    }
+                }
+            }.buttonStyle(PlainButtonStyle())
+        }
+        
+        private func createUnifiedTakeForThumbnail() -> UnifiedTake {
+            UnifiedTake(
+                id: take.id,
+                fileName: URL(fileURLWithPath: take.filePath).lastPathComponent,
+                projectID: UUID(),
+                sessionID: UUID(),
+                filePath: take.filePath,
+                duration: take.durationSeconds,
+                fileSize: 0,
+                cameraPosition: "back",
+                sceneNumber: take.sceneNumber == -1 ? 1 : take.sceneNumber,
+                takeNumber: takeNumber,
+                isSlate: take.takeType == .slate,
+                smartFilledFilePath: nil,
+                rating: take.rating,
+                createdAt: take.createdAt
+            )
+        }
+        
+        @ViewBuilder private var takeInfo: some View {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack {
+                    if take.takeType == .merged {
+                        HStack(spacing: 6) { Image(systemName: "film.stack.fill").font(.caption); Text("Merged").font(Theme.Font.cardSubtitle).fontWeight(.semibold).foregroundStyle(.green) }
+                    } else if take.takeType == .exported {
+                        HStack(spacing: 6) { Image(systemName: "square.and.arrow.up.fill").font(.caption); Text("Exported").font(Theme.Font.cardSubtitle).fontWeight(.medium).foregroundStyle(.blue) }
+                    } else if isSmartFillTake {
+                        HStack(spacing: 6) { Image(systemName: "wand.and.stars").font(.caption).foregroundStyle(.cyan); Text(getSmartFillDisplayName()).font(Theme.Font.cardSubtitle).fontWeight(.medium).foregroundStyle(Theme.textPrimary) }
+                    } else if take.takeType == .slate {
+                        HStack(spacing: 6) {
+                            Image(systemName: "tv").font(.caption)
+                            Text("Slate").font(Theme.Font.cardSubtitle).foregroundStyle(Theme.textPrimary)
+                            if let n = take.slateNumber { Text("(\(n))").font(.caption).foregroundStyle(Theme.Colors.secondaryText) }
+                        }
+                    } else {
+                        HStack(spacing: 6) {
+                            if isPhotoTake {
+                                Text("Photo \(takeNumber)").font(Theme.Font.cardSubtitle).foregroundStyle(Theme.textPrimary)
+                            } else if take.sceneNumber > 1 {
+                                Text("S\(take.sceneNumber)T\(takeNumber)").font(Theme.Font.cardSubtitle).foregroundStyle(Theme.textPrimary)
+                            } else {
+                                Text("Take \(takeNumber)").font(Theme.Font.cardSubtitle).foregroundStyle(Theme.textPrimary)
+                            }
+                            if take.hasEdits {
+                                Text("(edited)").font(.caption).foregroundStyle(.orange)
+                                    .padding(.horizontal, 6).padding(.vertical, 2)
+                                    .background(Capsule().fill(.orange.opacity(0.2)))
+                            }
+                        }
+                    }
+                    if take.takeType == .regular || isSmartFillTake {
+                        HStack(spacing: 4) {
+                            if take.rating == .good { Image(systemName: "checkmark.circle.fill").font(.caption).foregroundStyle(.green) }
+                            if take.rating == .favorite { Image(systemName: "star.fill").font(.caption).foregroundStyle(.yellow) }
+                            if take.rating == .bad { Image(systemName: "xmark.circle.fill").font(.caption).foregroundStyle(.red) }
+                        }
+                    }
+                }
+                HStack {
+                    if isPhotoTake {
+                        Text("Keyframe Photo").font(Theme.Font.smallCaption).foregroundStyle(.orange)
+                    } else {
+                        Text(formattedDuration(take.durationSeconds)).font(Theme.Font.smallCaption).foregroundStyle(Theme.Colors.secondaryText)
+                    }
+                    if isSmartFillTake {
+                        Text("SmartFill").font(.system(size: 10, weight: .medium)).foregroundStyle(.cyan)
+                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .background(Capsule().fill(.cyan.opacity(0.2)))
+                    }
+                }
+            }
+        }
+        
+        private var isSmartFillTake: Bool {
+            URL(fileURLWithPath: take.filePath).lastPathComponent.contains("_smartfill.")
+        }
+        private func getSmartFillDisplayName() -> String {
+            let fileName = URL(fileURLWithPath: take.filePath).lastPathComponent
+            let originalFileName = fileName.replacingOccurrences(of: "_smartfill.mov", with: ".mov").replacingOccurrences(of: "_smartfill.mp4", with: ".mp4")
+            let base = URL(fileURLWithPath: originalFileName).deletingPathExtension().lastPathComponent
+            if let parent = sessionTakes.first(where: {
+                let t = URL(fileURLWithPath: $0.filePath).deletingPathExtension().lastPathComponent
+                return t == base
+            }) {
+                if parent.takeType == .slate {
+                    if let n = parent.slateNumber { return "Slate (\(n)) SmartFilled" }
+                    return "Slate SmartFilled"
+                } else {
+                    let scene = sessionTakes.filter { $0.takeType == .regular && $0.sceneNumber == parent.sceneNumber }.sorted { $0.createdAt < $1.createdAt }
+                    if let idx = scene.firstIndex(where: { $0.id == parent.id }) {
+                        let n = idx + 1
+                        if parent.sceneNumber > 1 { return "S\(parent.sceneNumber)T\(n) SmartFilled" }
+                        return "Take \(n) SmartFilled"
+                    }
+                }
+            }
+            return "\(base) SmartFilled"
+        }
+        
+        @ViewBuilder private var takeRatingActions: some View {
+            if take.takeType == .regular || take.takeType == .slate || isSmartFillTake {
+                HStack(spacing: 8) {
+                    Button { onAction(.setRating(take.rating == .good ? .unrated : .good)) } label: {
+                        Image(systemName: take.rating == .good ? "checkmark.circle.fill" : "checkmark.circle")
+                            .font(.caption).foregroundStyle(take.rating == .good ? .green : .gray).padding(6)
+                    }
+                    Button { onAction(.setRating(take.rating == .favorite ? .unrated : .favorite)) } label: {
+                        Image(systemName: take.rating == .favorite ? "star.fill" : "star")
+                            .font(.caption).foregroundStyle(take.rating == .favorite ? .yellow : .gray).padding(6)
+                    }
+                    Button { onAction(.setRating(take.rating == .bad ? .unrated : .bad)) } label: {
+                        Image(systemName: "xmark.circle\(take.rating == .bad ? ".fill" : "")")
+                            .font(.caption).foregroundStyle(take.rating == .bad ? .red : .gray).padding(6)
+                    }
+                }.buttonStyle(PlainButtonStyle())
+            }
+        }
+
+        @ViewBuilder private var takeActionsMenu: some View {
+            Menu {
+                Button {
+                    onShare()
+                } label: {
+                    Label("Share", systemImage: "square.and.arrow.up.fill")
+                }
+                
+                Button(role: .destructive) {
+                    onDelete()
+                } label: {
+                    Label("Delete", systemImage: "trash.fill")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.caption)
+                    .foregroundStyle(Theme.primary)
+                    .padding(6)
+            }
+        }        
+        private var takeRowBackgroundColor: Color {
+            if isSmartFillTake { return Color.cyan.opacity(0.06) }
+            switch take.takeType {
+            case .merged: return Color.green.opacity(0.08)
+            case .exported: return Color.blue.opacity(0.08)
+            case .slate: return Color.blue.opacity(0.05)
+            case .regular: return Color.white.opacity(0.03)
+            }
+        }
+        private var isPhotoTake: Bool {
+            take.durationSeconds == 0.0 && (take.filePath.lowercased().contains("photo") || take.filePath.lowercased().contains("keyframe"))
+        }
+        private func formattedDuration(_ duration: TimeInterval) -> String {
+            let m = Int(duration) / 60, s = Int(duration) % 60
+            return String(format: "%d:%02d", m, s)
+        }
+    }
+}
+
+@MainActor
+
+// MARK: - Enterprise Action Button
+struct EnterpriseActionButton: View {
+    let icon: String
+    let label: String
+    let style: ButtonStyle
+    let isLoading: Bool
+    let action: () -> Void
+    
+    enum ButtonStyle { case primary, secondary
+        var backgroundColor: AnyShapeStyle {
+            switch self {
+            case .primary: return AnyShapeStyle(Theme.Colors.primaryGradient)
+            case .secondary: return AnyShapeStyle(Color.white.opacity(0.08))
+            }
+        }
+        var foregroundColor: Color {
+            switch self {
+            case .primary: return .white
+            case .secondary: return Theme.Colors.secondaryText
+            }
+        }
+        var borderColor: Color {
+            switch self {
+            case .primary: return Color.white.opacity(0.2)
+            case .secondary: return Color.white.opacity(0.15)
+            }
+        }
+    }
+    
+    var body: some View {
+        Button {
+            if !isLoading {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                action()
+            }
+        } label: {
+            HStack(spacing: Theme.Spacing.xs) {
+                if isLoading { ProgressView().scaleEffect(0.8).tint(style.foregroundColor) }
+                else { Image(systemName: icon).font(.system(size: 16, weight: .semibold)) }
+                Text(isLoading ? "Processing..." : label).font(Theme.Font.buttonLabel).fontWeight(.medium)
+            }
+            .padding(.vertical, Theme.Layout.compactPadding)
+            .padding(.horizontal, Theme.Layout.comfortablePadding)
+            .frame(maxWidth: .infinity)
+            .background(RoundedRectangle(cornerRadius: Theme.Layout.smallCornerRadius).fill(style.backgroundColor))
+            .foregroundColor(style.foregroundColor)
+            .shadow(color: style == .primary ? Theme.Shadow.elevated.color : Theme.Shadow.subtle.color,
+                    radius: Theme.Shadow.elevated.radius, x: 0, y: Theme.Shadow.elevated.y)
+            .shadow(color: Theme.Shadow.small.color, radius: Theme.Shadow.small.radius, x: 0, y: Theme.Shadow.small.y)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .disabled(isLoading)
+    }
+}
+

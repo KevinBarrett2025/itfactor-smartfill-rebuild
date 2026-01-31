@@ -1,0 +1,53 @@
+/// Creates AVMetadataItem for video artwork from UIImage thumbnail
+/// Enhanced with multiple format support for better compatibility
+private func createThumbnailMetadata(from thumbnail: UIImage) -> [AVMetadataItem] {
+    print("🖼️ DEBUG: Creating enhanced thumbnail metadata from UIImage")
+    
+    var metadataItems: [AVMetadataItem] = []
+    
+    // Try JPEG first (more widely supported)
+    if let jpegData = thumbnail.jpegData(compressionQuality: 0.8) {
+        let artworkMetadataItem = AVMutableMetadataItem()
+        artworkMetadataItem.keySpace = .common
+        artworkMetadataItem.key = AVMetadataKey.commonKeyArtwork as (NSCopying & NSObjectProtocol)?
+        artworkMetadataItem.value = jpegData as (NSCopying & NSObjectProtocol)?
+        artworkMetadataItem.dataType = kCMMetadataBaseDataType_JPEG as String
+        metadataItems.append(artworkMetadataItem)
+        print("🖼️ DEBUG: Created JPEG artwork metadata item - Data size: \(jpegData.count) bytes")
+    } else if let pngData = thumbnail.pngData() {
+        // Fallback to PNG
+        let artworkMetadataItem = AVMutableMetadataItem()
+        artworkMetadataItem.keySpace = .common
+        artworkMetadataItem.key = AVMetadataKey.commonKeyArtwork as (NSCopying & NSObjectProtocol)?
+        artworkMetadataItem.value = pngData as (NSCopying & NSObjectProtocol)?
+        artworkMetadataItem.dataType = kCMMetadataBaseDataType_PNG as String
+        metadataItems.append(artworkMetadataItem)
+        print("🖼️ DEBUG: Created PNG artwork metadata item - Data size: \(pngData.count) bytes")
+    } else {
+        print("❌ DEBUG: Failed to convert thumbnail to image data")
+        return []
+    }
+    
+    // Add title metadata for better identification
+    let titleMetadataItem = AVMutableMetadataItem()
+    titleMetadataItem.keySpace = .common
+    titleMetadataItem.key = AVMetadataKey.commonKeyTitle as (NSCopying & NSObjectProtocol)?
+    titleMetadataItem.value = exportFilename as (NSCopying & NSObjectProtocol)?
+    titleMetadataItem.dataType = kCMMetadataBaseDataType_UTF8 as String
+    metadataItems.append(titleMetadataItem)
+    print("🖼️ DEBUG: Created title metadata item: \(exportFilename)")
+    
+    // Also try QuickTime-specific artwork metadata
+    let qtArtworkItem = AVMutableMetadataItem()
+    qtArtworkItem.keySpace = .quickTimeMetadata
+    qtArtworkItem.key = AVMetadataKey.quickTimeMetadataKeyArtwork as (NSCopying & NSObjectProtocol)?
+    if let jpegData = thumbnail.jpegData(compressionQuality: 0.8) {
+        qtArtworkItem.value = jpegData as (NSCopying & NSObjectProtocol)?
+        qtArtworkItem.dataType = kCMMetadataBaseDataType_JPEG as String
+        metadataItems.append(qtArtworkItem)
+        print("🖼️ DEBUG: Created QuickTime-specific artwork metadata item")
+    }
+    
+    print("🖼️ DEBUG: Total metadata items created: \(metadataItems.count)")
+    return metadataItems
+}

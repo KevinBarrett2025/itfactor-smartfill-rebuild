@@ -1,0 +1,816 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		D4AD19572ED2B31E0049AE56 /* STSWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D4AD194D2ED2B31D0049AE56 /* STSWatch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		D4AD195D2ED2B3A90049AE56 /* WatchConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D4AD195C2ED2B3A90049AE56 /* WatchConnectivity.framework */; };
+		D4FFBD002E8B17FD007581B7 /* PryntTrimmerView in Frameworks */ = {isa = PBXBuildFile; productRef = D4FFBCFF2E8B17FD007581B7 /* PryntTrimmerView */; };
+		D4FFBD022E8B17FD007581B7 /* CropViewController in Frameworks */ = {isa = PBXBuildFile; productRef = D4FFBD012E8B17FD007581B7 /* CropViewController */; };
+		D4FFBD042E8B17FD007581B7 /* TOCropViewController in Frameworks */ = {isa = PBXBuildFile; productRef = D4FFBD032E8B17FD007581B7 /* TOCropViewController */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		D444314C2E70D62000710295 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D44431342E70D61F00710295 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D444313B2E70D61F00710295;
+			remoteInfo = STSiPhone;
+		};
+		D44431562E70D62000710295 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D44431342E70D61F00710295 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D444313B2E70D61F00710295;
+			remoteInfo = STSiPhone;
+		};
+		D4AD19552ED2B31E0049AE56 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D44431342E70D61F00710295 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D4AD194C2ED2B31D0049AE56;
+			remoteInfo = "STSWatch Watch App";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		D4AD195B2ED2B31E0049AE56 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				D4AD19572ED2B31E0049AE56 /* STSWatch Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		D444313C2E70D61F00710295 /* STSiPhone.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = STSiPhone.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D444314B2E70D62000710295 /* STSiPhoneTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = STSiPhoneTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D44431552E70D62000710295 /* STSiPhoneUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = STSiPhoneUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D4AD194D2ED2B31D0049AE56 /* STSWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "STSWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D4AD195C2ED2B3A90049AE56 /* WatchConnectivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WatchConnectivity.framework; path = Platforms/WatchOS.platform/Developer/SDKs/WatchOS26.1.sdk/System/Library/Frameworks/WatchConnectivity.framework; sourceTree = DEVELOPER_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		D41743CE2E8D5A320057CF6E /* Exceptions for "STSiPhone" folder in "STSiPhone" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = D444313B2E70D61F00710295 /* STSiPhone */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		D444313E2E70D61F00710295 /* STSiPhone */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				D41743CE2E8D5A320057CF6E /* Exceptions for "STSiPhone" folder in "STSiPhone" target */,
+			);
+			path = STSiPhone;
+			sourceTree = "<group>";
+		};
+		D444314E2E70D62000710295 /* STSiPhoneTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = STSiPhoneTests;
+			sourceTree = "<group>";
+		};
+		D44431582E70D62000710295 /* STSiPhoneUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = STSiPhoneUITests;
+			sourceTree = "<group>";
+		};
+		D4AD194E2ED2B31D0049AE56 /* STSWatch Watch App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "STSWatch Watch App";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D44431392E70D61F00710295 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D4FFBD002E8B17FD007581B7 /* PryntTrimmerView in Frameworks */,
+				D4FFBD042E8B17FD007581B7 /* TOCropViewController in Frameworks */,
+				D4FFBD022E8B17FD007581B7 /* CropViewController in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D44431482E70D62000710295 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D44431522E70D62000710295 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D4AD194A2ED2B31D0049AE56 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D4AD195D2ED2B3A90049AE56 /* WatchConnectivity.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D44431332E70D61F00710295 = {
+			isa = PBXGroup;
+			children = (
+				D444313E2E70D61F00710295 /* STSiPhone */,
+				D444314E2E70D62000710295 /* STSiPhoneTests */,
+				D44431582E70D62000710295 /* STSiPhoneUITests */,
+				D4AD194E2ED2B31D0049AE56 /* STSWatch Watch App */,
+				D4FFBCFE2E8B17FD007581B7 /* Frameworks */,
+				D444313D2E70D61F00710295 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D444313D2E70D61F00710295 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D444313C2E70D61F00710295 /* STSiPhone.app */,
+				D444314B2E70D62000710295 /* STSiPhoneTests.xctest */,
+				D44431552E70D62000710295 /* STSiPhoneUITests.xctest */,
+				D4AD194D2ED2B31D0049AE56 /* STSWatch Watch App.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D4FFBCFE2E8B17FD007581B7 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				D4AD195C2ED2B3A90049AE56 /* WatchConnectivity.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D444313B2E70D61F00710295 /* STSiPhone */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D444315F2E70D62000710295 /* Build configuration list for PBXNativeTarget "STSiPhone" */;
+			buildPhases = (
+				D44431382E70D61F00710295 /* Sources */,
+				D44431392E70D61F00710295 /* Frameworks */,
+				D444313A2E70D61F00710295 /* Resources */,
+				D4AD195B2ED2B31E0049AE56 /* Embed Watch Content */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D4AD19562ED2B31E0049AE56 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				D444313E2E70D61F00710295 /* STSiPhone */,
+			);
+			name = STSiPhone;
+			packageProductDependencies = (
+				D4FFBCFF2E8B17FD007581B7 /* PryntTrimmerView */,
+				D4FFBD012E8B17FD007581B7 /* CropViewController */,
+				D4FFBD032E8B17FD007581B7 /* TOCropViewController */,
+			);
+			productName = STSiPhone;
+			productReference = D444313C2E70D61F00710295 /* STSiPhone.app */;
+			productType = "com.apple.product-type.application";
+		};
+		D444314A2E70D62000710295 /* STSiPhoneTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D44431622E70D62000710295 /* Build configuration list for PBXNativeTarget "STSiPhoneTests" */;
+			buildPhases = (
+				D44431472E70D62000710295 /* Sources */,
+				D44431482E70D62000710295 /* Frameworks */,
+				D44431492E70D62000710295 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D444314D2E70D62000710295 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				D444314E2E70D62000710295 /* STSiPhoneTests */,
+			);
+			name = STSiPhoneTests;
+			packageProductDependencies = (
+			);
+			productName = STSiPhoneTests;
+			productReference = D444314B2E70D62000710295 /* STSiPhoneTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		D44431542E70D62000710295 /* STSiPhoneUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D44431652E70D62000710295 /* Build configuration list for PBXNativeTarget "STSiPhoneUITests" */;
+			buildPhases = (
+				D44431512E70D62000710295 /* Sources */,
+				D44431522E70D62000710295 /* Frameworks */,
+				D44431532E70D62000710295 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D44431572E70D62000710295 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				D44431582E70D62000710295 /* STSiPhoneUITests */,
+			);
+			name = STSiPhoneUITests;
+			packageProductDependencies = (
+			);
+			productName = STSiPhoneUITests;
+			productReference = D44431552E70D62000710295 /* STSiPhoneUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		D4AD194C2ED2B31D0049AE56 /* STSWatch Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D4AD19582ED2B31E0049AE56 /* Build configuration list for PBXNativeTarget "STSWatch Watch App" */;
+			buildPhases = (
+				D4AD19492ED2B31D0049AE56 /* Sources */,
+				D4AD194A2ED2B31D0049AE56 /* Frameworks */,
+				D4AD194B2ED2B31D0049AE56 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				D4AD194E2ED2B31D0049AE56 /* STSWatch Watch App */,
+			);
+			name = "STSWatch Watch App";
+			packageProductDependencies = (
+			);
+			productName = "STSWatch Watch App";
+			productReference = D4AD194D2ED2B31D0049AE56 /* STSWatch Watch App.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		D44431342E70D61F00710295 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2610;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					D444313B2E70D61F00710295 = {
+						CreatedOnToolsVersion = 16.4;
+						LastSwiftMigration = 1640;
+					};
+					D444314A2E70D62000710295 = {
+						CreatedOnToolsVersion = 16.4;
+						TestTargetID = D444313B2E70D61F00710295;
+					};
+					D44431542E70D62000710295 = {
+						CreatedOnToolsVersion = 16.4;
+						TestTargetID = D444313B2E70D61F00710295;
+					};
+					D4AD194C2ED2B31D0049AE56 = {
+						CreatedOnToolsVersion = 26.1.1;
+					};
+				};
+			};
+			buildConfigurationList = D44431372E70D61F00710295 /* Build configuration list for PBXProject "STSiPhone" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = D44431332E70D61F00710295;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				D445630A2E8B08DA004463A0 /* XCRemoteSwiftPackageReference "PryntTrimmerView" */,
+				D445630B2E8B09C1004463A0 /* XCRemoteSwiftPackageReference "TOCropViewController" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = D444313D2E70D61F00710295 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D444313B2E70D61F00710295 /* STSiPhone */,
+				D444314A2E70D62000710295 /* STSiPhoneTests */,
+				D44431542E70D62000710295 /* STSiPhoneUITests */,
+				D4AD194C2ED2B31D0049AE56 /* STSWatch Watch App */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D444313A2E70D61F00710295 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D44431492E70D62000710295 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D44431532E70D62000710295 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D4AD194B2ED2B31D0049AE56 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D44431382E70D61F00710295 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D44431472E70D62000710295 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D44431512E70D62000710295 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D4AD19492ED2B31D0049AE56 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D444314D2E70D62000710295 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D444313B2E70D61F00710295 /* STSiPhone */;
+			targetProxy = D444314C2E70D62000710295 /* PBXContainerItemProxy */;
+		};
+		D44431572E70D62000710295 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D444313B2E70D61F00710295 /* STSiPhone */;
+			targetProxy = D44431562E70D62000710295 /* PBXContainerItemProxy */;
+		};
+		D4AD19562ED2B31E0049AE56 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D4AD194C2ED2B31D0049AE56 /* STSWatch Watch App */;
+			targetProxy = D4AD19552ED2B31E0049AE56 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		D444315D2E70D62000710295 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = JC88DK343F;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		D444315E2E70D62000710295 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = JC88DK343F;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		D44431602E70D62000710295 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = STSiPhone/STSiPhone.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JC88DK343F;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = STSiPhone/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Self Tape Studio needs the camera to record your audition.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Self Tape Studio uses your local network to send run-time diagnostics to your Mac for debugging.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Self Tape Studio uses the microphone to capture your performance audio.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rheirhome.STSiPhone;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		D44431612E70D62000710295 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = STSiPhone/STSiPhone.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JC88DK343F;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = STSiPhone/Info.plist;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Self Tape Studio needs the camera to record your audition.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Self Tape Studio uses your local network to send run-time diagnostics to your Mac for debugging.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Self Tape Studio uses the microphone to capture your performance audio.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rheirhome.STSiPhone;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		D44431632E70D62000710295 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JC88DK343F;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rheirhome.STSiPhone.STSiPhoneTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/STSiPhone.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/STSiPhone";
+			};
+			name = Debug;
+		};
+		D44431642E70D62000710295 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JC88DK343F;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rheirhome.STSiPhone.STSiPhoneTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/STSiPhone.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/STSiPhone";
+			};
+			name = Release;
+		};
+		D44431662E70D62000710295 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JC88DK343F;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rheirhome.STSiPhone.STSiPhoneUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = STSiPhone;
+			};
+			name = Debug;
+		};
+		D44431672E70D62000710295 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JC88DK343F;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rheirhome.STSiPhone.STSiPhoneUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = STSiPhone;
+			};
+			name = Release;
+		};
+		D4AD19592ED2B31E0049AE56 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JC88DK343F;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = STSWatch;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.rheirhome.STSiPhone;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rheirhome.STSiPhone.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 8.7;
+			};
+			name = Debug;
+		};
+		D4AD195A2ED2B31E0049AE56 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JC88DK343F;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = STSWatch;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.rheirhome.STSiPhone;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rheirhome.STSiPhone.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 8.7;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		D44431372E70D61F00710295 /* Build configuration list for PBXProject "STSiPhone" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D444315D2E70D62000710295 /* Debug */,
+				D444315E2E70D62000710295 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D444315F2E70D62000710295 /* Build configuration list for PBXNativeTarget "STSiPhone" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D44431602E70D62000710295 /* Debug */,
+				D44431612E70D62000710295 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D44431622E70D62000710295 /* Build configuration list for PBXNativeTarget "STSiPhoneTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D44431632E70D62000710295 /* Debug */,
+				D44431642E70D62000710295 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D44431652E70D62000710295 /* Build configuration list for PBXNativeTarget "STSiPhoneUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D44431662E70D62000710295 /* Debug */,
+				D44431672E70D62000710295 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D4AD19582ED2B31E0049AE56 /* Build configuration list for PBXNativeTarget "STSWatch Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D4AD19592ED2B31E0049AE56 /* Debug */,
+				D4AD195A2ED2B31E0049AE56 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		D445630A2E8B08DA004463A0 /* XCRemoteSwiftPackageReference "PryntTrimmerView" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/HHK1/PryntTrimmerView.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.0.2;
+			};
+		};
+		D445630B2E8B09C1004463A0 /* XCRemoteSwiftPackageReference "TOCropViewController" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/TimOliver/TOCropViewController";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.8.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D4FFBCFF2E8B17FD007581B7 /* PryntTrimmerView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D445630A2E8B08DA004463A0 /* XCRemoteSwiftPackageReference "PryntTrimmerView" */;
+			productName = PryntTrimmerView;
+		};
+		D4FFBD012E8B17FD007581B7 /* CropViewController */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D445630B2E8B09C1004463A0 /* XCRemoteSwiftPackageReference "TOCropViewController" */;
+			productName = CropViewController;
+		};
+		D4FFBD032E8B17FD007581B7 /* TOCropViewController */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D445630B2E8B09C1004463A0 /* XCRemoteSwiftPackageReference "TOCropViewController" */;
+			productName = TOCropViewController;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = D44431342E70D61F00710295 /* Project object */;
+}
