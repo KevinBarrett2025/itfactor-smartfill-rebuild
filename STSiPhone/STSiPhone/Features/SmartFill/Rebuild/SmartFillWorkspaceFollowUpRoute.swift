@@ -18,3 +18,22 @@ enum SmartFillWorkspaceFollowUpRoute: Equatable, Sendable {
         }
     }
 }
+
+enum SmartFillWorkspaceCompletionFollowUpAction: Equatable, Sendable {
+    case closeOnly
+    case openSavedTake
+
+    static func primaryAction(hasSavedResult: Bool, canOpenSavedTake: Bool) -> Self {
+        guard hasSavedResult, canOpenSavedTake else { return .closeOnly }
+        return .openSavedTake
+    }
+
+    static func autoReturn(
+        completionBehavior: SmartFillWorkspaceCompletionBehavior,
+        hasSavedResult: Bool,
+        canOpenSavedTake: Bool
+    ) -> Self {
+        guard completionBehavior == .returnAutomatically else { return .closeOnly }
+        return primaryAction(hasSavedResult: hasSavedResult, canOpenSavedTake: canOpenSavedTake)
+    }
+}

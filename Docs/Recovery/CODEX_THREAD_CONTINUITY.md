@@ -1,11 +1,11 @@
 # CODEX Thread Continuity
 
-## Ticket 021 Real Reopen Handoff For Saved SmartFill Take (2026-03-26)
-- Thread Status: the rebuild workspace now routes its completed-state primary action through a real saved-take reopen handoff for both project-review and editor launches, local gating is green, and commit/push is the active next action.
+## Ticket 022 Auto-Return Uses Real Saved Take Reopen Path (2026-03-26)
+- Thread Status: the rebuild workspace now routes both manual completed-state actions and automatic `Return` through the same saved-result reopen seam for project-review and editor launches, local gating is green, and commit/push is the active next action.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
 - Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
 - Working Branch: `gm/smartfill-itfactor-rebuild`
-- Working Head SHA: `73b119372213fc13868831a457f0ae3acffe91bf`
+- Working Head SHA: `6f51c6cd4c3bb9adafa577e55a5d28c626796c4f`
 - Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 - Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
 - Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
@@ -14,67 +14,67 @@
   - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 
 ### Objective
-Turn the honest saved-take copy into a real reopen path:
-1. let the completed-state primary action open the saved SmartFill take instead of only dismissing the workspace
-2. make project-review launches reopen the adopted take inside the correct review or player flow
-3. make editor launches reopen the adopted take inside the editor instead of leaving the user on the original take
-4. keep standalone derivation aligned because the later hidden-session utility will need the same "open what you just saved" seam
+Turn the completed-state auto-return into the same real reopen path:
+1. make automatic `Return` use the same saved-result follow-up seam as the manual `Open <saved take>` action
+2. keep project-review launches reopening the adopted take inside the correct review or player flow even when the workspace returns automatically
+3. keep editor launches reopening the adopted take inside the editor even when save completion auto-returns
+4. keep standalone derivation aligned because the later hidden-session utility will need the same automatic `open what you just saved` seam
 
 ### Completed This Pass
 - Truth-sync preflight confirmed:
-  - `HEAD`: `73b119372213fc13868831a457f0ae3acffe91bf`
+  - `HEAD`: `6f51c6cd4c3bb9adafa577e55a5d28c626796c4f`
   - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
   - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
-- Archaeology confirmed the prior gap:
-  - `SmartFillWorkspaceView.handlePrimaryAction()` still called `handleClose()` whenever the stage was `.completed`
-  - `ProjectDetailView` only restored review/player context on workspace disappear and had no dedicated saved-result reopen path
-  - `LightweightEditorViewController+ModularWiring` launched the rebuild workspace but had no callback that swapped the editor onto the adopted SmartFill take after save
-- `SmartFillWorkspaceView` now accepts `onOpenSavedTake` and uses it when the workspace has a completed `SmartFillResultBridgeRecord`, so the primary completed-state action no longer falls back to a generic close.
-- `SmartFillWorkspaceFollowUpRoute` now centralizes follow-up routing for:
-  - editor reopen
-  - player/review reopen
-  - project-detail player reopen without forced review bounce
-  - standalone close-only fallback
-- `ProjectDetailView` now stores a pending reopen request, resolves the adopted SmartFill take from repository truth, and reopens that saved take in the correct player/review flow instead of only dismissing the workspace.
-- `LightweightEditorViewController+ModularWiring` now reopens the adopted SmartFill take inside the editor after workspace save completion instead of leaving the editor on the original take.
-- Focused parity now covers the follow-up route matrix directly.
+- Archaeology confirmed the remaining gap after `SF-REBUILD-021`:
+  - `SmartFillWorkspaceView.handlePrimaryAction()` used `onOpenSavedTake(record)` for completed sessions
+  - `SmartFillWorkspaceView.scheduleAutoReturn()` still called `handleClose()` directly
+  - that meant manual reopen was truthful but automatic `Return` still skipped the saved-result reopen seam entirely
+- `SmartFillWorkspaceCompletionFollowUpAction` now centralizes the completed-state follow-up decision so manual primary actions and queued auto-return both evaluate the same saved-result reopen rule.
+- `SmartFillWorkspaceView` now routes:
+  - manual completed-state primary actions
+  - automatic `Return`
+  through `performCompletionFollowUp(_:)` instead of keeping a separate close-only auto-return path.
+- Focused parity now covers:
+  - primary completed-state follow-up opening the saved take when available
+  - close-only fallback when saved-result reopen is unavailable
+  - automatic `Return` reusing the saved-result reopen seam only when return mode is active
 
 ### Validation
 - Preflight fetch:
   - `git -C /Users/kevinbarrett/Dev/itFactor_1.23.26_git fetch origin --prune`
 - Gate A command:
-  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase21_gateA build | tee /tmp/itfactor_smartfill_phase21_gateA.log`
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase22_gateA build | tee /tmp/itfactor_smartfill_phase22_gateA.log`
 - Gate A result:
   - `PASS`
 - Gate A log:
-  - `/tmp/itfactor_smartfill_phase21_gateA.log`
+  - `/tmp/itfactor_smartfill_phase22_gateA.log`
 - Focused parity command:
-  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase21_tests -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase21_tests.log`
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase22_tests -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase22_tests.log`
 - Focused parity result:
   - `PASS`
 - Focused parity log:
-  - `/tmp/itfactor_smartfill_phase21_tests.log`
+  - `/tmp/itfactor_smartfill_phase22_tests.log`
 - Focused parity xcresult:
-  - `/tmp/itfactor_smartfill_phase21_tests/Logs/Test/Test-STSiPhone-2026.03.26_18-35-50--0400.xcresult`
+  - `/tmp/itfactor_smartfill_phase22_tests/Logs/Test/Test-STSiPhone-2026.03.26_18-55-45--0400.xcresult`
 - `project.pbxproj` drift:
   - `NONE`
 
 ### Archaeology Snapshot
-- `SF-REBUILD-020` fixed the words but not the route:
-  - the workspace could say `Open <saved take>`
-  - the actual primary action still closed the sheet
-- `ProjectDetailView` and editor wiring already had most of the repository and presentation seams needed to reopen the adopted take, so the correct fix was to add one bounded callback seam instead of reviving another completion modal or wrapper controller.
-- `SmartFillResultBridgeRecord` already carried the exact IDs needed for a real reopen handoff:
+- `SF-REBUILD-021` fixed the manual route but not the automatic one:
+  - the workspace could now reopen the saved take when the user tapped the primary action
+  - the queued auto-return still dismissed the workspace with no saved-result callback
+- `SmartFillResultBridgeRecord` already carries the exact IDs needed for both manual and automatic reopen:
   - `projectID`
   - `sessionID`
   - `adoptedTakeID`
   - `adoptedTakeDisplayName`
-- The new `SmartFillWorkspaceFollowUpRoute` keeps the route choice explicit so the future standalone hidden-session utility can reuse the same `open what you just saved` seam while swapping player/editor/project-detail targets for utility-local follow-up destinations.
+- `SmartFillWorkspaceFollowUpRoute` already keeps the route choice explicit, so the correct next move is to make auto-return use the same follow-up seam instead of building a second return controller.
+- The new `SmartFillWorkspaceCompletionFollowUpAction` keeps that decision small and testable so the future standalone hidden-session utility can reuse the same manual-versus-auto return rule without duplicating workspace-close logic.
 
 ### Next Action
-1. Commit and push Ticket 021 on `gm/smartfill-itfactor-rebuild` with Gate A and focused parity evidence attached.
-2. Choose the next flagship SmartFill workspace phase now that the rebuild can reopen the actual adopted SmartFill take instead of only dismissing after save.
-3. Keep the standalone derivation ledger synchronized because the future hidden-session utility will need the same concrete saved-result reopen seam.
+1. Commit and push Ticket 022 on `gm/smartfill-itfactor-rebuild` with Gate A and focused parity evidence attached.
+2. Choose the next flagship SmartFill workspace phase now that both manual and automatic return paths can reopen the actual adopted SmartFill take instead of dismissing generically.
+3. Keep the standalone derivation ledger synchronized because the future hidden-session utility will need the same saved-result reopen seam for both manual and automatic finish paths.
 
 ## Ticket 019 Real Saved Take Outcomes In Rebuild Workspace (2026-03-26)
 - Thread Status: the rebuild workspace now carries the real adopted SmartFill take label through save outcomes, completion guidance, and return messaging, locally gated, and commit/push is the active next action.

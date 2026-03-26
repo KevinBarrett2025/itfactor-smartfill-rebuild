@@ -723,6 +723,63 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         )
     }
 
+    func testWorkspaceCompletionFollowUpPrimaryActionOpensSavedTakeWhenAvailable() {
+        XCTAssertEqual(
+            SmartFillWorkspaceCompletionFollowUpAction.primaryAction(
+                hasSavedResult: true,
+                canOpenSavedTake: true
+            ),
+            .openSavedTake
+        )
+    }
+
+    func testWorkspaceCompletionFollowUpPrimaryActionFallsBackToCloseWithoutSavedTake() {
+        XCTAssertEqual(
+            SmartFillWorkspaceCompletionFollowUpAction.primaryAction(
+                hasSavedResult: false,
+                canOpenSavedTake: true
+            ),
+            .closeOnly
+        )
+        XCTAssertEqual(
+            SmartFillWorkspaceCompletionFollowUpAction.primaryAction(
+                hasSavedResult: true,
+                canOpenSavedTake: false
+            ),
+            .closeOnly
+        )
+    }
+
+    func testWorkspaceCompletionFollowUpAutoReturnUsesSavedTakeWhenReturnIsEnabled() {
+        XCTAssertEqual(
+            SmartFillWorkspaceCompletionFollowUpAction.autoReturn(
+                completionBehavior: .returnAutomatically,
+                hasSavedResult: true,
+                canOpenSavedTake: true
+            ),
+            .openSavedTake
+        )
+    }
+
+    func testWorkspaceCompletionFollowUpAutoReturnStaysCloseOnlyWhenStayModeOrNoSavedTake() {
+        XCTAssertEqual(
+            SmartFillWorkspaceCompletionFollowUpAction.autoReturn(
+                completionBehavior: .stayHere,
+                hasSavedResult: true,
+                canOpenSavedTake: true
+            ),
+            .closeOnly
+        )
+        XCTAssertEqual(
+            SmartFillWorkspaceCompletionFollowUpAction.autoReturn(
+                completionBehavior: .returnAutomatically,
+                hasSavedResult: false,
+                canOpenSavedTake: true
+            ),
+            .closeOnly
+        )
+    }
+
     @MainActor
     func testCoordinatorBeginsInConfigureAndCompletesWithResultRecord() {
         let coordinator = SmartFillWorkspaceCoordinator()

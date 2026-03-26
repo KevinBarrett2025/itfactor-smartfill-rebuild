@@ -1036,12 +1036,12 @@ struct SmartFillWorkspaceView: View {
         if effectiveStage == .completed {
             autoReturnWorkItem?.cancel()
             autoReturnWorkItem = nil
-            if let record = coordinator.lastResult,
-               let onOpenSavedTake {
-                onOpenSavedTake(record)
-            } else {
-                handleClose()
-            }
+            performCompletionFollowUp(
+                SmartFillWorkspaceCompletionFollowUpAction.primaryAction(
+                    hasSavedResult: coordinator.lastResult != nil,
+                    canOpenSavedTake: onOpenSavedTake != nil
+                )
+            )
             return
         }
 
@@ -1049,14 +1049,19 @@ struct SmartFillWorkspaceView: View {
     }
 
     private func scheduleAutoReturn() {
-        guard completionBehavior == .returnAutomatically else {
+        let action = SmartFillWorkspaceCompletionFollowUpAction.autoReturn(
+            completionBehavior: completionBehavior,
+            hasSavedResult: coordinator.lastResult != nil,
+            canOpenSavedTake: onOpenSavedTake != nil
+        )
+        guard action != .closeOnly || completionBehavior == .returnAutomatically else {
             autoReturnWorkItem?.cancel()
             autoReturnWorkItem = nil
             return
         }
         autoReturnWorkItem?.cancel()
         let workItem = DispatchWorkItem {
-            handleClose()
+            performCompletionFollowUp(action)
         }
         autoReturnWorkItem = workItem
         DispatchQueue.main.asyncAfter(deadline: .now() + autoReturnDelay, execute: workItem)
@@ -1169,6 +1174,20 @@ struct SmartFillWorkspaceView: View {
     private func handleClose() {
         onCancel()
         dismiss()
+    }
+
+    private func performCompletionFollowUp(_ action: SmartFillWorkspaceCompletionFollowUpAction) {
+        switch action {
+        case .openSavedTake:
+            if let record = coordinator.lastResult,
+               let onOpenSavedTake {
+                onOpenSavedTake(record)
+            } else {
+                handleClose()
+            }
+        case .closeOnly:
+            handleClose()
+        }
     }
 }
 

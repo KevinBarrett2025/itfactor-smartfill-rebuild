@@ -46,6 +46,7 @@ Rules:
 - The rebuild workspace now carries the real adopted SmartFill take label through save outcome summaries, completed-state guidance, and latest saved-result details instead of falling back to generic `SmartFill take` wording.
 - The rebuild workspace now uses that same saved take label in the completed-state primary action, pending auto-return messaging, and deferred-return guidance so users know exactly what result opens next.
 - The rebuild workspace now actually reopens that saved SmartFill take from its completed-state primary action instead of only dismissing the sheet, and the follow-up route now respects whether the launch came from project review/player or editor.
+- The rebuild workspace now also routes automatic `Return` through that same saved-result reopen seam instead of dismissing generically after save.
 - `authority/main` now exists remotely and locally at the untouched Jan 23 baseline.
 
 ---
@@ -72,6 +73,7 @@ Rules:
 | 4K | SF-REBUILD-019 | Surface real saved take outcomes in rebuild workspace | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase19_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase19_tests.log`; repository-backed and notification-backed SmartFill result adoption now feed the exact saved take label into save outcome summaries and completed-state stay/return guidance |
 | 4L | SF-REBUILD-020 | Tighten post-save actions around real saved take | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase20_gateA_rerun.log`; focused parity PASS `/tmp/itfactor_smartfill_phase20_tests_rerun.log`; completed-state primary actions, pending auto-return copy, and deferred-return guidance now point at the actual saved SmartFill take instead of generic return wording |
 | 4M | SF-REBUILD-021 | Reopen saved SmartFill take from completed workspace | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase21_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase21_tests.log`; completed-state primary actions now reopen the adopted SmartFill take through project-review/player or editor-specific follow-up routes instead of only dismissing the workspace |
+| 4N | SF-REBUILD-022 | Route auto-return through saved-result reopen seam | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase22_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase22_tests.log`; queued automatic `Return` now uses the same saved-result follow-up seam as manual `Open <saved take>` actions instead of dismissing generically |
 
 ---
 
@@ -92,6 +94,6 @@ Rules:
 ---
 
 ## Next Action
-1. Choose the next intentional flagship SmartFill workspace/product phase now that entry, defaults, result adoption, preview, quick fill choices, treatment-finish presets, explicit stay/return choice, honest save-outcome messaging, finish-state-aware save/update affordances, concrete saved-take outcome messaging, saved-take-aware post-save actions, and real reopen handoff all live under the rebuild namespace.
+1. Choose the next intentional flagship SmartFill workspace/product phase now that entry, defaults, result adoption, preview, quick fill choices, treatment-finish presets, explicit stay/return choice, honest save-outcome messaging, finish-state-aware save/update affordances, concrete saved-take outcome messaging, saved-take-aware post-save actions, and real reopen handoff for both manual and automatic finish paths all live under the rebuild namespace.
 2. Implement that slice on `gm/smartfill-itfactor-rebuild`, then rerun Gate A plus focused SmartFill parity before any promotion discussion.
 3. Keep the standalone derivation ledger in sync while future shared-workspace work lands.
