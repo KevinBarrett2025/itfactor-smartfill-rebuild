@@ -1,5 +1,72 @@
 # CODEX Thread Continuity
 
+## Ticket 015 Dirty Save Truth In Rebuild Workspace (2026-03-26)
+- Thread Status: dirty-after-save workspace truth is implemented, locally gated, and commit/push is the active next action.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-rebuild`
+- Working Head SHA: `c1c2caa1393028ee43c0ec0392c8b79c440e5100`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Restore honest save-lane truth now that the rebuild workspace can linger after save:
+1. keep the latest saved SmartFill result visible inside the workspace instead of hiding saved truth behind a generic completed stage
+2. revert the workspace back to a save-needed state whenever settings change after a completed save
+3. cancel auto-return whenever the saved result is no longer clean so return affordances stop implying the current changes are already persisted
+4. keep standalone derivation aligned because the same saved-result-versus-dirty-changes seam later becomes the utility app’s save/share/history truth
+
+### Completed This Pass
+- `SmartFillWorkspaceView` now compares the live settings snapshot against `coordinator.lastResult?.settingsSnapshot` to decide whether the current session still matches the last saved SmartFill output.
+- The workspace now shows a `latestSavedResultPanel` when a saved result exists, including:
+  - destination outcome
+  - saved output file name
+  - saved look summary restored from the saved settings snapshot
+- The workspace now drops back from completed-state truth into a save-needed state whenever settings change after save:
+  - stage chip changes from completed to a dirty `Needs Save` preview state
+  - primary action returns to `Save/Update and Return ...`
+  - auto-return is canceled until the user saves again
+- Dirty-after-save copy now warns that the current changes are not yet saved and must be persisted again before returning.
+- Common settings mutations now explicitly mark the session dirty after completion by refreshing the preview token and canceling auto-return without reviving any legacy shell wrapper.
+- Focused tests now cover:
+  - completed-stage action titles restoring save/update wording when the session becomes dirty again
+  - unsaved-changes copy for both review and editor return targets
+  - saved-result destination titles for update vs variant-take adoption
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase15_gateA build | tee /tmp/itfactor_smartfill_phase15_gateA.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase15_gateA.log`
+- Focused parity command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase15_tests_rerun -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase15_tests_rerun.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase15_tests_rerun.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase15_tests_rerun/Logs/Test/Test-STSiPhone-2026.03.26_13-00-56--0400.xcresult`
+- Retry note:
+  - initial simulator-name parity run at `/tmp/itfactor_smartfill_phase15_tests.log` failed before test-runner handoff with `Channel disconnected`; the explicit-UDID rerun is the authoritative parity proof.
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Archaeology Snapshot
+- `SF-REBUILD-014` introduced live progress and `Stay Here`, but the workspace still behaved like a completed session even if the user changed settings after the save finished.
+- The rebuild already had all the data needed to restore honest state because `SmartFillResultBridge` preserved the last adopted result and the workspace already owned stage/copy logic.
+- The correct fix was to compare current settings against the last saved snapshot and keep save truth inside `SmartFillWorkspaceView` / `SmartFillWorkspacePresentation` instead of reviving legacy completion banners or shell-level warning chrome.
+
+### Next Action
+1. Commit and push the dirty-save truth slice on `gm/smartfill-itfactor-rebuild`.
+2. Choose the next flagship SmartFill workspace phase now that the rebuild owns launch truth, preview, defaults, explicit product lanes, inline treatment controls, live save progress, explicit stay/return control, and honest dirty-after-save state.
+3. Keep the standalone derivation ledger synchronized so the later hidden-session utility can reuse the same saved-result and unsaved-changes model.
+
 ## Ticket 014 Workspace Save Progress And Return Control (2026-03-26)
 - Thread Status: live save-progress feedback plus explicit stay-vs-return control are implemented in the rebuild workspace, locally gated, and commit/push is the active next action.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

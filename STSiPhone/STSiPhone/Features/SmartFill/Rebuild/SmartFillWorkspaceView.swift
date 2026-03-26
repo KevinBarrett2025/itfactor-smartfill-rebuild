@@ -362,13 +362,27 @@ struct SmartFillWorkspaceView: View {
                 value: primaryActionTitle
             )
 
+            if let record = coordinator.lastResult {
+                latestSavedResultPanel(for: record)
+            }
+
             if coordinator.stage == .export {
                 exportProgressPanel
             } else if hasPendingAutoReturn {
                 returnControlPanel
             }
 
-            if let statusMessage {
+            if hasUnsavedChangesSinceLastSave {
+                Label(
+                    SmartFillWorkspacePresentation.unsavedChangesMessage(
+                        for: context,
+                        adoptionMode: coordinator.lastResult?.adoptionMode
+                    ),
+                    systemImage: "exclamationmark.circle.fill"
+                )
+                .font(.caption)
+                .foregroundStyle(.orange)
+            } else if let statusMessage {
                 Label(statusMessage, systemImage: stageIcon)
                     .font(.caption)
                     .foregroundStyle(stageColor)
@@ -452,7 +466,7 @@ struct SmartFillWorkspaceView: View {
             get: { Double(settings.blurRadius) },
             set: {
                 settings.blurRadius = CGFloat($0)
-                markPreviewDirty()
+                markSettingsDirty()
             }
         )
     }
@@ -462,7 +476,7 @@ struct SmartFillWorkspaceView: View {
             get: { Double(settings.darkenAmount) },
             set: {
                 settings.darkenAmount = CGFloat($0)
-                markPreviewDirty()
+                markSettingsDirty()
             }
         )
     }
@@ -472,7 +486,7 @@ struct SmartFillWorkspaceView: View {
             get: { Double(settings.backgroundScale) },
             set: {
                 settings.backgroundScale = CGFloat($0)
-                markPreviewDirty()
+                markSettingsDirty()
             }
         )
     }
@@ -482,7 +496,7 @@ struct SmartFillWorkspaceView: View {
             get: { Double(settings.foregroundScale) },
             set: {
                 settings.foregroundScale = CGFloat($0)
-                markPreviewDirty()
+                markSettingsDirty()
             }
         )
     }
@@ -490,7 +504,10 @@ struct SmartFillWorkspaceView: View {
     private var processingPriorityBinding: Binding<SmartFillSettings.ProcessingPriority> {
         Binding(
             get: { settings.processingPriority },
-            set: { settings.processingPriority = $0 }
+            set: {
+                settings.processingPriority = $0
+                markSettingsDirty()
+            }
         )
     }
 
@@ -504,11 +521,21 @@ struct SmartFillWorkspaceView: View {
     }
 
     private var primaryActionTitle: String {
-        SmartFillWorkspacePresentation.actionTitle(for: context, stage: coordinator.stage)
+        SmartFillWorkspacePresentation.actionTitle(
+            for: context,
+            stage: coordinator.stage,
+            hasUnsavedChanges: hasUnsavedChangesSinceLastSave
+        )
     }
 
     private var secondaryActionTitle: String {
-        hasPendingAutoReturn ? "Stay Here" : "Cancel"
+        if hasPendingAutoReturn {
+            return "Stay Here"
+        }
+        if effectiveStage == .completed {
+            return "Close"
+        }
+        return "Cancel"
     }
 
     private var isPrimaryActionDisabled: Bool {
@@ -520,7 +547,19 @@ struct SmartFillWorkspaceView: View {
     }
 
     private var hasPendingAutoReturn: Bool {
-        coordinator.stage == .completed && autoReturnWorkItem != nil
+        coordinator.stage == .completed && !hasUnsavedChangesSinceLastSave && autoReturnWorkItem != nil
+    }
+
+    private var hasUnsavedChangesSinceLastSave: Bool {
+        guard let snapshot = coordinator.lastResult?.settingsSnapshot else { return false }
+        return SmartFillTakeBridge.snapshot(from: settings) != snapshot
+    }
+
+    private var effectiveStage: SmartFillWorkspaceCoordinator.Stage {
+        if coordinator.stage == .completed && hasUnsavedChangesSinceLastSave {
+            return .preview
+        }
+        return coordinator.stage
     }
 
     private var fileNameLabel: String {
@@ -535,10 +574,11 @@ struct SmartFillWorkspaceView: View {
     }
 
     private var stageLabel: String {
-        switch coordinator.stage {
+        switch effectiveStage {
         case .intake: return "Ready"
         case .configure: return "Configure"
-        case .preview: return "Preview"
+        case .preview:
+            return hasUnsavedChangesSinceLastSave ? "Needs Save" : "Preview"
         case .export:
             return "Saving \(Int((processingProgress * 100).rounded()))%"
         case .completed: return "Complete"
@@ -546,19 +586,21 @@ struct SmartFillWorkspaceView: View {
     }
 
     private var stageIcon: String {
-        switch coordinator.stage {
+        switch effectiveStage {
         case .intake: return "tray.and.arrow.down"
         case .configure: return "wand.and.stars"
-        case .preview: return "play.rectangle"
+        case .preview:
+            return hasUnsavedChangesSinceLastSave ? "exclamationmark.circle.fill" : "play.rectangle"
         case .export: return "gearshape.2"
         case .completed: return "checkmark.circle.fill"
         }
     }
 
     private var stageColor: Color {
-        switch coordinator.stage {
+        switch effectiveStage {
         case .completed: return .green
         case .export: return Theme.primary
+        case .preview where hasUnsavedChangesSinceLastSave: return .orange
         default: return .secondary
         }
     }
@@ -573,6 +615,44 @@ struct SmartFillWorkspaceView: View {
 
     private var activeBackgroundMode: SmartFillWorkspaceBackgroundMode? {
         SmartFillWorkspaceBackgroundMode.allCases.first { $0.matches(settings) }
+    }
+
+    @ViewBuilder
+    private func latestSavedResultPanel(for record: SmartFillResultBridgeRecord) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(SmartFillWorkspacePresentation.destinationOutcomeTitle(for: record.adoptionMode))
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.textPrimary)
+
+            Text(record.destinationSummary)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            summaryRow(
+                icon: "film.stack.fill",
+                title: "Saved output",
+                value: record.outputURL.lastPathComponent
+            )
+            summaryRow(
+                icon: "circle.lefthalf.filled",
+                title: "Saved look",
+                value: savedSettingsSummary(from: record)
+            )
+
+            if hasUnsavedChangesSinceLastSave {
+                Label(
+                    SmartFillWorkspacePresentation.unsavedChangesMessage(
+                        for: context,
+                        adoptionMode: record.adoptionMode
+                    ),
+                    systemImage: "exclamationmark.triangle.fill"
+                )
+                .font(.caption)
+                .foregroundStyle(.orange)
+            }
+        }
+        .padding(14)
+        .background(Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private func presetTitle(for preset: SmartFillSettings.Preset) -> String {
@@ -644,7 +724,7 @@ struct SmartFillWorkspaceView: View {
 
         return Button {
             settings.renderSize = CGSize(width: width, height: height)
-            markPreviewDirty()
+            markSettingsDirty()
         } label: {
             VStack(alignment: .leading, spacing: 6) {
                 Text(title)
@@ -672,7 +752,7 @@ struct SmartFillWorkspaceView: View {
         settings.backgroundScale = preset.backgroundScale
         settings.presetName = presetTitle(for: preset)
         settings.processingPriority = .userInitiated
-        markPreviewDirty()
+        markSettingsDirty()
     }
 
     private func queueSmartFill() {
@@ -688,7 +768,7 @@ struct SmartFillWorkspaceView: View {
     }
 
     private func handlePrimaryAction() {
-        if coordinator.stage == .completed {
+        if effectiveStage == .completed {
             handleClose()
             return
         }
@@ -771,9 +851,12 @@ struct SmartFillWorkspaceView: View {
         return false
     }
 
-    private func markPreviewDirty() {
+    private func markSettingsDirty() {
         settings.forceUpdateToken = UUID()
         previewErrorMessage = nil
+        if coordinator.stage == .completed {
+            cancelAutoReturn()
+        }
     }
 
     private func handleSecondaryAction() {
@@ -792,6 +875,16 @@ struct SmartFillWorkspaceView: View {
             for: context,
             adoptionMode: coordinator.lastResult?.adoptionMode
         )
+    }
+
+    private func savedSettingsSummary(from record: SmartFillResultBridgeRecord) -> String {
+        guard let snapshot = record.settingsSnapshot else {
+            return SmartFillWorkspacePresentation.destinationOutcomeTitle(for: record.adoptionMode)
+        }
+
+        let savedSettings = SmartFillTakeBridge.settings(from: snapshot)
+        let renderSize = "\(Int(savedSettings.renderSize.width))×\(Int(savedSettings.renderSize.height))"
+        return "\(SmartFillWorkspacePresentation.backgroundModeTitle(for: savedSettings)) • \(renderSize)"
     }
 
     private func handleClose() {
@@ -873,13 +966,17 @@ enum SmartFillWorkspacePresentation {
 
     static func actionTitle(
         for context: SmartFillSettingsContext,
-        stage: SmartFillWorkspaceCoordinator.Stage
+        stage: SmartFillWorkspaceCoordinator.Stage,
+        hasUnsavedChanges: Bool = false
     ) -> String {
         switch stage {
         case .export:
             return "Saving SmartFill…"
         case .completed:
-            return "Return to \(shortReturnTargetTitle(for: context))"
+            if !hasUnsavedChanges {
+                return "Return to \(shortReturnTargetTitle(for: context))"
+            }
+            fallthrough
         default:
             let leadingVerb = context.take.isSmartFillVariant || context.existingSettings != nil ? "Update" : "Save"
             return "\(leadingVerb) and Return to \(shortReturnTargetTitle(for: context))"
@@ -934,6 +1031,25 @@ enum SmartFillWorkspacePresentation {
             return "SmartFill is saved. Return to \(returnTargetTitle(for: context)) when you're ready."
         case nil:
             return "SmartFill is ready. Return to \(returnTargetTitle(for: context)) when you're ready."
+        }
+    }
+
+    static func unsavedChangesMessage(
+        for context: SmartFillSettingsContext,
+        adoptionMode: SmartFillResultAdoptionMode?
+    ) -> String {
+        switch adoptionMode {
+        case .updateExistingTakePath, .createStandaloneVariantTake, nil:
+            return "Changes are not saved yet. Save SmartFill again before returning to \(returnTargetTitle(for: context))."
+        }
+    }
+
+    static func destinationOutcomeTitle(for adoptionMode: SmartFillResultAdoptionMode) -> String {
+        switch adoptionMode {
+        case .updateExistingTakePath:
+            return "Updated current SmartFill take"
+        case .createStandaloneVariantTake:
+            return "Created or refreshed SmartFill take"
         }
     }
 

@@ -42,6 +42,7 @@ Rules:
 - The rebuild workspace now also uses real launch/return context and stage-aware save copy instead of assuming every flow returns to take review.
 - The rebuild workspace now keeps common treatment tuning inline and exposes an explicit `Return to ...` completed state instead of leaving the user in a generic saved/dismissed moment.
 - The rebuild workspace now surfaces live save progress from the SmartFill engine and lets the user cancel auto-return with `Stay Here` when they need to linger after save.
+- The rebuild workspace now keeps the latest saved result visible and drops back into a save-needed state whenever the user changes settings after a completed save.
 - `authority/main` now exists remotely and locally at the untouched Jan 23 baseline.
 
 ---
@@ -61,6 +62,7 @@ Rules:
 | 4D | SF-REBUILD-012 | Tighten workspace return context and save states | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase12_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase12_tests.log`; workspace now reflects real return targets, stage-aware save copy, and explicit background-look modes |
 | 4E | SF-REBUILD-013 | Deepen workspace treatment controls and return flow | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase13_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase13_tests.log`; workspace now keeps treatment tuning inline and turns completion into an explicit return action |
 | 4F | SF-REBUILD-014 | Surface live save progress and explicit return control | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase14_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase14_tests.log`; workspace now shows live SmartFill save progress and lets the user stay in the editor after save instead of forcing immediate auto-return |
+| 4G | SF-REBUILD-015 | Restore dirty-save truth in rebuild workspace | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase15_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase15_tests_rerun.log`; workspace now shows the latest saved result and restores save-needed state when settings change after save |
 
 ---
 
@@ -81,6 +83,6 @@ Rules:
 ---
 
 ## Next Action
-1. Commit and push the workspace save-progress and return-control slice on `gm/smartfill-itfactor-rebuild`.
-2. Choose the next intentional flagship SmartFill workspace/product phase now that entry, defaults, result adoption, preview, inline treatment controls, explicit control lanes, real return-target messaging, and live save progress all live under the rebuild namespace.
+1. Commit and push the dirty-save truth slice on `gm/smartfill-itfactor-rebuild`.
+2. Choose the next intentional flagship SmartFill workspace/product phase now that entry, defaults, result adoption, preview, inline treatment controls, explicit control lanes, real return-target messaging, live save progress, and honest dirty-after-save state all live under the rebuild namespace.
 3. Keep the standalone derivation ledger in sync while future shared-workspace work lands.

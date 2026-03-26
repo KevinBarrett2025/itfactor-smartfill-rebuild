@@ -34,6 +34,7 @@ Rules:
 | SF-REBUILD-012 | Tighten workspace return context and save states | COMPLETE | `ProjectDetailView` and editor-origin launch now seed explicit `launchSource` / `returnTarget` truth; `SmartFillWorkspaceView` now reflects real return destinations, stage-aware save action text, and explicit background-look modes while preserving the same shared settings engine; Gate A PASS `/tmp/itfactor_smartfill_phase12_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase12_tests.log`; xcresult `/tmp/itfactor_smartfill_phase12_tests/Logs/Test/Test-STSiPhone-2026.03.26_11-27-31--0400.xcresult` |
 | SF-REBUILD-013 | Deepen workspace treatment controls and return flow | COMPLETE | `SmartFillWorkspaceView` now keeps blur, darken, and background-fill tuning inline in the main workspace, exposes an explicit completed-stage `Return to ...` action, and slows auto-return enough for the saved state to be visible; Gate A PASS `/tmp/itfactor_smartfill_phase13_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase13_tests.log`; xcresult `/tmp/itfactor_smartfill_phase13_tests/Logs/Test/Test-STSiPhone-2026.03.26_11-57-39--0400.xcresult` |
 | SF-REBUILD-014 | Surface live save progress and explicit return control | COMPLETE | `SmartFillProcessingManager` progress notifications now carry take/session/project identity; `SmartFillWorkspaceView` now shows a live save-progress panel, progress-aware processing copy, and a `Stay Here` completion affordance alongside explicit `Return to ...` actions; Gate A PASS `/tmp/itfactor_smartfill_phase14_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase14_tests.log`; xcresult `/tmp/itfactor_smartfill_phase14_tests/Logs/Test/Test-STSiPhone-2026.03.26_12-32-18--0400.xcresult` |
+| SF-REBUILD-015 | Restore dirty-save truth in rebuild workspace | COMPLETE | `SmartFillWorkspaceView` now compares live settings against the last saved result snapshot, keeps the latest saved-result summary visible, restores save/update actions after dirty changes, and cancels auto-return until the new changes are saved; Gate A PASS `/tmp/itfactor_smartfill_phase15_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase15_tests_rerun.log`; xcresult `/tmp/itfactor_smartfill_phase15_tests_rerun/Logs/Test/Test-STSiPhone-2026.03.26_13-00-56--0400.xcresult` |
 | SF-REBUILD-007 | Standalone utility extraction package from flagship architecture | OPEN | Same engine/workspace, hidden static session, reduced shell |
 
 ## Protected Persistence / Data Seams
@@ -68,7 +69,7 @@ None currently open under `SF-REBUILD-006`.
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillDefaultsView.swift` — authoritative flagship defaults surface for rebuild-owned SmartFill tuning
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillAdvancedSettingsView.swift` — shared advanced defaults/settings sheet used by both defaults and workspace flows
 - `STSiPhone/STSiPhone/Core/VideoPipeline/SmartFill/SmartFillPreviewPlayer.swift` — authoritative preview seam reused by the rebuild workspace and later standalone utility
-- `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspacePresentation` — authoritative user-facing copy seam for workspace launch, look, framing, inline treatment messaging, stage-aware save messaging, live progress messaging, deferred return messaging, and real return-target language
+- `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspacePresentation` — authoritative user-facing copy seam for workspace launch, look, framing, inline treatment messaging, stage-aware save messaging, live progress messaging, deferred return messaging, dirty-after-save messaging, and real return-target language
 - `STSiPhone/STSiPhone/Core/VideoPipeline/SmartFill/SmartFillProcessingManager.swift` — authoritative SmartFill progress notification seam now carrying take/session/project identity for rebuild workspace progress handling
 
 ## Shared-vs-Flagship-vs-Standalone Rule
@@ -87,6 +88,6 @@ None currently open under `SF-REBUILD-006`.
   - simplified history/export shell over the same engine
 
 ## Next Action
-1. Commit and push the workspace save-progress and return-control slice.
-2. Choose the next intentional flagship SmartFill workspace/product phase now that `SF-REBUILD-009`, `SF-REBUILD-010`, `SF-REBUILD-011`, `SF-REBUILD-012`, `SF-REBUILD-013`, and `SF-REBUILD-014` give the rebuild defaults, real preview, explicit product lanes, real launch/return messaging, inline treatment control, and live save-state feedback.
+1. Commit and push the dirty-save truth slice.
+2. Choose the next intentional flagship SmartFill workspace/product phase now that `SF-REBUILD-009`, `SF-REBUILD-010`, `SF-REBUILD-011`, `SF-REBUILD-012`, `SF-REBUILD-013`, `SF-REBUILD-014`, and `SF-REBUILD-015` give the rebuild defaults, real preview, explicit product lanes, real launch/return messaging, inline treatment control, live save-state feedback, and honest dirty-after-save truth.
 3. Keep standalone derivation synchronized in every phase.

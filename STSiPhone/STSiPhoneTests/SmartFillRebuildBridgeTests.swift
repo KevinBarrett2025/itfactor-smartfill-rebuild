@@ -419,6 +419,48 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         )
     }
 
+    func testWorkspacePresentationRestoresSaveActionWhenCompletedSettingsBecomeDirty() {
+        let context = makeWorkspaceContext(
+            take: ProjectTake(filePath: "/tmp/original.mov", durationSeconds: 12)
+        )
+
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.actionTitle(for: context, stage: .completed, hasUnsavedChanges: true),
+            "Save and Return to Review"
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.unsavedChangesMessage(for: context, adoptionMode: .createStandaloneVariantTake),
+            "Changes are not saved yet. Save SmartFill again before returning to Session review."
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.destinationOutcomeTitle(for: .createStandaloneVariantTake),
+            "Created or refreshed SmartFill take"
+        )
+    }
+
+    func testWorkspacePresentationUsesUpdateCopyForDirtyEditorReturn() {
+        let context = makeWorkspaceContext(
+            take: ProjectTake(filePath: "/tmp/original.mov", durationSeconds: 12),
+            existingSettings: SmartFillSettings(),
+            autoLaunchEditor: false,
+            launchSource: .editorBadge,
+            returnTarget: .editor
+        )
+
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.actionTitle(for: context, stage: .completed, hasUnsavedChanges: true),
+            "Update and Return to Editor"
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.unsavedChangesMessage(for: context, adoptionMode: .updateExistingTakePath),
+            "Changes are not saved yet. Save SmartFill again before returning to Editor."
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.destinationOutcomeTitle(for: .updateExistingTakePath),
+            "Updated current SmartFill take"
+        )
+    }
+
     @MainActor
     func testCoordinatorBeginsInConfigureAndCompletesWithResultRecord() {
         let coordinator = SmartFillWorkspaceCoordinator()

@@ -36,6 +36,7 @@ _Current rebuild working baseline:_ `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 - Workspace return context and save states: COMPLETE (LOCAL-GATED)
 - Workspace treatment controls and return flow: COMPLETE (LOCAL-GATED)
 - Workspace save progress and return control: COMPLETE (LOCAL-GATED)
+- Workspace dirty-save truth after completion: COMPLETE (LOCAL-GATED)
 - Standalone derivation ledger: ACTIVE
 
 If anything above is not true, it must be reflected here.
@@ -111,6 +112,12 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase14_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase14_tests.log`
   - xcresult: `/tmp/itfactor_smartfill_phase14_tests/Logs/Test/Test-STSiPhone-2026.03.26_12-32-18--0400.xcresult`
+- `SF-REBUILD-015` — restore dirty-save truth in rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
+  - `SmartFillWorkspaceView` now compares current settings to the last saved result snapshot, surfaces the saved-result summary inline, and restores save/update actions whenever the user changes settings after a completed save.
+  - Auto-return now cancels when the current workspace state diverges from the last saved output, so completion and return affordances stay honest.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase15_gateA.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase15_tests_rerun.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase15_tests_rerun/Logs/Test/Test-STSiPhone-2026.03.26_13-00-56--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -134,6 +141,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Commit and push the workspace save-progress and return-control slice on `gm/smartfill-itfactor-rebuild`.
-2. Decide the next intentional flagship SmartFill workspace evolution now that the rebuild owns entry, real launch/return truth, preview, defaults, inline treatment controls, explicit product controls, and live save-state feedback.
+1. Commit and push the dirty-save truth slice on `gm/smartfill-itfactor-rebuild`.
+2. Decide the next intentional flagship SmartFill workspace evolution now that the rebuild owns entry, real launch/return truth, preview, defaults, inline treatment controls, explicit product controls, live save-state feedback, and honest post-save dirty-state handling.
 3. Keep the standalone derivation ledger updated in every phase.
