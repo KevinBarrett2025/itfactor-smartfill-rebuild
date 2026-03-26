@@ -45,7 +45,14 @@ public struct SmartFillPreviewPlayer: UIViewRepresentable {
     public func updateUIView(_ uiView: SmartFillRealPreviewView, context: Context) {
         print("🔄 SmartFillPreviewPlayer.updateUIView – refreshID=\(refreshID)")
         // Update if settings or video URL changed
-        if uiView.currentVideoURL != videoURL || uiView.currentSettings?.backgroundScale != settings.backgroundScale {
+        if Self.shouldReloadPreview(
+            currentVideoURL: uiView.currentVideoURL,
+            currentSettings: uiView.currentSettings,
+            currentRefreshID: uiView.currentRefreshID,
+            newVideoURL: videoURL,
+            newSettings: settings,
+            newRefreshID: refreshID
+        ) {
             Task {
                 await loadRealPreview(into: uiView)
             }
@@ -95,7 +102,8 @@ public struct SmartFillPreviewPlayer: UIViewRepresentable {
             previewView.configure(
                 with: player,
                 videoURL: videoURL,
-                settings: settings
+                settings: settings,
+                refreshID: refreshID
             )
             
             print("✅ SmartFillPreviewPlayer: Real-time preview loaded successfully")
@@ -167,6 +175,7 @@ public class SmartFillRealPreviewView: UIView {
     // Track current configuration for updates
     var currentVideoURL: URL?
     var currentSettings: SmartFillSettings?
+    var currentRefreshID: UUID?
     
     // MARK: - Initialization
     
@@ -192,7 +201,7 @@ public class SmartFillRealPreviewView: UIView {
     
     // MARK: - Phase 3: Configuration
     
-    func configure(with player: AVPlayer, videoURL: URL, settings: SmartFillSettings) {
+    func configure(with player: AVPlayer, videoURL: URL, settings: SmartFillSettings, refreshID: UUID) {
         
         print("🎬 SmartFillRealPreviewView: Configuring with enhanced modal compatibility")
         
@@ -220,6 +229,7 @@ public class SmartFillRealPreviewView: UIView {
         self.player = player
         self.currentVideoURL = videoURL
         self.currentSettings = settings
+        self.currentRefreshID = refreshID
         startIdleTimerObservation(for: player)
         
         // 🚨 ENHANCED: Trigger layout immediately for modal context
@@ -322,6 +332,18 @@ public class SmartFillRealPreviewView: UIView {
 // MARK: - Phase 3: SwiftUI Integration Helpers
 
 public extension SmartFillPreviewPlayer {
+    static func shouldReloadPreview(
+        currentVideoURL: URL?,
+        currentSettings: SmartFillSettings?,
+        currentRefreshID: UUID?,
+        newVideoURL: URL,
+        newSettings: SmartFillSettings,
+        newRefreshID: UUID
+    ) -> Bool {
+        currentVideoURL != newVideoURL
+            || currentSettings != newSettings
+            || currentRefreshID != newRefreshID
+    }
     
     /// PHASE 3: Convenience modifier for loading states
     func onLoadingChange(_ callback: @escaping (Bool) -> Void) -> some View {

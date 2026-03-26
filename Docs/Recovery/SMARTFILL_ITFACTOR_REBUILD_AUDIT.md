@@ -1,6 +1,6 @@
 # SmartFill itFactor Rebuild Audit
 
-Date: 2026-03-25
+Date: 2026-03-26
 Repo: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
 Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only)
 
@@ -16,7 +16,7 @@ The flagship intent is:
 ## Classification Matrix
 | Area | Path | Classification | Reason | Next Action |
 | --- | --- | --- | --- | --- |
-| SmartFill processing core | `STSiPhone/STSiPhone/Core/VideoPipeline/SmartFill/*` | `REFERENCE_ONLY` | Contains useful compositor, preview, export, policy, and worker archaeology, but the rebuild will move toward a new workspace contract instead of continuing these UI-facing seams as-is. | Keep available for comparison; do not extend as product shell truth. |
+| SmartFill processing core | `STSiPhone/STSiPhone/Core/VideoPipeline/SmartFill/*` | `KEEP` | The rebuild workspace now depends on the real SmartFill preview/render/export engine, including `SmartFillPreviewPlayer`, so these seams are active shared engine truth even though they do not define product shell structure. | Keep and evolve only as shared SmartFill engine seams; do not treat them as standalone product-shell authority. |
 | Legacy SmartFill controller | `STSiPhone/STSiPhone/Features/Editing/Tools/SmartFillController.swift` | `DELETE_AFTER_CUTOVER` | Review/player and editor-origin SmartFill entry now route through the rebuild workspace and repository adoption bridge instead of this controller-owned launch path. | Deleted in the Phase 5 GM slice; keep absent unless shipped archaeology proves a missing dependency. |
 | Legacy SmartFill settings modal | `STSiPhone/STSiPhone/Features/Editing/SmartFillSettingsModal.swift` | `DELETE_AFTER_CUTOVER` | Old modal-level UI no longer matches the bounded rebuild workspace target and both live launch surfaces now bypass it. | Deleted in the Phase 5 GM slice; rebuild workspace is now the only live editor-entry surface. |
 | Legacy real preview handoff | `STSiPhone/STSiPhone/Features/Editing/SmartFillRealPreviewSectionHandoff.swift` | `DELETE_AFTER_CUTOVER` | Preview orchestration was tied only to the removed modal-level editor path. | Deleted in the Phase 5 GM slice; later preview work should stay inside the rebuild workspace only. |
@@ -41,6 +41,8 @@ These seams are the correct architectural anchors for the rebuild:
 - `STSiPhone/STSiPhone/Features/Projects/Views/ProjectDetailView.swift`
 - `STSiPhone/STSiPhone/Features/Projects/Views/SwipeableVideoPlayerView.swift`
 - `STSiPhone/STSiPhone/Shared/Flow/FlowHostView.swift`
+- `STSiPhone/STSiPhone/Core/VideoPipeline/SmartFill/SmartFillPreviewPlayer.swift`
+- `STSiPhone/STSiPhone/Core/VideoPipeline/SmartFill/SmartFillProcessingManager.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillSessionContext.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillTakeBridge.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillResultBridge.swift`

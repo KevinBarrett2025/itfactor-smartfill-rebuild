@@ -1,6 +1,6 @@
 # SmartFill Standalone Derivation Ledger
 
-Date: 2026-03-25
+Date: 2026-03-26
 Flagship Repo: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
 Shipped Reference: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only)
 Standalone Engine Source: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
@@ -57,6 +57,7 @@ The flagship rebuild now has one shared SmartFill entry seam across both launch 
 - `SmartFillProcessingManager` completion notifications now preserve the queued take ID for review listeners while also carrying the adopted SmartFill take ID for reopen routing.
 - The dormant settings-side SmartFill shells (`SmartFillSettingsView`, `SmartFillMigrationDashboard`, `SmartFillBatchProcessingView`) are now deleted; the only reusable settings surface that remains is the shared `SmartFillAdvancedSettingsView` housed under `Features/SmartFill/Rebuild`.
 - One intentional flagship defaults surface now exists again at `Features/SmartFill/Rebuild/SmartFillDefaultsView.swift`, reached from `SettingsView`, so the future standalone utility can derive a lighter defaults screen from the rebuild namespace without reviving dashboard wrappers.
+- The rebuild workspace now renders `SmartFillPreviewPlayer` against the current preview URL and drives refreshes with a shared `forceUpdateToken`, so the future standalone utility can reuse the same preview seam instead of building a separate utility-only preview layer.
 
 This means the future standalone utility already has a clearer derivation path:
 1. import one clip
@@ -67,4 +68,4 @@ This means the future standalone utility already has a clearer derivation path:
 6. write result history/export data through a utility-local result bridge that mirrors repository adoption without project/session vocabulary
 
 ## Current Next Step
-Decide the next intentional shared-workspace evolution after duplicate screens are gone and one rebuild-owned defaults entry exists again. The standalone utility can now derive from the rebuild workspace plus hidden static-session shell without carrying dormant settings/dashboard wrappers.
+Decide the next intentional shared-workspace evolution after duplicate screens are gone, one rebuild-owned defaults entry exists, and the workspace now shows the real SmartFill preview. The standalone utility can now derive from the rebuild workspace plus hidden static-session shell without carrying dormant settings/dashboard wrappers or a separate preview shell.

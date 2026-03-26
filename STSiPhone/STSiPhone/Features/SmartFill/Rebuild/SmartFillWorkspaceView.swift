@@ -1,5 +1,4 @@
 import SwiftUI
-import AVKit
 
 struct SmartFillWorkspaceView: View {
     let context: SmartFillSettingsContext
@@ -11,7 +10,7 @@ struct SmartFillWorkspaceView: View {
     @State private var settings: SmartFillSettings
     @State private var showAdvancedSettings = false
     @State private var statusMessage: String?
-    @State private var previewPlayer: AVPlayer?
+    @State private var previewErrorMessage: String?
     @State private var queueAttempted = false
 
     private let workspaceDefaults: SmartFillWorkspaceDefaults
@@ -83,10 +82,7 @@ struct SmartFillWorkspaceView: View {
                     returnTarget: .takeReview
                 )
                 coordinator.begin(context: launchContext, defaults: workspaceDefaults)
-                configurePreviewPlayerIfNeeded()
-            }
-            .onDisappear {
-                previewPlayer?.pause()
+                previewErrorMessage = nil
             }
             .onReceive(NotificationCenter.default.publisher(for: .smartFillDidComplete)) { notification in
                 guard matchesCurrentTake(notification) else { return }
@@ -144,26 +140,16 @@ struct SmartFillWorkspaceView: View {
             }
 
             Group {
-                if let previewPlayer {
-                    VideoPlayer(player: previewPlayer)
-                        .aspectRatio(16.0 / 9.0, contentMode: .fit)
-                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                } else {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(Color.black.opacity(0.35))
-                        .frame(maxWidth: .infinity)
-                        .aspectRatio(16.0 / 9.0, contentMode: .fit)
-                        .overlay {
-                            VStack(spacing: 10) {
-                                Image(systemName: "film")
-                                    .font(.title)
-                                    .foregroundStyle(Theme.primary)
-                                Text("Preview unavailable")
-                                    .font(.headline)
-                                    .foregroundStyle(Theme.textPrimary)
-                            }
-                        }
+                SmartFillPreviewPlayer(
+                    videoURL: context.previewURL,
+                    settings: settings,
+                    refreshID: settings.forceUpdateToken
+                ) { error in
+                    previewErrorMessage = error.localizedDescription
                 }
+                .frame(maxWidth: .infinity)
+                .aspectRatio(16.0 / 9.0, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             }
             .overlay(alignment: .bottomLeading) {
                 Label(fileNameLabel, systemImage: "video.fill")
@@ -173,6 +159,12 @@ struct SmartFillWorkspaceView: View {
                     .padding(.vertical, 8)
                     .background(.black.opacity(0.45), in: Capsule())
                     .padding(14)
+            }
+
+            if let previewErrorMessage {
+                Label(previewErrorMessage, systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
             }
         }
         .padding(18)
@@ -299,21 +291,30 @@ struct SmartFillWorkspaceView: View {
     private var blurRadiusBinding: Binding<Double> {
         Binding(
             get: { Double(settings.blurRadius) },
-            set: { settings.blurRadius = CGFloat($0) }
+            set: {
+                settings.blurRadius = CGFloat($0)
+                markPreviewDirty()
+            }
         )
     }
 
     private var darkenAmountBinding: Binding<Double> {
         Binding(
             get: { Double(settings.darkenAmount) },
-            set: { settings.darkenAmount = CGFloat($0) }
+            set: {
+                settings.darkenAmount = CGFloat($0)
+                markPreviewDirty()
+            }
         )
     }
 
     private var backgroundScaleBinding: Binding<Double> {
         Binding(
             get: { Double(settings.backgroundScale) },
-            set: { settings.backgroundScale = CGFloat($0) }
+            set: {
+                settings.backgroundScale = CGFloat($0)
+                markPreviewDirty()
+            }
         )
     }
 
@@ -409,6 +410,7 @@ struct SmartFillWorkspaceView: View {
     private func renderSizeButton(width: CGFloat, height: CGFloat, label: String) -> some View {
         Button(label) {
             settings.renderSize = CGSize(width: width, height: height)
+            markPreviewDirty()
         }
     }
 
@@ -418,6 +420,7 @@ struct SmartFillWorkspaceView: View {
         settings.backgroundScale = preset.backgroundScale
         settings.presetName = presetTitle(for: preset)
         settings.processingPriority = .userInitiated
+        markPreviewDirty()
     }
 
     private func queueSmartFill() {
@@ -441,17 +444,12 @@ struct SmartFillWorkspaceView: View {
         return false
     }
 
-    private func configurePreviewPlayerIfNeeded() {
-        guard previewPlayer == nil else { return }
-        let player = AVPlayer(url: context.previewURL)
-        player.isMuted = true
-        player.actionAtItemEnd = .pause
-        previewPlayer = player
-        player.play()
+    private func markPreviewDirty() {
+        settings.forceUpdateToken = UUID()
+        previewErrorMessage = nil
     }
 
     private func handleClose() {
-        previewPlayer?.pause()
         onCancel()
         dismiss()
     }

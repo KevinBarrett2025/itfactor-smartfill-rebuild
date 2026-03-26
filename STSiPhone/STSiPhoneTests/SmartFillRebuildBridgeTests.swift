@@ -279,6 +279,57 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertEqual(restored.processingPriority, settings.processingPriority)
     }
 
+    func testPreviewReloadsWhenRefreshIDChanges() {
+        let url = URL(fileURLWithPath: "/tmp/original.mov")
+        let settings = SmartFillSettings()
+
+        XCTAssertTrue(
+            SmartFillPreviewPlayer.shouldReloadPreview(
+                currentVideoURL: url,
+                currentSettings: settings,
+                currentRefreshID: UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE"),
+                newVideoURL: url,
+                newSettings: settings,
+                newRefreshID: UUID(uuidString: "11111111-2222-3333-4444-555555555555")!
+            )
+        )
+    }
+
+    func testPreviewReloadsWhenSettingsChange() {
+        let url = URL(fileURLWithPath: "/tmp/original.mov")
+        let current = SmartFillSettings(blurRadius: 24, darkenAmount: 0.12, backgroundScale: 3.0)
+        let updated = SmartFillSettings(blurRadius: 36, darkenAmount: 0.18, backgroundScale: 4.5)
+        let refreshID = UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE")!
+
+        XCTAssertTrue(
+            SmartFillPreviewPlayer.shouldReloadPreview(
+                currentVideoURL: url,
+                currentSettings: current,
+                currentRefreshID: refreshID,
+                newVideoURL: url,
+                newSettings: updated,
+                newRefreshID: refreshID
+            )
+        )
+    }
+
+    func testPreviewDoesNotReloadWhenInputsStayTheSame() {
+        let url = URL(fileURLWithPath: "/tmp/original.mov")
+        let settings = SmartFillSettings(blurRadius: 24, darkenAmount: 0.12, backgroundScale: 3.0)
+        let refreshID = UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE")!
+
+        XCTAssertFalse(
+            SmartFillPreviewPlayer.shouldReloadPreview(
+                currentVideoURL: url,
+                currentSettings: settings,
+                currentRefreshID: refreshID,
+                newVideoURL: url,
+                newSettings: settings,
+                newRefreshID: refreshID
+            )
+        )
+    }
+
     @MainActor
     func testCoordinatorBeginsInConfigureAndCompletesWithResultRecord() {
         let coordinator = SmartFillWorkspaceCoordinator()

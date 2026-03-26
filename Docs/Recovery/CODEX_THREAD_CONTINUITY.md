@@ -1,5 +1,63 @@
 # CODEX Thread Continuity
 
+## Ticket 010 Real SmartFill Preview Restoration (2026-03-26)
+- Thread Status: the rebuild workspace now renders the real SmartFill preview path, the slice is locally gated, and commit/push is the active next action.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-rebuild`
+- Working Head SHA: `9a1959eefeea6ae65b5ba5aa7e2d350cc1fd287b`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Restore the actual SmartFill preview experience inside the rebuild workspace instead of showing the raw source take:
+1. replace the source `VideoPlayer` fallback with the real SmartFill preview pipeline
+2. make preview reload deterministic when settings or an explicit refresh token change
+3. surface preview-load errors without reviving any legacy SmartFill wrapper UI
+4. record how the same preview seam remains reusable for the future standalone hidden-session utility
+
+### Completed This Pass
+- `SmartFillWorkspaceView` now renders `SmartFillPreviewPlayer` against the active workspace preview URL instead of a raw `AVPlayer` source fallback.
+- Workspace settings mutations now call a shared `markPreviewDirty()` helper so blur, darken, background scale, preset, and render-size changes invalidate preview state consistently.
+- `SmartFillPreviewPlayer` now tracks a refresh token in addition to video URL and settings, and `SmartFillRealPreviewView` stores that token so refreshes are deterministic.
+- Preview load failures now surface as an inline warning label in the workspace instead of silently failing.
+- Focused rebuild tests now cover preview reload truth:
+  - reload on refresh token change
+  - reload on settings change
+  - no reload when inputs are unchanged
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase8_gateA build | tee /tmp/itfactor_smartfill_phase8_gateA.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase8_gateA.log`
+- Focused parity command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath /tmp/itfactor_smartfill_phase8_tests -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase8_tests.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase8_tests.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase8_tests/Logs/Test/Test-STSiPhone-2026.03.26_10-29-03--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Archaeology Snapshot
+- The rebuild workspace previously showed a raw source-player fallback, which made the flagship SmartFill screen look like intake/review instead of a real processing workspace.
+- The underlying preview engine already existed in `Core/VideoPipeline/SmartFill`, so the correct move was to wire that engine into the rebuild workspace rather than invent another shell-specific preview layer.
+- The preview path now depends on shared engine seams, not any of the deleted legacy controller/modal/dashboard surfaces.
+
+### Next Action
+1. Commit and push the real SmartFill preview restoration slice on `gm/smartfill-itfactor-rebuild`.
+2. Choose the next intentional flagship SmartFill workspace/product phase now that the rebuild owns entry, result adoption, defaults, and real preview.
+3. Keep the standalone derivation ledger synchronized so the later utility shell can reuse the same preview-backed workspace.
+
 ## Ticket 009 Intentional SmartFill Defaults Entry Restoration (2026-03-26)
 - Thread Status: one intentional SmartFill defaults entry is implemented, locally gated, and waiting on commit/push as the active next action.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
