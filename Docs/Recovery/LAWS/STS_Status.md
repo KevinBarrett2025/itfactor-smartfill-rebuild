@@ -124,6 +124,12 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase16_gateA_rerun.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase16_tests_rerun2.log`
   - xcresult: `/tmp/itfactor_smartfill_phase16_tests_rerun2/Logs/Test/Test-STSiPhone-2026.03.26_13-34-53--0400.xcresult`
+- `SF-REBUILD-017` — treatment finish presets and explicit post-save stay mode — `COMPLETE (LOCAL-GATED 2026-03-26)`
+  - `SmartFillWorkspaceView` now offers one-tap `Soft`, `Balanced`, and `Bold` treatment-finish presets plus an explicit `After save behavior` choice so users can decide whether SmartFill should return automatically or stay open for preview comparison.
+  - `SmartFillWorkspacePresentation` now differentiates processing, completion, and deferred-return wording when the user chooses to stay in the workspace after save.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase17_gateA.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase17_tests.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase17_tests/Logs/Test/Test-STSiPhone-2026.03.26_14-13-06--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -147,6 +153,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Decide the next intentional flagship SmartFill workspace evolution now that the rebuild owns entry, preview, defaults, quick fill choices, explicit save-outcome truth, live save-state feedback, and honest post-save dirty-state handling.
+1. Decide the next intentional flagship SmartFill workspace evolution now that the rebuild owns entry, preview, defaults, quick fill choices, treatment-finish presets, explicit after-save stay/return control, explicit save-outcome truth, live save-state feedback, and honest post-save dirty-state handling.
 2. Implement that next slice on `gm/smartfill-itfactor-rebuild` with Gate A and focused SmartFill parity before any promotion discussion.
 3. Keep the standalone derivation ledger updated in every phase.

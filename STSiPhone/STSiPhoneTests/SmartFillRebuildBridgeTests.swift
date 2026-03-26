@@ -471,6 +471,7 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
             SmartFillWorkspacePresentation.afterSaveOutcomeTitle(
                 for: context,
                 stage: .configure,
+                completionBehavior: .returnAutomatically,
                 hasPendingAutoReturn: false,
                 hasUnsavedChanges: false
             ),
@@ -481,6 +482,7 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
                 for: context,
                 adoptionMode: .createStandaloneVariantTake,
                 stage: .configure,
+                completionBehavior: .returnAutomatically,
                 hasPendingAutoReturn: false,
                 hasUnsavedChanges: false
             ),
@@ -501,6 +503,7 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
             SmartFillWorkspacePresentation.afterSaveOutcomeTitle(
                 for: context,
                 stage: .completed,
+                completionBehavior: .returnAutomatically,
                 hasPendingAutoReturn: true,
                 hasUnsavedChanges: false
             ),
@@ -511,6 +514,7 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
                 for: context,
                 adoptionMode: .updateExistingTakePath,
                 stage: .completed,
+                completionBehavior: .returnAutomatically,
                 hasPendingAutoReturn: true,
                 hasUnsavedChanges: false
             ),
@@ -521,10 +525,78 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
                 for: context,
                 adoptionMode: .updateExistingTakePath,
                 stage: .completed,
+                completionBehavior: .returnAutomatically,
                 hasPendingAutoReturn: false,
                 hasUnsavedChanges: true
             ),
             "The last saved SmartFill result is still available, but these newer changes are not saved yet. Save again before returning to Editor."
+        )
+    }
+
+    func testWorkspacePresentationExplainsStayHereCompletionMode() {
+        let context = makeWorkspaceContext(
+            take: ProjectTake(filePath: "/tmp/original.mov", durationSeconds: 12),
+            returnTarget: .takeReview
+        )
+
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.afterSaveOutcomeTitle(
+                for: context,
+                stage: .configure,
+                completionBehavior: .stayHere,
+                hasPendingAutoReturn: false,
+                hasUnsavedChanges: false
+            ),
+            "Stay here after save"
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.saveOutcomeMessage(
+                for: context,
+                adoptionMode: .createStandaloneVariantTake,
+                stage: .configure,
+                completionBehavior: .stayHere,
+                hasPendingAutoReturn: false,
+                hasUnsavedChanges: false
+            ),
+            "Saving keeps the source clip untouched while the session created or refreshed SmartFill take, and SmartFill will stay here so you can compare the preview before returning to Session review."
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.saveOutcomeMessage(
+                for: context,
+                adoptionMode: .createStandaloneVariantTake,
+                stage: .completed,
+                completionBehavior: .stayHere,
+                hasPendingAutoReturn: false,
+                hasUnsavedChanges: false
+            ),
+            "Save finished. The session created or refreshed SmartFill take, and SmartFill will stay here so you can compare the preview before returning to Session review."
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.processingMessage(
+                for: context,
+                progress: 0.4,
+                completionBehavior: .stayHere
+            ),
+            "Saving SmartFill for “S1T1” (40%) and staying in the workspace for preview review…"
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.deferredReturnMessage(
+                for: context,
+                adoptionMode: .createStandaloneVariantTake,
+                completionBehavior: .stayHere
+            ),
+            "SmartFill is saved. Stay here to compare the preview, then return to Session review when you're ready."
+        )
+    }
+
+    func testWorkspaceCompletionBehaviorDefaultsPreferStayInEditor() {
+        XCTAssertEqual(
+            SmartFillWorkspaceCompletionBehavior.defaultValue(for: .editor),
+            .stayHere
+        )
+        XCTAssertEqual(
+            SmartFillWorkspaceCompletionBehavior.defaultValue(for: .takeReview),
+            .returnAutomatically
         )
     }
 

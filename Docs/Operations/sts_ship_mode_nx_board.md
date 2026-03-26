@@ -64,6 +64,7 @@ Rules:
 | 4F | SF-REBUILD-014 | Surface live save progress and explicit return control | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase14_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase14_tests.log`; workspace now shows live SmartFill save progress and lets the user stay in the editor after save instead of forcing immediate auto-return |
 | 4G | SF-REBUILD-015 | Restore dirty-save truth in rebuild workspace | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase15_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase15_tests_rerun.log`; workspace now shows the latest saved result and restores save-needed state when settings change after save |
 | 4H | SF-REBUILD-016 | Strengthen background fill and save outcome affordances | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase16_gateA_rerun.log`; focused parity PASS `/tmp/itfactor_smartfill_phase16_tests_rerun2.log`; workspace now offers shipped-style quick fill presets and explains source-clip/result/return outcomes before save |
+| 4I | SF-REBUILD-017 | Add treatment finish presets and explicit post-save stay mode | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase17_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase17_tests.log`; workspace now offers one-tap `Soft`/`Balanced`/`Bold` treatment presets and lets the user choose `Return` versus `Stay` before save |
 
 ---
 

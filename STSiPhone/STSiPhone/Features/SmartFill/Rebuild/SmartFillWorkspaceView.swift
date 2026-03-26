@@ -14,6 +14,7 @@ struct SmartFillWorkspaceView: View {
     @State private var queueAttempted = false
     @State private var autoReturnWorkItem: DispatchWorkItem?
     @State private var processingProgress: Double = 0
+    @State private var completionBehavior: SmartFillWorkspaceCompletionBehavior
 
     private let workspaceDefaults: SmartFillWorkspaceDefaults
 
@@ -30,6 +31,7 @@ struct SmartFillWorkspaceView: View {
         self.workspaceDefaults = defaults
         let initialSettings = context.existingSettings ?? SmartFillTakeBridge.settings(from: defaults.snapshot)
         self._settings = State(initialValue: initialSettings)
+        self._completionBehavior = State(initialValue: SmartFillWorkspaceCompletionBehavior.defaultValue(for: context.returnTarget))
     }
 
     var body: some View {
@@ -97,7 +99,11 @@ struct SmartFillWorkspaceView: View {
                 guard matchesCurrentProcessingNotification(notification) else { return }
                 let progress = min(max(notification.userInfo?["progress"] as? Double ?? 0, 0), 1)
                 processingProgress = progress
-                statusMessage = SmartFillWorkspacePresentation.processingMessage(for: context, progress: progress)
+                statusMessage = SmartFillWorkspacePresentation.processingMessage(
+                    for: context,
+                    progress: progress,
+                    completionBehavior: completionBehavior
+                )
             }
             .onReceive(NotificationCenter.default.publisher(for: .smartFillDidComplete)) { notification in
                 guard matchesCurrentTake(notification) else { return }
@@ -115,7 +121,8 @@ struct SmartFillWorkspaceView: View {
                 processingProgress = 1
                 statusMessage = SmartFillWorkspacePresentation.completionMessage(
                     for: context,
-                    adoptionMode: record.adoptionMode
+                    adoptionMode: record.adoptionMode,
+                    completionBehavior: completionBehavior
                 )
                 queueAttempted = false
                 scheduleAutoReturn()
@@ -194,10 +201,10 @@ struct SmartFillWorkspaceView: View {
     }
 
     private var lookSurface: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Background look")
-                .font(.headline)
-                .foregroundStyle(Theme.textPrimary)
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Background look")
+                    .font(.headline)
+                    .foregroundStyle(Theme.textPrimary)
 
             Text("Pick a starting treatment, then fine-tune blur and background presence if this take needs more separation.")
                 .font(.subheadline)
@@ -232,6 +239,47 @@ struct SmartFillWorkspaceView: View {
                 title: "Current mode",
                 value: SmartFillWorkspacePresentation.backgroundModeTitle(for: settings)
             )
+
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("Treatment finish")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.textPrimary)
+                    Spacer()
+                    Text(activeTreatmentPreset?.title ?? "Custom")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack(spacing: 12) {
+                    ForEach(SmartFillWorkspaceTreatmentPreset.allCases, id: \.self) { preset in
+                        Button {
+                            applyTreatmentPreset(preset)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(preset.title)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(Theme.textPrimary)
+                                Text(preset.caption)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(14)
+                            .background(treatmentPresetBackground(for: preset), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .stroke(treatmentPresetStroke(for: preset), lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                Text("Use treatment finish to decide how soft or dramatic the background feels before you fine-tune blur and darkening.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
             treatmentSlider(
                 icon: "circle.dotted",
@@ -401,10 +449,33 @@ struct SmartFillWorkspaceView: View {
                 value: SmartFillWorkspacePresentation.returnTargetTitle(for: context)
             )
             summaryRow(
+                icon: "arrow.triangle.2.circlepath",
+                title: "After save behavior",
+                value: completionBehavior.summaryTitle
+            )
+            summaryRow(
                 icon: "sparkles.rectangle.stack",
                 title: "Current action",
                 value: primaryActionTitle
             )
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("After save")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.textPrimary)
+
+                Picker("After save", selection: $completionBehavior) {
+                    ForEach(SmartFillWorkspaceCompletionBehavior.allCases, id: \.self) { behavior in
+                        Text(behavior.pickerTitle)
+                            .tag(behavior)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Text(completionBehavior.caption(for: context))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
             saveOutcomePanel
 
@@ -659,6 +730,14 @@ struct SmartFillWorkspaceView: View {
         activeBackgroundMode == mode ? Theme.primary.opacity(0.6) : Color.white.opacity(0.10)
     }
 
+    private func treatmentPresetBackground(for preset: SmartFillWorkspaceTreatmentPreset) -> Color {
+        activeTreatmentPreset == preset ? Theme.primary.opacity(0.16) : Color.white.opacity(0.02)
+    }
+
+    private func treatmentPresetStroke(for preset: SmartFillWorkspaceTreatmentPreset) -> Color {
+        activeTreatmentPreset == preset ? Theme.primary.opacity(0.6) : Color.white.opacity(0.10)
+    }
+
     private func backgroundFillPresetBackground(for preset: SmartFillWorkspaceBackgroundFillPreset) -> Color {
         activeFillPreset == preset ? Theme.primary.opacity(0.16) : Color.white.opacity(0.02)
     }
@@ -669,6 +748,10 @@ struct SmartFillWorkspaceView: View {
 
     private var activeBackgroundMode: SmartFillWorkspaceBackgroundMode? {
         SmartFillWorkspaceBackgroundMode.allCases.first { $0.matches(settings) }
+    }
+
+    private var activeTreatmentPreset: SmartFillWorkspaceTreatmentPreset? {
+        SmartFillWorkspaceTreatmentPreset.allCases.first { $0.matches(settings) }
     }
 
     private var activeFillPreset: SmartFillWorkspaceBackgroundFillPreset? {
@@ -706,6 +789,7 @@ struct SmartFillWorkspaceView: View {
                 value: SmartFillWorkspacePresentation.afterSaveOutcomeTitle(
                     for: context,
                     stage: coordinator.stage,
+                    completionBehavior: completionBehavior,
                     hasPendingAutoReturn: hasPendingAutoReturn,
                     hasUnsavedChanges: hasUnsavedChangesSinceLastSave
                 )
@@ -716,6 +800,7 @@ struct SmartFillWorkspaceView: View {
                     for: context,
                     adoptionMode: currentAdoptionMode,
                     stage: coordinator.stage,
+                    completionBehavior: completionBehavior,
                     hasPendingAutoReturn: hasPendingAutoReturn,
                     hasUnsavedChanges: hasUnsavedChangesSinceLastSave
                 )
@@ -871,6 +956,14 @@ struct SmartFillWorkspaceView: View {
         markSettingsDirty()
     }
 
+    private func applyTreatmentPreset(_ preset: SmartFillWorkspaceTreatmentPreset) {
+        settings.blurRadius = preset.blurRadius
+        settings.darkenAmount = preset.darkenAmount
+        settings.presetName = preset.presetName
+        settings.forceUpdateToken = UUID()
+        markSettingsDirty()
+    }
+
     private func queueSmartFill() {
         let clamped = settings.clamped()
         settings = clamped
@@ -878,7 +971,11 @@ struct SmartFillWorkspaceView: View {
         coordinator.updateSettings(SmartFillTakeBridge.snapshot(from: clamped))
         coordinator.advance(to: .export)
         processingProgress = 0
-        statusMessage = SmartFillWorkspacePresentation.processingMessage(for: context, progress: 0)
+        statusMessage = SmartFillWorkspacePresentation.processingMessage(
+            for: context,
+            progress: 0,
+            completionBehavior: completionBehavior
+        )
         queueAttempted = true
         onQueueSmartFill(clamped)
     }
@@ -893,6 +990,11 @@ struct SmartFillWorkspaceView: View {
     }
 
     private func scheduleAutoReturn() {
+        guard completionBehavior == .returnAutomatically else {
+            autoReturnWorkItem?.cancel()
+            autoReturnWorkItem = nil
+            return
+        }
         autoReturnWorkItem?.cancel()
         let workItem = DispatchWorkItem {
             handleClose()
@@ -989,7 +1091,8 @@ struct SmartFillWorkspaceView: View {
         autoReturnWorkItem = nil
         statusMessage = SmartFillWorkspacePresentation.deferredReturnMessage(
             for: context,
-            adoptionMode: coordinator.lastResult?.adoptionMode
+            adoptionMode: coordinator.lastResult?.adoptionMode,
+            completionBehavior: completionBehavior
         )
     }
 
@@ -1110,6 +1213,113 @@ private enum SmartFillWorkspaceBackgroundFillPreset: CaseIterable {
     }
 }
 
+private enum SmartFillWorkspaceTreatmentPreset: CaseIterable {
+    case soft
+    case balanced
+    case bold
+
+    var title: String {
+        switch self {
+        case .soft:
+            return "Soft"
+        case .balanced:
+            return "Balanced"
+        case .bold:
+            return "Bold"
+        }
+    }
+
+    var caption: String {
+        switch self {
+        case .soft:
+            return "Lighter blur and darkening."
+        case .balanced:
+            return "Best for most takes."
+        case .bold:
+            return "Stronger separation and focus."
+        }
+    }
+
+    var blurRadius: CGFloat {
+        switch self {
+        case .soft:
+            return 16
+        case .balanced:
+            return 24
+        case .bold:
+            return 34
+        }
+    }
+
+    var darkenAmount: CGFloat {
+        switch self {
+        case .soft:
+            return 0.08
+        case .balanced:
+            return 0.14
+        case .bold:
+            return 0.22
+        }
+    }
+
+    var presetName: String {
+        switch self {
+        case .soft:
+            return "Subtle"
+        case .balanced:
+            return "Medium"
+        case .bold:
+            return "Dramatic"
+        }
+    }
+
+    func matches(_ settings: SmartFillSettings) -> Bool {
+        abs(settings.blurRadius - blurRadius) < 0.6 &&
+        abs(settings.darkenAmount - darkenAmount) < 0.021
+    }
+}
+
+enum SmartFillWorkspaceCompletionBehavior: CaseIterable {
+    case returnAutomatically
+    case stayHere
+
+    static func defaultValue(for returnTarget: SmartFillReturnTarget) -> Self {
+        switch returnTarget {
+        case .editor:
+            return .stayHere
+        case .projectDetail, .takeReview, .swipeablePlayer, .standaloneWorkspace:
+            return .returnAutomatically
+        }
+    }
+
+    var pickerTitle: String {
+        switch self {
+        case .returnAutomatically:
+            return "Return"
+        case .stayHere:
+            return "Stay"
+        }
+    }
+
+    var summaryTitle: String {
+        switch self {
+        case .returnAutomatically:
+            return "Return automatically"
+        case .stayHere:
+            return "Stay in workspace"
+        }
+    }
+
+    func caption(for context: SmartFillSettingsContext) -> String {
+        switch self {
+        case .returnAutomatically:
+            return "After SmartFill saves, it will head back to \(SmartFillWorkspacePresentation.returnTargetTitle(for: context).lowercased()) unless you cancel the auto-return."
+        case .stayHere:
+            return "After SmartFill saves, stay here to compare the preview before you decide when to return."
+        }
+    }
+}
+
 enum SmartFillWorkspacePresentation {
     static func headerTitle(for context: SmartFillSettingsContext) -> String {
         context.infoTitle ?? "SmartFill Editor"
@@ -1158,19 +1368,38 @@ enum SmartFillWorkspacePresentation {
         "When processing completes, SmartFill returns to \(returnTargetTitle(for: context).lowercased()) with the landscape result still tied to “\(context.displayName)”."
     }
 
-    static func processingMessage(for context: SmartFillSettingsContext, progress: Double? = nil) -> String {
+    static func processingMessage(
+        for context: SmartFillSettingsContext,
+        progress: Double? = nil,
+        completionBehavior: SmartFillWorkspaceCompletionBehavior = .returnAutomatically
+    ) -> String {
         guard let progress else {
+            if completionBehavior == .stayHere {
+                return "Saving SmartFill for “\(context.displayName)” and keeping the workspace open for comparison…"
+            }
             return "Saving SmartFill for “\(context.displayName)” and preparing the return to \(returnTargetTitle(for: context).lowercased())…"
         }
 
         let percent = Int((min(max(progress, 0), 1) * 100).rounded())
+        if completionBehavior == .stayHere {
+            return "Saving SmartFill for “\(context.displayName)” (\(percent)%) and staying in the workspace for preview review…"
+        }
         return "Saving SmartFill for “\(context.displayName)” (\(percent)%) before returning to \(returnTargetTitle(for: context).lowercased())…"
     }
 
     static func completionMessage(
         for context: SmartFillSettingsContext,
-        adoptionMode: SmartFillResultAdoptionMode
+        adoptionMode: SmartFillResultAdoptionMode,
+        completionBehavior: SmartFillWorkspaceCompletionBehavior = .returnAutomatically
     ) -> String {
+        if completionBehavior == .stayHere {
+            switch adoptionMode {
+            case .updateExistingTakePath:
+                return "Updated SmartFill. Staying here to compare the preview."
+            case .createStandaloneVariantTake:
+                return "Saved the SmartFill take. Staying here to compare the preview."
+            }
+        }
         switch adoptionMode {
         case .updateExistingTakePath:
             return "Updated SmartFill. Returning to \(returnTargetTitle(for: context))…"
@@ -1181,8 +1410,19 @@ enum SmartFillWorkspacePresentation {
 
     static func deferredReturnMessage(
         for context: SmartFillSettingsContext,
-        adoptionMode: SmartFillResultAdoptionMode?
+        adoptionMode: SmartFillResultAdoptionMode?,
+        completionBehavior: SmartFillWorkspaceCompletionBehavior = .returnAutomatically
     ) -> String {
+        if completionBehavior == .stayHere {
+            switch adoptionMode {
+            case .updateExistingTakePath:
+                return "SmartFill is updated. Stay here to compare the preview, then return to \(returnTargetTitle(for: context)) when you're ready."
+            case .createStandaloneVariantTake:
+                return "SmartFill is saved. Stay here to compare the preview, then return to \(returnTargetTitle(for: context)) when you're ready."
+            case nil:
+                return "SmartFill is ready. Stay here to compare the preview, then return to \(returnTargetTitle(for: context)) when you're ready."
+            }
+        }
         switch adoptionMode {
         case .updateExistingTakePath:
             return "SmartFill is updated. Return to \(returnTargetTitle(for: context)) when you're ready."
@@ -1219,17 +1459,27 @@ enum SmartFillWorkspacePresentation {
     static func afterSaveOutcomeTitle(
         for context: SmartFillSettingsContext,
         stage: SmartFillWorkspaceCoordinator.Stage,
+        completionBehavior: SmartFillWorkspaceCompletionBehavior,
         hasPendingAutoReturn: Bool,
         hasUnsavedChanges: Bool
     ) -> String {
         if stage == .export {
+            if completionBehavior == .stayHere {
+                return "Stay here after save"
+            }
             return "Return to \(shortReturnTargetTitle(for: context)) after save"
         }
         if hasPendingAutoReturn {
             return "Auto-returning to \(shortReturnTargetTitle(for: context))"
         }
         if stage == .completed && !hasUnsavedChanges {
+            if completionBehavior == .stayHere {
+                return "Stay here after save"
+            }
             return "Return to \(shortReturnTargetTitle(for: context)) when ready"
+        }
+        if completionBehavior == .stayHere {
+            return "Stay here after save"
         }
         return "Return to \(shortReturnTargetTitle(for: context)) after save"
     }
@@ -1238,6 +1488,7 @@ enum SmartFillWorkspacePresentation {
         for context: SmartFillSettingsContext,
         adoptionMode: SmartFillResultAdoptionMode,
         stage: SmartFillWorkspaceCoordinator.Stage,
+        completionBehavior: SmartFillWorkspaceCompletionBehavior,
         hasPendingAutoReturn: Bool,
         hasUnsavedChanges: Bool
     ) -> String {
@@ -1248,13 +1499,22 @@ enum SmartFillWorkspacePresentation {
             return "The last saved SmartFill result is still available, but these newer changes are not saved yet. Save again before returning to \(returnTarget)."
         }
         if stage == .export {
+            if completionBehavior == .stayHere {
+                return "SmartFill is saving now. The source clip stays untouched while the session \(destination), and the workspace will stay open so you can compare the preview when save finishes."
+            }
             return "SmartFill is saving now. The source clip stays untouched while the session \(destination) before returning to \(returnTarget.lowercased())."
         }
         if hasPendingAutoReturn {
             return "Save finished. The session \(destination), and SmartFill will return to \(returnTarget.lowercased()) unless you stay here to compare the preview."
         }
         if stage == .completed {
+            if completionBehavior == .stayHere {
+                return "Save finished. The session \(destination), and SmartFill will stay here so you can compare the preview before returning to \(returnTarget)."
+            }
             return "Save finished. The session \(destination). Return to \(returnTarget) when you're ready."
+        }
+        if completionBehavior == .stayHere {
+            return "Saving keeps the source clip untouched while the session \(destination), and SmartFill will stay here so you can compare the preview before returning to \(returnTarget)."
         }
         return "Saving keeps the source clip untouched while the session \(destination), then returns you to \(returnTarget.lowercased())."
     }

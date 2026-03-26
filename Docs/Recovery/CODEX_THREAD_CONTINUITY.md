@@ -1,5 +1,68 @@
 # CODEX Thread Continuity
 
+## Ticket 017 Treatment Finish Presets And Post-Save Stay Mode (2026-03-26)
+- Thread Status: one-tap treatment finish presets plus an explicit after-save stay/return mode are implemented in the rebuild workspace, locally gated, and commit/push is the active next action.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-rebuild`
+- Working Head SHA: `c6f271a478717e50fc6796708b2a758654615b5e`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Deepen the rebuilt SmartFill workspace from save-truth clarity into faster end-of-edit decisions:
+1. restore shipped-style treatment finish choices so users can land on a strong background look without dragging blur and darken sliders first
+2. make after-save behavior an explicit choice before render instead of implying auto-return for every launch target
+3. keep processing, completion, and deferred-return copy honest when the user chooses to stay and compare the preview after save
+4. keep standalone derivation aligned because the same treatment-finish presets and stay/return seam later become the hidden-session utility app's edit-finish model
+
+### Completed This Pass
+- `SmartFillWorkspaceView` now exposes a `Treatment finish` section with one-tap shipped-style presets:
+  - `Soft`
+  - `Balanced`
+  - `Bold`
+  Each preset maps onto shared blur/darken settings and refreshes the live preview without reviving any deleted shell wrappers.
+- The save lane now includes an explicit `After save behavior` choice:
+  - `Return`
+  - `Stay`
+  so review/player launches can still default to auto-return while editor launches default to staying in the workspace for comparison.
+- `SmartFillWorkspacePresentation` now differentiates save-outcome, processing, completion, and deferred-return copy when the user chooses to stay instead of automatically returning.
+- Focused tests now cover:
+  - stay-here save/processing/completion/deferred-return wording
+  - default completion behavior for editor versus review-style launch targets
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase17_gateA build | tee /tmp/itfactor_smartfill_phase17_gateA.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase17_gateA.log`
+- Focused parity command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase17_tests -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase17_tests.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase17_tests.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase17_tests/Logs/Test/Test-STSiPhone-2026.03.26_14-13-06--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Archaeology Snapshot
+- The shipped SmartFill settings flow used named treatment presets (`Subtle`, `Medium`, `Dramatic`) as faster decision points than raw slider-first tuning.
+- `SF-REBUILD-016` restored quick fill and honest save-outcome messaging, but the rebuild workspace still made users derive a finished look from blur/darken sliders and still framed post-save behavior as auto-return-first.
+- The correct next move was to keep both treatment-finish presets and stay/return choice inside `SmartFillWorkspaceView` / `SmartFillWorkspacePresentation` instead of reviving deleted settings shells or reintroducing one-off completion wrappers.
+
+### Next Action
+1. Choose the next flagship SmartFill workspace phase now that the rebuild owns entry, defaults, real preview, explicit product lanes, dirty-save truth, quick fill presets, one-tap treatment finish presets, and an explicit after-save stay/return mode.
+2. Implement that slice on `gm/smartfill-itfactor-rebuild`, then rerun Gate A plus focused SmartFill parity before any further promotion decision.
+3. Keep the standalone derivation ledger synchronized so the later hidden-session utility can reuse the same treatment-finish and stay/return behavior with hidden-session wording.
+
 ## Ticket 016 Background Fill And Save Outcome Affordances (2026-03-26)
 - Thread Status: shipped-style quick fill presets and explicit save-outcome messaging are anchored on the GM branch, and the next action is the next intentional workspace evolution.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
