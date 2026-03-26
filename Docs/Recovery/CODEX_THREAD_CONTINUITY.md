@@ -1,5 +1,64 @@
 # CODEX Thread Continuity
 
+## Ticket 009 Intentional SmartFill Defaults Entry Restoration (2026-03-26)
+- Thread Status: one intentional SmartFill defaults entry is implemented, locally gated, and waiting on commit/push as the active next action.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-rebuild`
+- Working Head SHA: `866ed1c6a40774608c9d8c5540467599dcf7a51d`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Restore one intentional SmartFill defaults surface after the duplicate settings shells were removed:
+1. add one rebuild-owned defaults view instead of reviving legacy settings/dashboard wrappers
+2. expose one reachable SmartFill Defaults entry from flagship Settings
+3. persist the same `SmartFillSettings` defaults that seed rebuild workspace sessions
+4. record how the same defaults seam later becomes the standalone utility defaults surface
+
+### Completed This Pass
+- Added the rebuild-owned defaults surface:
+  - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillDefaultsView.swift`
+- Restored one reachable Settings entry in:
+  - `STSiPhone/STSiPhone/Features/Settings/SettingsView.swift`
+- The new defaults view now:
+  - loads shared `SmartFillSettings`
+  - persists changes through `saveToUserDefaults()`
+  - exposes preset, render-size, enable, and advanced-defaults controls
+  - reuses `SmartFillAdvancedSettingsView` instead of reviving deleted settings-side wrappers
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase7_gateA build | tee /tmp/itfactor_smartfill_phase7_gateA.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase7_gateA.log`
+- Focused parity command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath /tmp/itfactor_smartfill_phase7_tests -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase7_tests.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase7_tests.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase7_tests/Logs/Test/Test-STSiPhone-2026.03.26_10-11-10--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Archaeology Snapshot
+- `SF-REBUILD-006` intentionally deleted the dormant settings-side SmartFill wrappers and left no reachable global defaults entry.
+- `SmartFillSettings` remains the correct persistence model for defaults that seed rebuild workspace launches.
+- `SmartFillAdvancedSettingsView` already lived under `Features/SmartFill/Rebuild`, so the correct follow-on was one small rebuild-owned defaults view, not resurrecting `SmartFillSettingsView`.
+
+### Next Action
+1. Commit and push the intentional SmartFill defaults entry restoration slice on `gm/smartfill-itfactor-rebuild`.
+2. Decide the next flagship SmartFill workspace/product slice now that legacy duplicate screens are gone and one clean defaults entry exists again.
+3. Keep the standalone derivation ledger synchronized with every future shared-workspace or defaults evolution.
+
 ## Ticket 006 Legacy SmartFill Settings-Side Duplication Retirement (2026-03-26)
 - Thread Status: the settings-side SmartFill duplicate surfaces are retired, locally gated, and waiting on commit/push as the active next action.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

@@ -30,6 +30,7 @@ _Current rebuild working baseline:_ `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 - Editor-origin SmartFill entry unification: COMPLETE (LOCAL-GATED)
 - Legacy editor SmartFill seam retirement: COMPLETE (LOCAL-GATED)
 - Settings-side SmartFill duplication retirement: COMPLETE (LOCAL-GATED)
+- Intentional SmartFill defaults entry: COMPLETE (LOCAL-GATED)
 - Standalone derivation ledger: ACTIVE
 
 If anything above is not true, it must be reflected here.
@@ -69,6 +70,12 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase6_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase6_tests.log`
   - xcresult: `/tmp/itfactor_smartfill_phase6_tests/Logs/Test/Test-STSiPhone-2026.03.26_09-53-26--0400.xcresult`
+- `SF-REBUILD-009` — intentional SmartFill defaults entry under rebuild namespace — `COMPLETE (LOCAL-GATED 2026-03-26)`
+  - `SettingsView` now exposes one reachable `SmartFill Defaults` entry instead of reviving deleted settings-side wrappers.
+  - `SmartFillDefaultsView` persists shared `SmartFillSettings` defaults, reuses `SmartFillAdvancedSettingsView`, and seeds future rebuild workspace sessions.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase7_gateA.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase7_tests.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase7_tests/Logs/Test/Test-STSiPhone-2026.03.26_10-11-10--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -86,12 +93,12 @@ If anything above is not true, it must be reflected here.
   - `ProjectTake.smartFillOriginalID`
   - `ProjectsRepository.createStandaloneSmartFillTake`
   - `ProjectsRepository.updateTakeWithSmartFillPath`
-- Any future global SmartFill defaults UI must be redesigned intentionally around the rebuild workspace rather than reviving deleted settings/dashboard shells.
+- Global SmartFill defaults now live in `Features/SmartFill/Rebuild/SmartFillDefaultsView.swift` and must evolve there instead of reviving deleted settings/dashboard shells.
 
 ---
 
 ## NEXT ACTION
 
-1. Commit and push the settings-side SmartFill duplication retirement slice on `gm/smartfill-itfactor-rebuild`.
-2. Decide the next intentional flagship SmartFill workspace evolution now that `SF-REBUILD-006` is complete.
+1. Commit and push the intentional SmartFill defaults entry restoration slice on `gm/smartfill-itfactor-rebuild`.
+2. Decide the next intentional flagship SmartFill workspace evolution now that `SF-REBUILD-006` is complete and one clean defaults entry exists again.
 3. Keep the standalone derivation ledger updated in every phase.

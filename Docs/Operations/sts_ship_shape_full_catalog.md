@@ -28,6 +28,7 @@ Rules:
 | SF-REBUILD-005 | SmartFill result adoption bridge into repository/take/session truth | COMPLETE | `SmartFillProcessingManager` now routes completion through `SmartFillResultBridge.adopt`; repository upsert creates or refreshes one authoritative SmartFill variant take; Gate A PASS `/tmp/itfactor_smartfill_phase3_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase3_tests_final.log`; xcresult `/tmp/itfactor_smartfill_phase3_tests_final/Logs/Test/Test-STSiPhone-2026.03.25_22-46-56--0400.xcresult` |
 | SF-REBUILD-008 | Editor-origin SmartFill entry unification on rebuild workspace | COMPLETE | `LightweightEditorViewController+ModularWiring` now presents `SmartFillWorkspaceView`; `EditorCoordinator` routes `.smartFillRequested` back through the rebuild workspace; Gate A PASS `/tmp/itfactor_smartfill_phase4_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase4_tests.log`; xcresult `/tmp/itfactor_smartfill_phase4_tests/Logs/Test/Test-STSiPhone-2026.03.26_09-06-16--0400.xcresult` |
 | SF-REBUILD-006 | Legacy SmartFill cutover cleanup | COMPLETE | Phase 5 retired the editor-only seams (`SmartFillController.swift`, `SmartFillSettingsModal.swift`, `SmartFillRealPreviewSectionHandoff.swift`) with Gate A PASS `/tmp/itfactor_smartfill_phase5_gateA.log`, focused parity PASS `/tmp/itfactor_smartfill_phase5_tests.log`, xcresult `/tmp/itfactor_smartfill_phase5_tests/Logs/Test/Test-STSiPhone-2026.03.26_09-25-08--0400.xcresult`; Phase 6 retired the dormant settings-side shells (`SmartFillSettingsView.swift`, `SmartFillMigrationDashboard.swift`, `SmartFillBatchProcessingView.swift`) and moved `SmartFillAdvancedSettingsView` under `Features/SmartFill/Rebuild` with Gate A PASS `/tmp/itfactor_smartfill_phase6_gateA.log`, focused parity PASS `/tmp/itfactor_smartfill_phase6_tests.log`, xcresult `/tmp/itfactor_smartfill_phase6_tests/Logs/Test/Test-STSiPhone-2026.03.26_09-53-26--0400.xcresult` |
+| SF-REBUILD-009 | Intentional SmartFill defaults entry under rebuild namespace | COMPLETE | `SettingsView` now presents `SmartFillDefaultsView`; defaults persist shared `SmartFillSettings`, reuse `SmartFillAdvancedSettingsView`, and seed rebuild workspace sessions; Gate A PASS `/tmp/itfactor_smartfill_phase7_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase7_tests.log`; xcresult `/tmp/itfactor_smartfill_phase7_tests/Logs/Test/Test-STSiPhone-2026.03.26_10-11-10--0400.xcresult` |
 | SF-REBUILD-007 | Standalone utility extraction package from flagship architecture | OPEN | Same engine/workspace, hidden static session, reduced shell |
 
 ## Protected Persistence / Data Seams
@@ -57,6 +58,11 @@ None currently open under `SF-REBUILD-006`.
 - `STSiPhone/STSiPhone/Features/Settings/SmartFillMigrationDashboard.swift` — retired in `SF-REBUILD-006` phase 6
 - `STSiPhone/STSiPhone/Features/Settings/Views/SmartFillBatchProcessingView.swift` — retired in `SF-REBUILD-006` phase 6
 
+## Intentional Settings Seams
+- `STSiPhone/STSiPhone/Features/Settings/SettingsView.swift` — one reachable SmartFill defaults entry owned by `SF-REBUILD-009`
+- `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillDefaultsView.swift` — authoritative flagship defaults surface for rebuild-owned SmartFill tuning
+- `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillAdvancedSettingsView.swift` — shared advanced defaults/settings sheet used by both defaults and workspace flows
+
 ## Shared-vs-Flagship-vs-Standalone Rule
 - Flagship-only:
   - project/session/take shell
@@ -73,6 +79,6 @@ None currently open under `SF-REBUILD-006`.
   - simplified history/export shell over the same engine
 
 ## Next Action
-1. Commit and push the settings-side duplication retirement slice.
-2. Choose the next intentional flagship SmartFill workspace/product phase now that `SF-REBUILD-006` is complete.
+1. Commit and push the intentional SmartFill defaults entry restoration slice.
+2. Choose the next intentional flagship SmartFill workspace/product phase now that `SF-REBUILD-006` is complete and `SF-REBUILD-009` restores a clean defaults surface.
 3. Keep standalone derivation synchronized in every phase.

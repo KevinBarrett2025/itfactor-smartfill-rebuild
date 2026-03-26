@@ -56,13 +56,15 @@ The flagship rebuild now has one shared SmartFill entry seam across both launch 
 - `SmartFillResultBridge` now adopts SmartFill output through repository truth and creates or refreshes one authoritative standalone SmartFill variant take.
 - `SmartFillProcessingManager` completion notifications now preserve the queued take ID for review listeners while also carrying the adopted SmartFill take ID for reopen routing.
 - The dormant settings-side SmartFill shells (`SmartFillSettingsView`, `SmartFillMigrationDashboard`, `SmartFillBatchProcessingView`) are now deleted; the only reusable settings surface that remains is the shared `SmartFillAdvancedSettingsView` housed under `Features/SmartFill/Rebuild`.
+- One intentional flagship defaults surface now exists again at `Features/SmartFill/Rebuild/SmartFillDefaultsView.swift`, reached from `SettingsView`, so the future standalone utility can derive a lighter defaults screen from the rebuild namespace without reviving dashboard wrappers.
 
 This means the future standalone utility already has a clearer derivation path:
 1. import one clip
 2. create or reuse a hidden static `SmartFillSessionContext`
 3. open the same `SmartFillWorkspaceView`-style editor scene
 4. re-enter the same workspace whether the user starts from import or a later refine/edit affordance
-5. write result history/export data through a utility-local result bridge that mirrors repository adoption without project/session vocabulary
+5. use a lightweight defaults screen derived from `SmartFillDefaultsView` to seed hidden-session settings
+6. write result history/export data through a utility-local result bridge that mirrors repository adoption without project/session vocabulary
 
 ## Current Next Step
-Decide the next intentional shared-workspace evolution after duplicate screens are gone. The standalone utility can now derive from the rebuild workspace plus hidden static-session shell without carrying dormant settings/dashboard wrappers.
+Decide the next intentional shared-workspace evolution after duplicate screens are gone and one rebuild-owned defaults entry exists again. The standalone utility can now derive from the rebuild workspace plus hidden static-session shell without carrying dormant settings/dashboard wrappers.

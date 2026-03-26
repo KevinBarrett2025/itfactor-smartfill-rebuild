@@ -34,6 +34,9 @@ Rules:
   - `SmartFillMigrationDashboard.swift`
   - `SmartFillBatchProcessingView.swift`
 - Shared advanced SmartFill tuning now lives only in `Features/SmartFill/Rebuild/SmartFillAdvancedSettingsView.swift`.
+- One intentional SmartFill defaults surface now exists again under the rebuild namespace:
+  - `Features/SmartFill/Rebuild/SmartFillDefaultsView.swift`
+  - reachable from `SettingsView` as `SmartFill Defaults`
 - `authority/main` now exists remotely and locally at the untouched Jan 23 baseline.
 
 ---
@@ -47,6 +50,7 @@ Rules:
 | 2 | SF-REBUILD-005 | Repository-backed SmartFill result adoption and notification truth | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase3_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase3_tests_final.log` |
 | 3 | SF-REBUILD-004 | Bounded SmartFill workspace replacement now shared by review/player and editor entry | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase4_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase4_tests.log` |
 | 3A | SF-REBUILD-008 | Editor-origin SmartFill entry unification on rebuild workspace | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase4_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase4_tests.log` |
+| 4A | SF-REBUILD-009 | Restore one intentional SmartFill defaults entry under rebuild namespace | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase7_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase7_tests.log`; `SettingsView` now opens `SmartFillDefaultsView` |
 
 ---
 
@@ -67,6 +71,6 @@ Rules:
 ---
 
 ## Next Action
-1. Commit and push the settings-side SmartFill duplication retirement slice on `gm/smartfill-itfactor-rebuild`.
-2. Choose the next intentional flagship SmartFill workspace/product phase now that `SF-REBUILD-006` is complete.
+1. Commit and push the intentional SmartFill defaults entry restoration slice on `gm/smartfill-itfactor-rebuild`.
+2. Choose the next intentional flagship SmartFill workspace/product phase now that `SF-REBUILD-006` is complete and a clean defaults entry exists again.
 3. Keep the standalone derivation ledger in sync while future shared-workspace work lands.

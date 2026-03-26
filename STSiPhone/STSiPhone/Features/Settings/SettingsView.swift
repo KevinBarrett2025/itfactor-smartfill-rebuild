@@ -4,6 +4,7 @@ struct SettingsView: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @State private var showingCameraSettings = false
     @State private var showingAudioSettings = false
+    @State private var showingSmartFillDefaults = false
     @ObservedObject private var watchBridge = WatchBridge.shared
     @AppStorage("WatchRemote.showHUDMaster") private var showWatchHUDMaster = true
     @AppStorage("PreferredMapsApp") private var preferredMapsAppRaw: String = MapsAppPreference.google.rawValue
@@ -90,6 +91,14 @@ struct SettingsView: View {
                         action: { showingAudioSettings = true }
                     )
                     .listRowBackground(Color.clear)
+
+                    SettingsRow(
+                        icon: "rectangle.portrait.on.rectangle.landscape.fill",
+                        title: "SmartFill Defaults",
+                        subtitle: "Set the starting look for new SmartFill sessions",
+                        action: { showingSmartFillDefaults = true }
+                    )
+                    .listRowBackground(Color.clear)
                 }
                 
                 Section("Navigation") {
@@ -173,6 +182,9 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showingAudioSettings) {
             AudioSettingsView()
+        }
+        .sheet(isPresented: $showingSmartFillDefaults) {
+            SmartFillDefaultsView()
         }
     }
 }

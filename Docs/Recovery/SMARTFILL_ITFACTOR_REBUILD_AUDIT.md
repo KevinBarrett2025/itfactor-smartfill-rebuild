@@ -46,6 +46,7 @@ These seams are the correct architectural anchors for the rebuild:
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillResultBridge.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspaceCoordinator.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspaceView.swift`
+- `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillDefaultsView.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillAdvancedSettingsView.swift`
 
 ## Retired Legacy UI Seams
@@ -59,7 +60,7 @@ These seams are the correct architectural anchors for the rebuild:
 The editor-only seams were deleted in the Phase 5 GM slice after review/player and editor-origin entry both moved onto the rebuild workspace. The dead settings-side wrapper screens were deleted in the Phase 6 GM slice after the reusable advanced-settings component moved under `Features/SmartFill/Rebuild`.
 
 ## Duplicate Or Obsolete UI Surfaces Still Pending Removal
-None for `SF-REBUILD-006`. The remaining SmartFill work should focus on intentional flagship workspace evolution or later standalone derivation, not dormant duplicate screens.
+None for `SF-REBUILD-006`. The remaining SmartFill work should focus on intentional flagship workspace evolution, defaults/workspace refinement, or later standalone derivation, not dormant duplicate screens.
 
 ## Persistence Seams That Must Survive
 These fields and APIs carry shipped SmartFill truth and must not be deleted during cleanup:
