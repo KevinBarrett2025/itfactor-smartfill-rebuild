@@ -27,7 +27,7 @@ Rules:
 | SF-REBUILD-004 | Bounded SmartFill workspace replacement inside itFactor shell | COMPLETE | `SmartFillWorkspaceView` now owns both review/player and editor-origin entry; `SmartFillTakeBridge.editorLaunchSeed` resolves canonical/original take truth for refine vs create flows; Gate A PASS `/tmp/itfactor_smartfill_phase4_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase4_tests.log`; xcresult `/tmp/itfactor_smartfill_phase4_tests/Logs/Test/Test-STSiPhone-2026.03.26_09-06-16--0400.xcresult` |
 | SF-REBUILD-005 | SmartFill result adoption bridge into repository/take/session truth | COMPLETE | `SmartFillProcessingManager` now routes completion through `SmartFillResultBridge.adopt`; repository upsert creates or refreshes one authoritative SmartFill variant take; Gate A PASS `/tmp/itfactor_smartfill_phase3_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase3_tests_final.log`; xcresult `/tmp/itfactor_smartfill_phase3_tests_final/Logs/Test/Test-STSiPhone-2026.03.25_22-46-56--0400.xcresult` |
 | SF-REBUILD-008 | Editor-origin SmartFill entry unification on rebuild workspace | COMPLETE | `LightweightEditorViewController+ModularWiring` now presents `SmartFillWorkspaceView`; `EditorCoordinator` routes `.smartFillRequested` back through the rebuild workspace; Gate A PASS `/tmp/itfactor_smartfill_phase4_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase4_tests.log`; xcresult `/tmp/itfactor_smartfill_phase4_tests/Logs/Test/Test-STSiPhone-2026.03.26_09-06-16--0400.xcresult` |
-| SF-REBUILD-006 | Legacy SmartFill cutover cleanup | OPEN | Phase 5 retired the editor-only seams (`SmartFillController.swift`, `SmartFillSettingsModal.swift`, `SmartFillRealPreviewSectionHandoff.swift`) with Gate A PASS `/tmp/itfactor_smartfill_phase5_gateA.log`, focused parity PASS `/tmp/itfactor_smartfill_phase5_tests.log`, xcresult `/tmp/itfactor_smartfill_phase5_tests/Logs/Test/Test-STSiPhone-2026.03.26_09-25-08--0400.xcresult`; remaining open scope is settings-side duplication |
+| SF-REBUILD-006 | Legacy SmartFill cutover cleanup | COMPLETE | Phase 5 retired the editor-only seams (`SmartFillController.swift`, `SmartFillSettingsModal.swift`, `SmartFillRealPreviewSectionHandoff.swift`) with Gate A PASS `/tmp/itfactor_smartfill_phase5_gateA.log`, focused parity PASS `/tmp/itfactor_smartfill_phase5_tests.log`, xcresult `/tmp/itfactor_smartfill_phase5_tests/Logs/Test/Test-STSiPhone-2026.03.26_09-25-08--0400.xcresult`; Phase 6 retired the dormant settings-side shells (`SmartFillSettingsView.swift`, `SmartFillMigrationDashboard.swift`, `SmartFillBatchProcessingView.swift`) and moved `SmartFillAdvancedSettingsView` under `Features/SmartFill/Rebuild` with Gate A PASS `/tmp/itfactor_smartfill_phase6_gateA.log`, focused parity PASS `/tmp/itfactor_smartfill_phase6_tests.log`, xcresult `/tmp/itfactor_smartfill_phase6_tests/Logs/Test/Test-STSiPhone-2026.03.26_09-53-26--0400.xcresult` |
 | SF-REBUILD-007 | Standalone utility extraction package from flagship architecture | OPEN | Same engine/workspace, hidden static session, reduced shell |
 
 ## Protected Persistence / Data Seams
@@ -47,12 +47,15 @@ These remain authoritative and must survive cleanup:
 - `ProjectsRepository.clearSmartFill`
 
 ## Delete-After-Cutover Targets
-- `STSiPhone/STSiPhone/Features/Settings/SmartFillMigrationDashboard.swift`
+None currently open under `SF-REBUILD-006`.
 
 ## Retired Delete-After-Cutover Targets
 - `STSiPhone/STSiPhone/Features/Editing/SmartFillSettingsModal.swift` — retired in `SF-REBUILD-006` phase 5
 - `STSiPhone/STSiPhone/Features/Editing/SmartFillRealPreviewSectionHandoff.swift` — retired in `SF-REBUILD-006` phase 5
 - `STSiPhone/STSiPhone/Features/Editing/Tools/SmartFillController.swift` — retired in `SF-REBUILD-006` phase 5
+- `STSiPhone/STSiPhone/Features/Settings/SmartFillSettingsView.swift` — retired in `SF-REBUILD-006` phase 6
+- `STSiPhone/STSiPhone/Features/Settings/SmartFillMigrationDashboard.swift` — retired in `SF-REBUILD-006` phase 6
+- `STSiPhone/STSiPhone/Features/Settings/Views/SmartFillBatchProcessingView.swift` — retired in `SF-REBUILD-006` phase 6
 
 ## Shared-vs-Flagship-vs-Standalone Rule
 - Flagship-only:
@@ -70,6 +73,6 @@ These remain authoritative and must survive cleanup:
   - simplified history/export shell over the same engine
 
 ## Next Action
-1. Commit and push the legacy editor seam retirement slice.
-2. Delete or replace the remaining settings-side SmartFill duplication now that the rebuild path is the sole live editor entry path.
+1. Commit and push the settings-side duplication retirement slice.
+2. Choose the next intentional flagship SmartFill workspace/product phase now that `SF-REBUILD-006` is complete.
 3. Keep standalone derivation synchronized in every phase.

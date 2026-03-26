@@ -1,5 +1,65 @@
 # CODEX Thread Continuity
 
+## Ticket 006 Legacy SmartFill Settings-Side Duplication Retirement (2026-03-26)
+- Thread Status: the settings-side SmartFill duplicate surfaces are retired, locally gated, and waiting on commit/push as the active next action.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-rebuild`
+- Working Head SHA: `52289e4b337d15c1f2b360139a1734c11ec193a8`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Finish the remaining settings-side cleanup under `SF-REBUILD-006` now that the rebuild workspace fully owns SmartFill entry:
+1. retire the dead settings-side SmartFill shells with no live triggers or callers
+2. preserve only the reusable advanced-settings component by moving it under the rebuild workspace
+3. remove dead Settings/editor state that still referenced the deleted settings shells
+4. close the duplicate SmartFill UI cleanup contract so future work is intentional workspace evolution, not legacy wrapper removal
+
+### Completed This Pass
+- Deleted the dormant settings-side SmartFill shells:
+  - `STSiPhone/STSiPhone/Features/Settings/SmartFillSettingsView.swift`
+  - `STSiPhone/STSiPhone/Features/Settings/SmartFillMigrationDashboard.swift`
+  - `STSiPhone/STSiPhone/Features/Settings/Views/SmartFillBatchProcessingView.swift`
+- Moved the reusable advanced settings sheet into:
+  - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillAdvancedSettingsView.swift`
+- Removed dead SmartFill settings state from:
+  - `STSiPhone/STSiPhone/Features/Settings/SettingsView.swift`
+  - `STSiPhone/STSiPhone/Features/Editing/LightweightEditorViewController.swift`
+- Updated the audit, status, board, catalog, and standalone derivation docs to mark `SF-REBUILD-006` complete once this slice is committed.
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase6_gateA build | tee /tmp/itfactor_smartfill_phase6_gateA.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase6_gateA.log`
+- Focused parity command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath /tmp/itfactor_smartfill_phase6_tests -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase6_tests.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase6_tests.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase6_tests/Logs/Test/Test-STSiPhone-2026.03.26_09-53-26--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Archaeology Snapshot
+- `SmartFillMigrationDashboard` and `SmartFillBatchProcessingView` had no live callers outside previews.
+- `SmartFillSettingsView` remained only as a zombie sheet in `SettingsView`; the state existed but no live trigger set it true.
+- The rebuild workspace still needed `SmartFillAdvancedSettingsView`, so that reusable component was split out instead of reviving the dead settings shell.
+
+### Next Action
+1. Commit and push the settings-side SmartFill duplication retirement slice on `gm/smartfill-itfactor-rebuild`.
+2. Decide the next intentional flagship SmartFill workspace/product phase now that `SF-REBUILD-006` is complete.
+3. Keep the standalone derivation ledger synchronized with each future shared-workspace cut.
+
 ## Ticket 005 Legacy SmartFill Editor Seam Retirement (2026-03-26)
 - Thread Status: the legacy editor-only SmartFill seams are retired, locally gated, and waiting on commit/push as the active next action.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

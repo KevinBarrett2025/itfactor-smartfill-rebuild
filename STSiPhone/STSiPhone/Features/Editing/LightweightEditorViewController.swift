@@ -100,10 +100,6 @@ class LightweightEditorViewController: UIViewController, SmartFillProcessingDele
     private var durationLabel: UILabel!
     private var scrubTimeLabel: UILabel!
     
-    // MARK: - SmartFill Integration (FIXED: Regular instance variables)
-    private var showingSmartFillSettings = false
-    private var currentSmartFillSettings = SmartFillSettings()
-    
     // NON-DESTRUCTIVE: Edit history UI
     private var editHistoryView: UIView!
     private var editHistoryStackView: UIStackView!

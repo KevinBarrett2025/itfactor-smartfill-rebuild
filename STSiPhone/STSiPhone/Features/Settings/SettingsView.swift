@@ -4,7 +4,6 @@ struct SettingsView: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @State private var showingCameraSettings = false
     @State private var showingAudioSettings = false
-    @State private var showingSmartFillSettings = false  // NEW: Smart Fill settings
     @ObservedObject private var watchBridge = WatchBridge.shared
     @AppStorage("WatchRemote.showHUDMaster") private var showWatchHUDMaster = true
     @AppStorage("PreferredMapsApp") private var preferredMapsAppRaw: String = MapsAppPreference.google.rawValue
@@ -174,19 +173,6 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showingAudioSettings) {
             AudioSettingsView()
-        }
-        // NEW: Smart Fill settings sheet
-        .sheet(isPresented: $showingSmartFillSettings) {
-            NavigationView {
-                SmartFillSettingsView()
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button("Done") {
-                                showingSmartFillSettings = false
-                            }
-                        }
-                    }
-            }
         }
     }
 }

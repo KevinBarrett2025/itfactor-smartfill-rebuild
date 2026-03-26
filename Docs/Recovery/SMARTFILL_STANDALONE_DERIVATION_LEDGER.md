@@ -55,6 +55,7 @@ The flagship rebuild now has one shared SmartFill entry seam across both launch 
 - `SmartFillTakeBridge` now resolves canonical/original take truth for both review and editor launches and preserves variant settings when refining an existing SmartFill take.
 - `SmartFillResultBridge` now adopts SmartFill output through repository truth and creates or refreshes one authoritative standalone SmartFill variant take.
 - `SmartFillProcessingManager` completion notifications now preserve the queued take ID for review listeners while also carrying the adopted SmartFill take ID for reopen routing.
+- The dormant settings-side SmartFill shells (`SmartFillSettingsView`, `SmartFillMigrationDashboard`, `SmartFillBatchProcessingView`) are now deleted; the only reusable settings surface that remains is the shared `SmartFillAdvancedSettingsView` housed under `Features/SmartFill/Rebuild`.
 
 This means the future standalone utility already has a clearer derivation path:
 1. import one clip
@@ -64,4 +65,4 @@ This means the future standalone utility already has a clearer derivation path:
 5. write result history/export data through a utility-local result bridge that mirrors repository adoption without project/session vocabulary
 
 ## Current Next Step
-Retire the remaining settings-side SmartFill dashboard/settings duplication so the future standalone utility can extract the same shared workspace model with only a hidden static-session shell and lightweight persistence swap.
+Decide the next intentional shared-workspace evolution after duplicate screens are gone. The standalone utility can now derive from the rebuild workspace plus hidden static-session shell without carrying dormant settings/dashboard wrappers.

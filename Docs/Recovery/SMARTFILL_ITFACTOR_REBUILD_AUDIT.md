@@ -21,9 +21,9 @@ The flagship intent is:
 | Legacy SmartFill settings modal | `STSiPhone/STSiPhone/Features/Editing/SmartFillSettingsModal.swift` | `DELETE_AFTER_CUTOVER` | Old modal-level UI no longer matches the bounded rebuild workspace target and both live launch surfaces now bypass it. | Deleted in the Phase 5 GM slice; rebuild workspace is now the only live editor-entry surface. |
 | Legacy real preview handoff | `STSiPhone/STSiPhone/Features/Editing/SmartFillRealPreviewSectionHandoff.swift` | `DELETE_AFTER_CUTOVER` | Preview orchestration was tied only to the removed modal-level editor path. | Deleted in the Phase 5 GM slice; later preview work should stay inside the rebuild workspace only. |
 | Legacy still preview view model | `STSiPhone/STSiPhone/Features/Editing/SmartFillStillPreviewViewModel.swift` | `REFERENCE_ONLY` | Useful to understand earlier preview state handling, but not a durable flagship seam. | Read for behavior notes only. |
-| Global SmartFill settings screen | `STSiPhone/STSiPhone/Features/Settings/SmartFillSettingsView.swift` | `REPLACE` | Global settings remain necessary, but this screen should stop acting like the main editing surface. | Keep the role, replace the structure and vocabulary. |
-| Legacy migration dashboard | `STSiPhone/STSiPhone/Features/Settings/SmartFillMigrationDashboard.swift` | `DELETE_AFTER_CUTOVER` | Migration and dashboard status UI compete with the future editor workspace and confuse SmartFill entry. | Remove after replacement settings/workspace ship. |
-| Batch processing view | `STSiPhone/STSiPhone/Features/Settings/Views/SmartFillBatchProcessingView.swift` | `REFERENCE_ONLY` | Shows prior bulk-processing ideas but is not a first-class flagship edit flow. | Keep only as support archaeology until bulk processing is intentionally redesigned. |
+| Legacy global SmartFill settings screen | `STSiPhone/STSiPhone/Features/Settings/SmartFillSettingsView.swift` | `DELETE_AFTER_CUTOVER` | The live app no longer had a reachable trigger for this screen, and its remaining reusable advanced-settings sheet now lives under the rebuild workspace instead of a duplicate settings shell. | Deleted in the Phase 6 GM slice; reintroduce global defaults only through an intentional flagship settings design later if needed. |
+| Legacy migration dashboard | `STSiPhone/STSiPhone/Features/Settings/SmartFillMigrationDashboard.swift` | `DELETE_AFTER_CUTOVER` | Migration and dashboard status UI competed with the rebuild workspace and only wrapped the deleted settings screen. | Deleted in the Phase 6 GM slice; future data recovery should be redesigned intentionally, not preserved as dormant dashboard UI. |
+| Batch processing view | `STSiPhone/STSiPhone/Features/Settings/Views/SmartFillBatchProcessingView.swift` | `DELETE_AFTER_CUTOVER` | The batch/recovery surface had no live callers, opened the deleted settings screen, and its recovery actions were already unsupported for the current SQLite repository. | Deleted in the Phase 6 GM slice; recover or redesign bulk SmartFill processing later only if product scope requires it. |
 | Repository SmartFill upsert helper | `STSiPhone/STSiPhone/Shared/Repositories/SmartFillRepository+Upsert.swift` | `KEEP` | This is a useful repository seam for preserving SmartFill take lineage and standalone SmartFill take creation. | Keep and adapt to new result bridge. |
 | Path migrator | `STSiPhone/STSiPhone/Shared/Services/SmartFillPathMigrator.swift` | `KEEP` | Protects shipped data/path continuity. | Keep until all existing SmartFill paths are migrated and verified. |
 | Take-level SmartFill persistence | `STSiPhone/STSiPhone/Shared/Models/ProjectModels.swift` | `KEEP` | Carries shipped lineage fields: `overrideSmartFill`, `smartFilledFilePath`, `smartFillSettings`, orientation, and SmartFill variant helpers. | Preserve and extend through bridge/result mapping only. |
@@ -46,18 +46,20 @@ These seams are the correct architectural anchors for the rebuild:
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillResultBridge.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspaceCoordinator.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspaceView.swift`
+- `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillAdvancedSettingsView.swift`
 
 ## Retired Legacy UI Seams
 - `STSiPhone/STSiPhone/Features/Editing/SmartFillSettingsModal.swift`
 - `STSiPhone/STSiPhone/Features/Editing/SmartFillRealPreviewSectionHandoff.swift`
 - `STSiPhone/STSiPhone/Features/Editing/Tools/SmartFillController.swift`
+- `STSiPhone/STSiPhone/Features/Settings/SmartFillSettingsView.swift`
+- `STSiPhone/STSiPhone/Features/Settings/SmartFillMigrationDashboard.swift`
+- `STSiPhone/STSiPhone/Features/Settings/Views/SmartFillBatchProcessingView.swift`
 
-These editor-only seams were deleted in the Phase 5 GM slice after review/player and editor-origin entry both moved onto the rebuild workspace.
+The editor-only seams were deleted in the Phase 5 GM slice after review/player and editor-origin entry both moved onto the rebuild workspace. The dead settings-side wrapper screens were deleted in the Phase 6 GM slice after the reusable advanced-settings component moved under `Features/SmartFill/Rebuild`.
 
 ## Duplicate Or Obsolete UI Surfaces Still Pending Removal
-- `STSiPhone/STSiPhone/Features/Settings/SmartFillMigrationDashboard.swift`
-
-This settings-side dashboard should not survive once the rebuild workspace and replacement settings truth fully own SmartFill.
+None for `SF-REBUILD-006`. The remaining SmartFill work should focus on intentional flagship workspace evolution or later standalone derivation, not dormant duplicate screens.
 
 ## Persistence Seams That Must Survive
 These fields and APIs carry shipped SmartFill truth and must not be deleted during cleanup:
