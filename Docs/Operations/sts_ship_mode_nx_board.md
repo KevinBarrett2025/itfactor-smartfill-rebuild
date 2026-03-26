@@ -25,6 +25,10 @@ Rules:
 - Review/player SmartFill launch now enters the rebuild workspace from `ProjectDetailView`.
 - SmartFill completion now adopts output back through repository/session/take truth before notifying review/player listeners.
 - Editor-origin SmartFill launch now enters the same rebuild workspace from `LightweightEditorViewController+ModularWiring` and `EditorCoordinator`.
+- The dead editor-only SmartFill controller/modal/preview seam has been retired after cutover:
+  - `SmartFillController.swift`
+  - `SmartFillSettingsModal.swift`
+  - `SmartFillRealPreviewSectionHandoff.swift`
 - `authority/main` now exists remotely and locally at the untouched Jan 23 baseline.
 
 ---
@@ -44,7 +48,7 @@ Rules:
 ## Active / Pending Queue
 | Priority | ID | Description | Status | Notes |
 | --- | --- | --- | --- | --- |
-| 4 | SF-REBUILD-006 | Delete or retire duplicate legacy SmartFill UI surfaces after cutover | OPEN | `DELETE_AFTER_CUTOVER` items only after replacement is the sole path |
+| 4 | SF-REBUILD-006 | Delete or retire duplicate legacy SmartFill UI surfaces after cutover | OPEN | Editor-only seams are retired with Gate A PASS `/tmp/itfactor_smartfill_phase5_gateA.log` and focused parity PASS `/tmp/itfactor_smartfill_phase5_tests.log`; remaining open scope is settings-side SmartFill duplication |
 | 5 | SF-REBUILD-007 | Standalone utility extraction package from flagship architecture | OPEN | Hidden static session derivation |
 
 ---
@@ -58,6 +62,6 @@ Rules:
 ---
 
 ## Next Action
-1. Commit and push the editor-entry unification slice on `gm/smartfill-itfactor-rebuild`.
-2. Delete the remaining duplicate legacy SmartFill settings/editor UI surfaces now that replacement is the sole active entry path.
+1. Commit and push the legacy editor SmartFill seam retirement slice on `gm/smartfill-itfactor-rebuild`.
+2. Continue `SF-REBUILD-006` by deleting or replacing the remaining settings-side SmartFill dashboard/duplicate surfaces.
 3. Keep the standalone derivation ledger in sync while the delete-after-cutover cleanup lands.

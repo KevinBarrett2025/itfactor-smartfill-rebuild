@@ -1,5 +1,68 @@
 # CODEX Thread Continuity
 
+## Ticket 005 Legacy SmartFill Editor Seam Retirement (2026-03-26)
+- Thread Status: the legacy editor-only SmartFill seams are retired, locally gated, and waiting on commit/push as the active next action.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-rebuild`
+- Working Head SHA: `75cf668d3e3fed99f95c56a00605f0e58fa1505e`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Retire the old editor-owned SmartFill controller/modal path now that review/player and editor-origin launches both share the rebuild workspace:
+1. delete the dead editor-only SmartFill controller/modal/preview seams
+2. remove the unused coordinator and modular wiring hooks that only supported those seams
+3. preserve the repository-backed rebuild workspace as the sole active editor SmartFill path
+4. leave settings-side SmartFill duplication cleanup for the next bounded cutover slice
+
+### Completed This Pass
+- Deleted the editor-only legacy SmartFill seams:
+  - `STSiPhone/STSiPhone/Features/Editing/Tools/SmartFillController.swift`
+  - `STSiPhone/STSiPhone/Features/Editing/SmartFillSettingsModal.swift`
+  - `STSiPhone/STSiPhone/Features/Editing/SmartFillRealPreviewSectionHandoff.swift`
+- Removed the dead `smartFillFinished` coordinator event and controller wiring from:
+  - `STSiPhone/STSiPhone/Features/Editing/Coordinator/EditorCoordinator.swift`
+  - `STSiPhone/STSiPhone/Features/Editing/LightweightEditorViewController+ModularWiring.swift`
+- Updated the legacy audit and standalone derivation ledger so the remaining delete-after-cutover scope is now settings-side only.
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase5_gateA build | tee /tmp/itfactor_smartfill_phase5_gateA.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase5_gateA.log`
+- Focused parity command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath /tmp/itfactor_smartfill_phase5_tests -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase5_tests.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase5_tests.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase5_tests/Logs/Test/Test-STSiPhone-2026.03.26_09-25-08--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Archaeology Snapshot
+- The rebuild workspace is now the only active SmartFill entry path for:
+  - review/player launch from `ProjectDetailView`
+  - editor-origin launch from `LightweightEditorViewController+ModularWiring`
+- The deleted controller/modal/preview files were no longer referenced anywhere in the app target.
+- Remaining legacy SmartFill duplication is now concentrated on settings-side surfaces:
+  - `STSiPhone/STSiPhone/Features/Settings/SmartFillSettingsView.swift`
+  - `STSiPhone/STSiPhone/Features/Settings/SmartFillMigrationDashboard.swift`
+  - `STSiPhone/STSiPhone/Features/Settings/Views/SmartFillBatchProcessingView.swift`
+
+### Next Action
+1. Commit and push the legacy editor seam retirement slice on `gm/smartfill-itfactor-rebuild`.
+2. Continue `SF-REBUILD-006` on the remaining settings-side SmartFill dashboard/duplicate surfaces.
+3. Keep the standalone derivation ledger synchronized with each cleanup cut.
+
 ## Ticket 004 Legacy SmartFill Entry Unification (2026-03-26)
 - Thread Status: editor-side SmartFill entry unification is implemented and locally gated; commit/push is the active next action.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

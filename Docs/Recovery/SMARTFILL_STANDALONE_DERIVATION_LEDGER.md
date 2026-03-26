@@ -51,6 +51,7 @@ The flagship rebuild now has one shared SmartFill entry seam across both launch 
 - `ProjectDetailView` bypasses the legacy `SmartFillSettingsModal` on the review/player sheet path.
 - `LightweightEditorViewController+ModularWiring` now launches the same rebuild workspace from the editor-side SmartFill affordance.
 - `EditorCoordinator` routes `.smartFillRequested` back through the shared rebuild workspace entry instead of the legacy controller-owned path.
+- The legacy editor-only SmartFill files (`SmartFillSettingsModal`, `SmartFillRealPreviewSectionHandoff`, `SmartFillController`) are now deleted from the writable rebuild repo because no live launch path still uses them.
 - `SmartFillTakeBridge` now resolves canonical/original take truth for both review and editor launches and preserves variant settings when refining an existing SmartFill take.
 - `SmartFillResultBridge` now adopts SmartFill output through repository truth and creates or refreshes one authoritative standalone SmartFill variant take.
 - `SmartFillProcessingManager` completion notifications now preserve the queued take ID for review listeners while also carrying the adopted SmartFill take ID for reopen routing.
@@ -63,4 +64,4 @@ This means the future standalone utility already has a clearer derivation path:
 5. write result history/export data through a utility-local result bridge that mirrors repository adoption without project/session vocabulary
 
 ## Current Next Step
-Delete the remaining legacy SmartFill settings/editor shells and retire the duplicate controller-owned launch path so the future standalone utility can extract the same shared workspace model with only a hidden static-session shell and lightweight persistence swap.
+Retire the remaining settings-side SmartFill dashboard/settings duplication so the future standalone utility can extract the same shared workspace model with only a hidden static-session shell and lightweight persistence swap.

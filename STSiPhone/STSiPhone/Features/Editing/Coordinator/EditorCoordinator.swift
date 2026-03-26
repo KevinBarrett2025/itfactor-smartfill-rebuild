@@ -9,7 +9,6 @@ enum CoordinatorEvent {
     case openCrop(frame: UIImage, time: CMTime)
     case applyCrop(CropOperation)
     case smartFillRequested
-    case smartFillFinished(outputURL: URL)    // switch to landscape
     case playbackToggled
     case jump(seconds: Double)
     case clearAllEdits
@@ -43,8 +42,6 @@ final class EditorCoordinator: EditorCoordinating {
     let playerSurfaceVC = PlayerSurfaceViewController()
     let trimTool = TrimToolController()
     let cropTool = CropToolController()
-    let smartFillTool = SmartFillController()
-
     init(host: LightweightEditorViewController, editStack: EditStack, initialKind: AssetKind) {
         self.host = host
         self.editStack = editStack
@@ -53,7 +50,6 @@ final class EditorCoordinator: EditorCoordinating {
         // Wire tool events up to coordinator
         trimTool.onEvent = { [weak self] ev in self?.handle(ev) }
         cropTool.onEvent = { [weak self] ev in self?.handle(ev) }
-        smartFillTool.onEvent = { [weak self] ev in self?.handle(ev) }
     }
 
     func attachToolsIntoHost() {
@@ -72,7 +68,6 @@ final class EditorCoordinator: EditorCoordinating {
         }
         
         host.prepareCropTool(cropTool)
-        host.prepareSmartFillTool(smartFillTool)
     }
 
     func handle(_ event: CoordinatorEvent) {
@@ -118,13 +113,6 @@ final class EditorCoordinator: EditorCoordinating {
 
         case .smartFillRequested:
             host.modularSmartFillTapped()
-
-        case .smartFillFinished(let url):
-            // CRITICAL: Swap asset to landscape and refresh everything
-            assetKind = .video(url: url)
-            host.replacePlayerAsset(withURL: url)
-            mode = .playback
-            print("🔄 COORDINATOR: SmartFill completed - switched to landscape mode")
 
         case .playbackToggled:
             playerSurfaceVC.playPauseToggle()

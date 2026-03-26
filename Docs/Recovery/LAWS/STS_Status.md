@@ -28,6 +28,7 @@ _Current rebuild working baseline:_ `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 - SmartFill bounded workspace replacement: COMPLETE (LOCAL-GATED)
 - Result adoption + repository writeback: COMPLETE (LOCAL-GATED)
 - Editor-origin SmartFill entry unification: COMPLETE (LOCAL-GATED)
+- Legacy editor SmartFill seam retirement: COMPLETE (LOCAL-GATED)
 - Standalone derivation ledger: ACTIVE
 
 If anything above is not true, it must be reflected here.
@@ -55,6 +56,14 @@ If anything above is not true, it must be reflected here.
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase3_tests_final.log`
   - xcresult: `/tmp/itfactor_smartfill_phase3_tests_final/Logs/Test/Test-STSiPhone-2026.03.25_22-46-56--0400.xcresult`
 - `SF-REBUILD-006` — legacy SmartFill UI cutover cleanup (`DELETE_AFTER_CUTOVER`) — `OPEN`
+  - Phase 5 GM slice retired the editor-only legacy seams:
+    - `SmartFillSettingsModal.swift`
+    - `SmartFillRealPreviewSectionHandoff.swift`
+    - `SmartFillController.swift`
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase5_gateA.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase5_tests.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase5_tests/Logs/Test/Test-STSiPhone-2026.03.26_09-25-08--0400.xcresult`
+  - Remaining open cleanup is the settings-side SmartFill duplication, especially `SmartFillMigrationDashboard.swift`.
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -65,10 +74,8 @@ If anything above is not true, it must be reflected here.
 
 ## KNOWN FOLLOW-UPS
 
-- `SmartFillSettingsModal.swift` is legacy and should be deleted after the last editor-affordance callers are removed.
-- `SmartFillRealPreviewSectionHandoff.swift` is legacy preview glue and should be removed after cutover.
 - `SmartFillMigrationDashboard.swift` should be deleted after the rebuild fully owns SmartFill entry and settings truth.
-- `SmartFillController.swift` is now bypassed by live review/player and editor entry paths and should be retired after delete-after-cutover cleanup lands.
+- `SmartFillSettingsView.swift` and `SmartFillBatchProcessingView.swift` still need a keep/replace/delete decision for the post-dashboard cleanup.
 - Repository SmartFill persistence seams must survive cleanup:
   - `ProjectTake.overrideSmartFill`
   - `ProjectTake.smartFilledFilePath`
@@ -81,6 +88,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Commit and push the editor-entry unification slice on `gm/smartfill-itfactor-rebuild`.
-2. Delete the remaining `DELETE_AFTER_CUTOVER` legacy SmartFill seams now that both live entry paths route through the rebuild workspace.
+1. Commit and push the legacy editor SmartFill seam retirement slice on `gm/smartfill-itfactor-rebuild`.
+2. Continue `SF-REBUILD-006` by cleaning up the remaining settings-side SmartFill dashboard/duplicate surfaces.
 3. Keep the standalone derivation ledger updated in every phase.

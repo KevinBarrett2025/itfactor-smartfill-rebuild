@@ -104,11 +104,6 @@ extension LightweightEditorViewController {
         print("✂️ PREPARE CROP: Crop tool ready for presentation")
     }
     
-    func prepareSmartFillTool(_ smartFillTool: SmartFillController) {
-        // SmartFill works through manager, no UI mounting needed
-        print("🎭 PREPARE SMARTFILL: SmartFill tool ready")
-    }
-
     // MARK: - Toolbar Management
     
     func updateToolbar(for mode: EditorMode, kind: AssetKind) {
