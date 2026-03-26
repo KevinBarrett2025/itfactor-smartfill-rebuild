@@ -461,6 +461,73 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         )
     }
 
+    func testWorkspacePresentationExplainsSaveOutcomeBeforeFirstSave() {
+        let context = makeWorkspaceContext(
+            take: ProjectTake(filePath: "/tmp/original.mov", durationSeconds: 12)
+        )
+
+        XCTAssertEqual(SmartFillWorkspacePresentation.sourceClipOutcomeTitle(), "Stays unchanged")
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.afterSaveOutcomeTitle(
+                for: context,
+                stage: .configure,
+                hasPendingAutoReturn: false,
+                hasUnsavedChanges: false
+            ),
+            "Return to Review after save"
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.saveOutcomeMessage(
+                for: context,
+                adoptionMode: .createStandaloneVariantTake,
+                stage: .configure,
+                hasPendingAutoReturn: false,
+                hasUnsavedChanges: false
+            ),
+            "Saving keeps the source clip untouched while the session created or refreshed SmartFill take, then returns you to session review."
+        )
+    }
+
+    func testWorkspacePresentationExplainsDirtySavedStateAndAutoReturn() {
+        let context = makeWorkspaceContext(
+            take: ProjectTake(filePath: "/tmp/original.mov", durationSeconds: 12),
+            existingSettings: SmartFillSettings(),
+            autoLaunchEditor: false,
+            launchSource: .editorBadge,
+            returnTarget: .editor
+        )
+
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.afterSaveOutcomeTitle(
+                for: context,
+                stage: .completed,
+                hasPendingAutoReturn: true,
+                hasUnsavedChanges: false
+            ),
+            "Auto-returning to Editor"
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.saveOutcomeMessage(
+                for: context,
+                adoptionMode: .updateExistingTakePath,
+                stage: .completed,
+                hasPendingAutoReturn: true,
+                hasUnsavedChanges: false
+            ),
+            "Save finished. The session updated current SmartFill take, and SmartFill will return to editor unless you stay here to compare the preview."
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.saveOutcomeMessage(
+                for: context,
+                adoptionMode: .updateExistingTakePath,
+                stage: .completed,
+                hasPendingAutoReturn: false,
+                hasUnsavedChanges: true
+            ),
+            "The last saved SmartFill result is still available, but these newer changes are not saved yet. Save again before returning to Editor."
+        )
+    }
+
     @MainActor
     func testCoordinatorBeginsInConfigureAndCompletesWithResultRecord() {
         let coordinator = SmartFillWorkspaceCoordinator()

@@ -1,11 +1,71 @@
 # CODEX Thread Continuity
 
-## Ticket 015 Dirty Save Truth In Rebuild Workspace (2026-03-26)
-- Thread Status: dirty-after-save workspace truth is implemented, locally gated, and commit/push is the active next action.
+## Ticket 016 Background Fill And Save Outcome Affordances (2026-03-26)
+- Thread Status: shipped-style quick fill presets and explicit save-outcome messaging are anchored on the GM branch, and the next action is the next intentional workspace evolution.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
 - Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
 - Working Branch: `gm/smartfill-itfactor-rebuild`
-- Working Head SHA: `c1c2caa1393028ee43c0ec0392c8b79c440e5100`
+- Working Head SHA: `c6f271a478717e50fc6796708b2a758654615b5e`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Strengthen the rebuilt SmartFill workspace around treatment speed and save clarity:
+1. restore shipped-style quick background fill choices so users can clean up side bars without dragging a raw scale slider first
+2. explain exactly what save changes, what stays untouched, and where SmartFill returns next before the user commits a render
+3. keep dirty-after-save, in-progress save, and auto-return copy honest without reviving any deleted legacy shell UI
+4. keep standalone derivation aligned because the same quick-fill and save-outcome seams later become the utility app's simpler edit-to-save guidance
+
+### Completed This Pass
+- `SmartFillWorkspaceView` now exposes a `Quick fill` section with `Subtle`, `Default`, and `Edge-to-edge` presets mapped onto shared `backgroundScale` values.
+- The background fill slider remains available for fine-tuning, but the workspace now gives users a shipped-style fast first step before they reach for raw values or advanced settings.
+- The save lane now includes a `What happens on save` panel that explains:
+  - the source clip stays unchanged
+  - whether SmartFill will update the current take or create/refresh a SmartFill take
+  - what return behavior follows save for review/player versus editor launches
+- `SmartFillWorkspacePresentation` now owns save-outcome copy for first save, save-in-progress, pending auto-return, clean completion, and dirty-after-save states.
+- Focused tests now cover both first-save outcome messaging and dirty-after-save / auto-return outcome wording.
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase16_gateA_rerun build | tee /tmp/itfactor_smartfill_phase16_gateA_rerun.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase16_gateA_rerun.log`
+- Focused parity command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase16_tests_rerun2 -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase16_tests_rerun2.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase16_tests_rerun2.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase16_tests_rerun2/Logs/Test/Test-STSiPhone-2026.03.26_13-34-53--0400.xcresult`
+- Retry note:
+  - the initial parity run at `/tmp/itfactor_smartfill_phase16_tests.log` failed on save-copy capitalization; the rerun after the `sentenceDestinationOutcomeTitle` fix is the authoritative parity proof.
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Archaeology Snapshot
+- The shipped SmartFill settings flow used quick background scale choices at `5×`, `10×`, and `15×` as a fast first-step treatment model.
+- The rebuild workspace already had richer background modes and honest dirty-save truth, but it still made users infer the actual save outcome from generic action titles alone.
+- The correct fix was to keep quick fill and save-outcome explanation inside `SmartFillWorkspaceView` / `SmartFillWorkspacePresentation` instead of reviving deleted settings/dashboard shells.
+
+### Next Action
+1. Choose the next flagship SmartFill workspace phase now that the rebuild owns quick fill presets, explicit save-outcome truth, honest dirty-after-save state, real preview, defaults, and shared launch/return behavior.
+2. Implement that slice on `gm/smartfill-itfactor-rebuild`, then rerun Gate A plus focused SmartFill parity before any further promotion decision.
+3. Keep the standalone derivation ledger synchronized so the later hidden-session utility can reuse quick-fill and save-outcome guidance with hidden-session wording.
+
+## Ticket 015 Dirty Save Truth In Rebuild Workspace (2026-03-26)
+- Thread Status: dirty-after-save workspace truth is anchored on the GM branch, and the next action is the next intentional workspace evolution.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-rebuild`
+- Working Head SHA: `c6f271a478717e50fc6796708b2a758654615b5e`
 - Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 - Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
 - Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
@@ -63,8 +123,8 @@ Restore honest save-lane truth now that the rebuild workspace can linger after s
 - The correct fix was to compare current settings against the last saved snapshot and keep save truth inside `SmartFillWorkspaceView` / `SmartFillWorkspacePresentation` instead of reviving legacy completion banners or shell-level warning chrome.
 
 ### Next Action
-1. Commit and push the dirty-save truth slice on `gm/smartfill-itfactor-rebuild`.
-2. Choose the next flagship SmartFill workspace phase now that the rebuild owns launch truth, preview, defaults, explicit product lanes, inline treatment controls, live save progress, explicit stay/return control, and honest dirty-after-save state.
+1. Choose the next flagship SmartFill workspace phase now that the rebuild owns launch truth, preview, defaults, explicit product lanes, inline treatment controls, live save progress, explicit stay/return control, and honest dirty-after-save state.
+2. Implement that slice on `gm/smartfill-itfactor-rebuild`, then rerun Gate A plus focused SmartFill parity before any further promotion decision.
 3. Keep the standalone derivation ledger synchronized so the later hidden-session utility can reuse the same saved-result and unsaved-changes model.
 
 ## Ticket 014 Workspace Save Progress And Return Control (2026-03-26)

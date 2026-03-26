@@ -94,3 +94,4 @@ These fields and APIs carry shipped SmartFill truth and must not be deleted duri
 7. Common treatment tuning must live in the shared rebuild workspace itself; do not reintroduce separate SmartFill tuning shells for the flagship flow.
 8. Live SmartFill save progress must flow through shared engine notifications carrying take/session/project identity; do not push flagship save-state truth back into shell-specific banners or duplicate wrapper surfaces.
 9. Workspace completion truth must be anchored to the latest saved SmartFill result snapshot; if settings change after save, the rebuild workspace must return to a save-needed state instead of pretending the session is still complete.
+10. Quick background fill choices and save-outcome explanation must stay inside `SmartFillWorkspaceView` / `SmartFillWorkspacePresentation`; do not reintroduce separate treatment or save-explanation shells.

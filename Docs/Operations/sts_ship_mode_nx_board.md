@@ -63,6 +63,7 @@ Rules:
 | 4E | SF-REBUILD-013 | Deepen workspace treatment controls and return flow | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase13_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase13_tests.log`; workspace now keeps treatment tuning inline and turns completion into an explicit return action |
 | 4F | SF-REBUILD-014 | Surface live save progress and explicit return control | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase14_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase14_tests.log`; workspace now shows live SmartFill save progress and lets the user stay in the editor after save instead of forcing immediate auto-return |
 | 4G | SF-REBUILD-015 | Restore dirty-save truth in rebuild workspace | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase15_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase15_tests_rerun.log`; workspace now shows the latest saved result and restores save-needed state when settings change after save |
+| 4H | SF-REBUILD-016 | Strengthen background fill and save outcome affordances | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase16_gateA_rerun.log`; focused parity PASS `/tmp/itfactor_smartfill_phase16_tests_rerun2.log`; workspace now offers shipped-style quick fill presets and explains source-clip/result/return outcomes before save |
 
 ---
 
@@ -83,6 +84,6 @@ Rules:
 ---
 
 ## Next Action
-1. Commit and push the dirty-save truth slice on `gm/smartfill-itfactor-rebuild`.
-2. Choose the next intentional flagship SmartFill workspace/product phase now that entry, defaults, result adoption, preview, inline treatment controls, explicit control lanes, real return-target messaging, live save progress, and honest dirty-after-save state all live under the rebuild namespace.
+1. Choose the next intentional flagship SmartFill workspace/product phase now that entry, defaults, result adoption, preview, quick fill choices, explicit save-outcome messaging, live save progress, and honest dirty-after-save state all live under the rebuild namespace.
+2. Implement that slice on `gm/smartfill-itfactor-rebuild`, then rerun Gate A plus focused SmartFill parity before any promotion discussion.
 3. Keep the standalone derivation ledger in sync while future shared-workspace work lands.

@@ -261,6 +261,50 @@ struct SmartFillWorkspaceView: View {
                 step: 0.5
             )
 
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("Quick fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.textPrimary)
+                    Spacer()
+                    Text(activeFillPreset?.title ?? "Custom")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack(spacing: 12) {
+                    ForEach(SmartFillWorkspaceBackgroundFillPreset.allCases, id: \.self) { preset in
+                        Button {
+                            applyBackgroundFillPreset(preset)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(preset.title)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(Theme.textPrimary)
+                                Text(preset.caption)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text(String(format: "%.1f×", preset.scale))
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(Theme.primary)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(14)
+                            .background(backgroundFillPresetBackground(for: preset), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .stroke(backgroundFillPresetStroke(for: preset), lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                Text("Use quick fill when you need to clean up side bars fast. Fine-tune with the slider when the room still shows too much or the crop feels too aggressive.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Button {
                 showAdvancedSettings = true
             } label: {
@@ -361,6 +405,8 @@ struct SmartFillWorkspaceView: View {
                 title: "Current action",
                 value: primaryActionTitle
             )
+
+            saveOutcomePanel
 
             if let record = coordinator.lastResult {
                 latestSavedResultPanel(for: record)
@@ -613,8 +659,72 @@ struct SmartFillWorkspaceView: View {
         activeBackgroundMode == mode ? Theme.primary.opacity(0.6) : Color.white.opacity(0.10)
     }
 
+    private func backgroundFillPresetBackground(for preset: SmartFillWorkspaceBackgroundFillPreset) -> Color {
+        activeFillPreset == preset ? Theme.primary.opacity(0.16) : Color.white.opacity(0.02)
+    }
+
+    private func backgroundFillPresetStroke(for preset: SmartFillWorkspaceBackgroundFillPreset) -> Color {
+        activeFillPreset == preset ? Theme.primary.opacity(0.6) : Color.white.opacity(0.10)
+    }
+
     private var activeBackgroundMode: SmartFillWorkspaceBackgroundMode? {
         SmartFillWorkspaceBackgroundMode.allCases.first { $0.matches(settings) }
+    }
+
+    private var activeFillPreset: SmartFillWorkspaceBackgroundFillPreset? {
+        SmartFillWorkspaceBackgroundFillPreset.allCases.first { $0.matches(settings.backgroundScale) }
+    }
+
+    private var currentAdoptionMode: SmartFillResultAdoptionMode {
+        coordinator.lastResult?.adoptionMode ?? expectedAdoptionMode
+    }
+
+    private var expectedAdoptionMode: SmartFillResultAdoptionMode {
+        context.take.isSmartFillVariant ? .updateExistingTakePath : .createStandaloneVariantTake
+    }
+
+    @ViewBuilder
+    private var saveOutcomePanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("What happens on save")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.textPrimary)
+
+            summaryRow(
+                icon: "film",
+                title: "Source clip",
+                value: SmartFillWorkspacePresentation.sourceClipOutcomeTitle()
+            )
+            summaryRow(
+                icon: "sparkles.rectangle.stack",
+                title: "SmartFill result",
+                value: SmartFillWorkspacePresentation.destinationOutcomeTitle(for: currentAdoptionMode)
+            )
+            summaryRow(
+                icon: "arrowshape.turn.up.forward",
+                title: "After save",
+                value: SmartFillWorkspacePresentation.afterSaveOutcomeTitle(
+                    for: context,
+                    stage: coordinator.stage,
+                    hasPendingAutoReturn: hasPendingAutoReturn,
+                    hasUnsavedChanges: hasUnsavedChangesSinceLastSave
+                )
+            )
+
+            Text(
+                SmartFillWorkspacePresentation.saveOutcomeMessage(
+                    for: context,
+                    adoptionMode: currentAdoptionMode,
+                    stage: coordinator.stage,
+                    hasPendingAutoReturn: hasPendingAutoReturn,
+                    hasUnsavedChanges: hasUnsavedChangesSinceLastSave
+                )
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+        .padding(14)
+        .background(Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     @ViewBuilder
@@ -752,6 +862,12 @@ struct SmartFillWorkspaceView: View {
         settings.backgroundScale = preset.backgroundScale
         settings.presetName = presetTitle(for: preset)
         settings.processingPriority = .userInitiated
+        markSettingsDirty()
+    }
+
+    private func applyBackgroundFillPreset(_ preset: SmartFillWorkspaceBackgroundFillPreset) {
+        settings.backgroundScale = preset.scale
+        settings.forceUpdateToken = UUID()
         markSettingsDirty()
     }
 
@@ -951,6 +1067,49 @@ private enum SmartFillWorkspaceBackgroundMode: CaseIterable {
     }
 }
 
+private enum SmartFillWorkspaceBackgroundFillPreset: CaseIterable {
+    case subtle
+    case defaultFill
+    case edgeToEdge
+
+    var title: String {
+        switch self {
+        case .subtle:
+            return "Subtle"
+        case .defaultFill:
+            return "Default"
+        case .edgeToEdge:
+            return "Edge-to-edge"
+        }
+    }
+
+    var caption: String {
+        switch self {
+        case .subtle:
+            return "Keeps more of the room visible."
+        case .defaultFill:
+            return "Best starting point for most takes."
+        case .edgeToEdge:
+            return "Push harder to hide empty side bars."
+        }
+    }
+
+    var scale: CGFloat {
+        switch self {
+        case .subtle:
+            return 5.0
+        case .defaultFill:
+            return 10.0
+        case .edgeToEdge:
+            return 15.0
+        }
+    }
+
+    func matches(_ backgroundScale: CGFloat) -> Bool {
+        abs(backgroundScale - scale) < 0.26
+    }
+}
+
 enum SmartFillWorkspacePresentation {
     static func headerTitle(for context: SmartFillSettingsContext) -> String {
         context.infoTitle ?? "SmartFill Editor"
@@ -1050,6 +1209,62 @@ enum SmartFillWorkspacePresentation {
             return "Updated current SmartFill take"
         case .createStandaloneVariantTake:
             return "Created or refreshed SmartFill take"
+        }
+    }
+
+    static func sourceClipOutcomeTitle() -> String {
+        "Stays unchanged"
+    }
+
+    static func afterSaveOutcomeTitle(
+        for context: SmartFillSettingsContext,
+        stage: SmartFillWorkspaceCoordinator.Stage,
+        hasPendingAutoReturn: Bool,
+        hasUnsavedChanges: Bool
+    ) -> String {
+        if stage == .export {
+            return "Return to \(shortReturnTargetTitle(for: context)) after save"
+        }
+        if hasPendingAutoReturn {
+            return "Auto-returning to \(shortReturnTargetTitle(for: context))"
+        }
+        if stage == .completed && !hasUnsavedChanges {
+            return "Return to \(shortReturnTargetTitle(for: context)) when ready"
+        }
+        return "Return to \(shortReturnTargetTitle(for: context)) after save"
+    }
+
+    static func saveOutcomeMessage(
+        for context: SmartFillSettingsContext,
+        adoptionMode: SmartFillResultAdoptionMode,
+        stage: SmartFillWorkspaceCoordinator.Stage,
+        hasPendingAutoReturn: Bool,
+        hasUnsavedChanges: Bool
+    ) -> String {
+        let destination = sentenceDestinationOutcomeTitle(for: adoptionMode)
+        let returnTarget = returnTargetTitle(for: context)
+
+        if hasUnsavedChanges {
+            return "The last saved SmartFill result is still available, but these newer changes are not saved yet. Save again before returning to \(returnTarget)."
+        }
+        if stage == .export {
+            return "SmartFill is saving now. The source clip stays untouched while the session \(destination) before returning to \(returnTarget.lowercased())."
+        }
+        if hasPendingAutoReturn {
+            return "Save finished. The session \(destination), and SmartFill will return to \(returnTarget.lowercased()) unless you stay here to compare the preview."
+        }
+        if stage == .completed {
+            return "Save finished. The session \(destination). Return to \(returnTarget) when you're ready."
+        }
+        return "Saving keeps the source clip untouched while the session \(destination), then returns you to \(returnTarget.lowercased())."
+    }
+
+    private static func sentenceDestinationOutcomeTitle(for adoptionMode: SmartFillResultAdoptionMode) -> String {
+        switch adoptionMode {
+        case .updateExistingTakePath:
+            return "updated current SmartFill take"
+        case .createStandaloneVariantTake:
+            return "created or refreshed SmartFill take"
         }
     }
 

@@ -118,6 +118,12 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase15_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase15_tests_rerun.log`
   - xcresult: `/tmp/itfactor_smartfill_phase15_tests_rerun/Logs/Test/Test-STSiPhone-2026.03.26_13-00-56--0400.xcresult`
+- `SF-REBUILD-016` — strengthen background fill and save outcome affordances — `COMPLETE (LOCAL-GATED 2026-03-26)`
+  - `SmartFillWorkspaceView` now exposes shipped-style quick background fill presets alongside the fill slider and explains what save will do to the source clip, SmartFill result, and return path before the user commits a render.
+  - Save copy now differentiates first-save, save-in-progress, pending auto-return, clean completion, and dirty-after-save states without reviving any legacy wrapper surfaces.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase16_gateA_rerun.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase16_tests_rerun2.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase16_tests_rerun2/Logs/Test/Test-STSiPhone-2026.03.26_13-34-53--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -141,6 +147,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Commit and push the dirty-save truth slice on `gm/smartfill-itfactor-rebuild`.
-2. Decide the next intentional flagship SmartFill workspace evolution now that the rebuild owns entry, real launch/return truth, preview, defaults, inline treatment controls, explicit product controls, live save-state feedback, and honest post-save dirty-state handling.
+1. Decide the next intentional flagship SmartFill workspace evolution now that the rebuild owns entry, preview, defaults, quick fill choices, explicit save-outcome truth, live save-state feedback, and honest post-save dirty-state handling.
+2. Implement that next slice on `gm/smartfill-itfactor-rebuild` with Gate A and focused SmartFill parity before any promotion discussion.
 3. Keep the standalone derivation ledger updated in every phase.
