@@ -491,10 +491,10 @@ struct SmartFillWorkspaceView: View {
 
             if coordinator.stage == .export {
                 exportProgressPanel
-            } else if hasPendingAutoReturn {
-                returnControlPanel
-            } else if effectiveStage == .completed && completionBehavior == .stayHere && !hasUnsavedChangesSinceLastSave {
-                stayComparisonPanel
+            } else if hasPendingAutoReturn, let record = coordinator.lastResult {
+                returnControlPanel(for: record)
+            } else if effectiveStage == .completed && completionBehavior == .stayHere && !hasUnsavedChangesSinceLastSave, let record = coordinator.lastResult {
+                stayComparisonPanel(for: record)
             }
 
             if hasUnsavedChangesSinceLastSave {
@@ -570,7 +570,7 @@ struct SmartFillWorkspaceView: View {
         .background(Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
-    private var returnControlPanel: some View {
+    private func returnControlPanel(for record: SmartFillResultBridgeRecord) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Label("Saved and ready", systemImage: "checkmark.circle.fill")
@@ -583,7 +583,13 @@ struct SmartFillWorkspaceView: View {
                 .font(.caption.weight(.semibold))
             }
 
-            Text("The rebuilt workspace is ready to return to \(SmartFillWorkspacePresentation.returnTargetTitle(for: context)). You can stay here to review the preview or use the primary action to return immediately.")
+            Text(
+                SmartFillWorkspacePresentation.returnControlMessage(
+                    for: context,
+                    adoptionMode: record.adoptionMode,
+                    adoptedTakeDisplayName: record.adoptedTakeDisplayName
+                )
+            )
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -591,7 +597,7 @@ struct SmartFillWorkspaceView: View {
         .background(Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
-    private var stayComparisonPanel: some View {
+    private func stayComparisonPanel(for record: SmartFillResultBridgeRecord) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Label("Saved and staying here", systemImage: "eye.fill")
                 .font(.subheadline.weight(.semibold))
@@ -600,7 +606,8 @@ struct SmartFillWorkspaceView: View {
             Text(
                 SmartFillWorkspacePresentation.stayComparisonMessage(
                     for: context,
-                    adoptionMode: currentAdoptionMode
+                    adoptionMode: record.adoptionMode,
+                    adoptedTakeDisplayName: record.adoptedTakeDisplayName
                 )
             )
             .font(.caption)
@@ -814,7 +821,7 @@ struct SmartFillWorkspaceView: View {
             summaryRow(
                 icon: "sparkles.rectangle.stack",
                 title: "SmartFill result",
-                value: SmartFillWorkspacePresentation.destinationOutcomeTitle(for: currentAdoptionMode)
+                value: coordinator.lastResult?.adoptedTakeDisplayName ?? SmartFillWorkspacePresentation.destinationOutcomeTitle(for: currentAdoptionMode)
             )
             summaryRow(
                 icon: "arrowshape.turn.up.forward",
@@ -856,6 +863,11 @@ struct SmartFillWorkspaceView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
+            summaryRow(
+                icon: "rectangle.stack.fill",
+                title: "Session take",
+                value: record.adoptedTakeDisplayName
+            )
             summaryRow(
                 icon: "film.stack.fill",
                 title: "Saved output",
@@ -1490,13 +1502,28 @@ enum SmartFillWorkspacePresentation {
 
     static func stayComparisonMessage(
         for context: SmartFillSettingsContext,
-        adoptionMode: SmartFillResultAdoptionMode
+        adoptionMode: SmartFillResultAdoptionMode,
+        adoptedTakeDisplayName: String? = nil
+    ) -> String {
+        let takeTitle = adoptedTakeDisplayName ?? "The SmartFill take"
+        switch adoptionMode {
+        case .updateExistingTakePath:
+            return "\(takeTitle) is updated and ready in this session. Compare the preview here, then return to \(returnTargetTitle(for: context)) when you are ready."
+        case .createStandaloneVariantTake:
+            return "\(takeTitle) is saved into this session. Compare the preview here, then return to \(returnTargetTitle(for: context)) when you are ready."
+        }
+    }
+
+    static func returnControlMessage(
+        for context: SmartFillSettingsContext,
+        adoptionMode: SmartFillResultAdoptionMode,
+        adoptedTakeDisplayName: String
     ) -> String {
         switch adoptionMode {
         case .updateExistingTakePath:
-            return "The current SmartFill take is updated. Compare the preview here, then return to \(returnTargetTitle(for: context)) when you are ready."
+            return "\(adoptedTakeDisplayName) is updated and ready in this session. Stay here to compare the preview or use the primary action to return to \(returnTargetTitle(for: context))."
         case .createStandaloneVariantTake:
-            return "The SmartFill take is saved into the session. Compare the preview here, then return to \(returnTargetTitle(for: context)) when you are ready."
+            return "\(adoptedTakeDisplayName) is saved into this session. Stay here to compare the preview or use the primary action to return to \(returnTargetTitle(for: context))."
         }
     }
 

@@ -1,5 +1,67 @@
 # CODEX Thread Continuity
 
+## Ticket 019 Real Saved Take Outcomes In Rebuild Workspace (2026-03-26)
+- Thread Status: the rebuild workspace now carries the real adopted SmartFill take label through save outcomes, completion guidance, and return messaging, locally gated, and commit/push is the active next action.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-rebuild`
+- Working Head SHA: `d7ed99ab48e53a3eb501c1096fb83d216976b0e4`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Make SmartFill save outcomes concrete instead of generic:
+1. carry the actual adopted SmartFill take label through repository-backed save outcomes instead of defaulting to generic `SmartFill take` language
+2. show the real session take name in completed-state comparison, return guidance, and saved-result summaries
+3. keep notification-backed reopen/review flows aligned by emitting the same adopted take label alongside save completion
+4. keep standalone derivation aligned because the later hidden-session utility should also tell users exactly what saved result was created or updated
+
+### Completed This Pass
+- `SmartFillResultBridgeRecord` now carries `adoptedTakeDisplayName` so the rebuild workspace can describe the real saved session take instead of relying on generic destination copy.
+- Repository-backed adoption now computes the concrete SmartFill take label from persisted take/session truth and emits that same label through SmartFill completion notifications.
+- Notification-backed result reconstruction now restores the same saved take label, so reopen/review flows keep the same concrete result identity as live workspace sessions.
+- `SmartFillWorkspaceView` now uses that adopted take label in:
+  - the save outcome panel
+  - the latest saved result summary
+  - completed-state `Stay here` guidance
+  - completed-state `Return to ...` guidance
+- Focused tests now cover:
+  - concrete adopted take labels in repository-backed result adoption
+  - concrete adopted take labels in notification-backed result reconstruction
+  - completed-state stay/return guidance that names the real saved SmartFill take
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase19_gateA build | tee /tmp/itfactor_smartfill_phase19_gateA.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase19_gateA.log`
+- Focused parity command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase19_tests -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase19_tests.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase19_tests.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase19_tests/Logs/Test/Test-STSiPhone-2026.03.26_17-17-41--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Archaeology Snapshot
+- `SF-REBUILD-018` made save/update wording obey the user's chosen `Return` versus `Stay` mode, but the workspace still described completed outcomes with generic `SmartFill take` wording even after repository adoption had decided the concrete saved take.
+- The rebuild already had the right shared seam in `SmartFillResultBridgeRecord`, so the correct next move was to deepen that result bridge and workspace presentation path instead of reviving any separate success banner, settings wrapper, or shell-owned save summary.
+- The same seam matters for the future standalone utility because hidden-session save/share/history messaging should also name the actual saved result instead of falling back to generic copy.
+
+### Next Action
+1. Choose the next intentional flagship SmartFill workspace phase now that the rebuild owns entry, preview, defaults, result adoption, quick fill, treatment-finish presets, explicit stay/return choice, finish-state-aware save affordances, and real saved take outcome messaging.
+2. Implement that next slice on `gm/smartfill-itfactor-rebuild`, then rerun Gate A plus focused SmartFill parity before any promotion decision.
+3. Keep the standalone derivation ledger synchronized so the later hidden-session utility can reuse the same concrete saved-result identity seam without project/session wording.
+
 ## Ticket 018 Save Affordances Match Chosen Finish Behavior (2026-03-26)
 - Thread Status: save/update actions, save-lane messaging, and completed-state comparison guidance now honor the user's chosen `Return` versus `Stay` behavior in the rebuild workspace, locally gated, and commit/push is the active next action.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

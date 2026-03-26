@@ -37,6 +37,7 @@ _Current rebuild working baseline:_ `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 - Workspace treatment controls and return flow: COMPLETE (LOCAL-GATED)
 - Workspace save progress and return control: COMPLETE (LOCAL-GATED)
 - Workspace dirty-save truth after completion: COMPLETE (LOCAL-GATED)
+- Workspace real saved-take outcome messaging: COMPLETE (LOCAL-GATED)
 - Standalone derivation ledger: ACTIVE
 
 If anything above is not true, it must be reflected here.
@@ -136,6 +137,12 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase18_gateA_rerun.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase18_tests_rerun.log`
   - xcresult: `/tmp/itfactor_smartfill_phase18_tests_rerun/Logs/Test/Test-STSiPhone-2026.03.26_15-00-06--0400.xcresult`
+- `SF-REBUILD-019` — surface real saved take outcomes in rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
+  - `SmartFillResultBridgeRecord` now carries the concrete adopted SmartFill take label from repository adoption and notification-backed reopen paths.
+  - `SmartFillWorkspaceView` now uses that exact saved take label in save outcome summaries, latest saved-result details, and completed-state stay/return guidance.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase19_gateA.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase19_tests.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase19_tests/Logs/Test/Test-STSiPhone-2026.03.26_17-17-41--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -159,6 +166,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Decide the next intentional flagship SmartFill workspace evolution now that the rebuild owns entry, preview, defaults, quick fill choices, treatment-finish presets, explicit after-save stay/return control, save/update wording that matches the chosen finish behavior, explicit save-outcome truth, live save-state feedback, and honest post-save dirty-state handling.
+1. Decide the next intentional flagship SmartFill workspace evolution now that the rebuild owns entry, preview, defaults, quick fill choices, treatment-finish presets, explicit after-save stay/return control, save/update wording that matches the chosen finish behavior, explicit save-outcome truth, live save-state feedback, honest post-save dirty-state handling, and concrete saved take identity in completion messaging.
 2. Implement that next slice on `gm/smartfill-itfactor-rebuild` with Gate A and focused SmartFill parity before any promotion discussion.
 3. Keep the standalone derivation ledger updated in every phase.

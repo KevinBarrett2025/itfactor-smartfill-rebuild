@@ -174,6 +174,7 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         )
 
         XCTAssertEqual(result.adoptionMode, .createStandaloneVariantTake)
+        XCTAssertEqual(result.adoptedTakeDisplayName, "Take 1 SmartFill")
     }
 
     func testNotificationBackedResultBridgeBuildsStandaloneRecord() {
@@ -199,6 +200,7 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
                 "sessionID": sessionID,
                 "projectID": projectID,
                 "smartFillPath": "/tmp/output_smartfill.mov",
+                "smartFillTakeLabel": "S1T1 SmartFill",
                 "approach": "standalone"
             ]
         )
@@ -214,6 +216,7 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertEqual(record?.originalTakeID, takeID)
         XCTAssertEqual(record?.projectID, projectID)
         XCTAssertEqual(record?.sessionID, sessionID)
+        XCTAssertEqual(record?.adoptedTakeDisplayName, "S1T1 SmartFill")
     }
 
     func testNotificationBackedResultBridgeBuildsInlineRecord() {
@@ -237,6 +240,7 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
                 "sessionID": sessionID,
                 "projectID": projectID,
                 "smartFillPath": "/tmp/output_smartfill.mov",
+                "smartFillTakeLabel": "S1T1 SmartFill",
                 "approach": "inline"
             ]
         )
@@ -250,6 +254,7 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertEqual(record?.adoptionMode, .updateExistingTakePath)
         XCTAssertEqual(record?.adoptedTakeID, takeID)
         XCTAssertEqual(record?.originalTakeID, takeID)
+        XCTAssertEqual(record?.adoptedTakeDisplayName, "S1T1 SmartFill")
     }
 
     func testSettingsRoundTripPreservesSnapshotValues() {
@@ -621,9 +626,18 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertEqual(
             SmartFillWorkspacePresentation.stayComparisonMessage(
                 for: context,
-                adoptionMode: .createStandaloneVariantTake
+                adoptionMode: .createStandaloneVariantTake,
+                adoptedTakeDisplayName: "S1T1 SmartFill"
             ),
-            "The SmartFill take is saved into the session. Compare the preview here, then return to Session review when you are ready."
+            "S1T1 SmartFill is saved into this session. Compare the preview here, then return to Session review when you are ready."
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.returnControlMessage(
+                for: context,
+                adoptionMode: .createStandaloneVariantTake,
+                adoptedTakeDisplayName: "S1T1 SmartFill"
+            ),
+            "S1T1 SmartFill is saved into this session. Stay here to compare the preview or use the primary action to return to Session review."
         )
     }
 
@@ -673,6 +687,7 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
             sessionID: context.sessionID,
             originalTakeID: context.takeID,
             adoptedTakeID: context.takeID,
+            adoptedTakeDisplayName: "S1T1 SmartFill",
             outputURL: URL(fileURLWithPath: "/tmp/output_smartfill.mov"),
             duration: 5,
             settingsSnapshot: defaults.snapshot,
