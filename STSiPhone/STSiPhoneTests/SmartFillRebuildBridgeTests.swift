@@ -330,6 +330,40 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         )
     }
 
+    func testWorkspacePresentationUsesContextOverridesWhenAvailable() {
+        let context = makeWorkspaceContext(
+            take: ProjectTake(filePath: "/tmp/original.mov", durationSeconds: 12),
+            infoTitle: "Fine-Tune SmartFill",
+            infoMessage: "Use the rebuild workspace to shape the look."
+        )
+
+        XCTAssertEqual(SmartFillWorkspacePresentation.headerTitle(for: context), "Fine-Tune SmartFill")
+        XCTAssertEqual(SmartFillWorkspacePresentation.headerMessage(for: context), "Use the rebuild workspace to shape the look.")
+    }
+
+    func testWorkspacePresentationUsesVariantSaveCopyForSmartFillTake() {
+        let originalID = UUID()
+        let take = ProjectTake(
+            filePath: "/tmp/original_smartfill.mov",
+            durationSeconds: 12,
+            takeNotes: "[SMARTFILL_ORIGINAL:\(originalID.uuidString)]"
+        )
+        let context = makeWorkspaceContext(take: take, existingSettings: SmartFillSettings())
+
+        XCTAssertEqual(SmartFillWorkspacePresentation.actionTitle(for: context), "Update SmartFill")
+        XCTAssertEqual(SmartFillWorkspacePresentation.destinationTitle(for: context), "Update current SmartFill take")
+    }
+
+    func testWorkspacePresentationDescribesFramingAndPriority() {
+        let relaxedFraming = SmartFillSettings(foregroundScale: 0.9, processingPriority: .background)
+        let tightFraming = SmartFillSettings(foregroundScale: 1.18, processingPriority: .high)
+
+        XCTAssertEqual(SmartFillWorkspacePresentation.framingCaption(for: relaxedFraming), "Show more breathing room around the subject.")
+        XCTAssertEqual(SmartFillWorkspacePresentation.framingCaption(for: tightFraming), "Push the subject forward for a tighter, more dramatic frame.")
+        XCTAssertEqual(SmartFillWorkspacePresentation.processingPriorityTitle(for: .background), "Batch")
+        XCTAssertEqual(SmartFillWorkspacePresentation.processingPriorityTitle(for: .high), "Fast")
+    }
+
     @MainActor
     func testCoordinatorBeginsInConfigureAndCompletesWithResultRecord() {
         let coordinator = SmartFillWorkspaceCoordinator()
@@ -392,5 +426,27 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         }
 
         body()
+    }
+
+    private func makeWorkspaceContext(
+        take: ProjectTake,
+        infoTitle: String? = nil,
+        infoMessage: String? = nil,
+        existingSettings: SmartFillSettings? = nil
+    ) -> SmartFillSettingsContext {
+        let session = ProjectSession(type: .selfTape, takes: [take], primaryOrientation: .landscape)
+        let project = Project(title: "Project", sessions: [session])
+
+        return SmartFillSettingsContext(
+            take: take,
+            session: session,
+            project: project,
+            autoLaunchEditor: false,
+            displayName: "S1T1",
+            infoTitle: infoTitle,
+            infoMessage: infoMessage,
+            existingSettings: existingSettings,
+            onUpdatePIPSession: nil
+        )
     }
 }

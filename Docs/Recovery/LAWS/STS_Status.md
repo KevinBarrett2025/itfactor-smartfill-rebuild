@@ -32,6 +32,7 @@ _Current rebuild working baseline:_ `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 - Settings-side SmartFill duplication retirement: COMPLETE (LOCAL-GATED)
 - Intentional SmartFill defaults entry: COMPLETE (LOCAL-GATED)
 - Real SmartFill preview in rebuild workspace: COMPLETE (LOCAL-GATED)
+- Explicit workspace controls and save flow: COMPLETE (LOCAL-GATED)
 - Standalone derivation ledger: ACTIVE
 
 If anything above is not true, it must be reflected here.
@@ -83,6 +84,12 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase8_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase8_tests.log`
   - xcresult: `/tmp/itfactor_smartfill_phase8_tests/Logs/Test/Test-STSiPhone-2026.03.26_10-29-03--0400.xcresult`
+- `SF-REBUILD-011` — explicit workspace controls and save flow — `COMPLETE (LOCAL-GATED 2026-03-26)`
+  - `SmartFillWorkspaceView` now exposes intentional look, framing, output, and save lanes instead of relying on generic preset/export sections.
+  - `SmartFillWorkspacePresentation` centralizes human-readable workspace copy for header, action, save destination, framing, and output descriptions.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase11_gateA.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase11_tests.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase11_tests/Logs/Test/Test-STSiPhone-2026.03.26_11-04-50--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -106,6 +113,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Commit and push the real SmartFill preview restoration slice on `gm/smartfill-itfactor-rebuild`.
-2. Decide the next intentional flagship SmartFill workspace evolution now that the rebuild owns entry, result adoption, defaults, and real preview.
+1. Commit and push the explicit workspace controls and save-flow slice on `gm/smartfill-itfactor-rebuild`.
+2. Decide the next intentional flagship SmartFill workspace evolution now that the rebuild owns entry, result adoption, defaults, preview, and explicit product controls.
 3. Keep the standalone derivation ledger updated in every phase.

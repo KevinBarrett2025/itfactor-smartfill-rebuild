@@ -39,8 +39,10 @@ struct SmartFillWorkspaceView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                         previewSurface
-                        primaryControlsSurface
-                        exportSurface
+                        lookSurface
+                        framingSurface
+                        outputSurface
+                        saveSurface
                     }
                     .padding(.horizontal, Theme.Layout.screenPadding)
                     .padding(.top, 20)
@@ -120,11 +122,11 @@ struct SmartFillWorkspaceView: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(context.displayName)
+                    Text(SmartFillWorkspacePresentation.headerTitle(for: context))
                         .font(.title2.weight(.bold))
                         .foregroundStyle(Theme.textPrimary)
 
-                    Text("Open one take, choose the SmartFill look, then save the landscape version back into this session.")
+                    Text(SmartFillWorkspacePresentation.headerMessage(for: context))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -171,11 +173,15 @@ struct SmartFillWorkspaceView: View {
         .background(panelBackground)
     }
 
-    private var primaryControlsSurface: some View {
+    private var lookSurface: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Choose the look")
+            Text("Background look")
                 .font(.headline)
                 .foregroundStyle(Theme.textPrimary)
+
+            Text("Pick a starting treatment, then fine-tune blur and background presence if this take needs more separation.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
 
             HStack(spacing: 12) {
                 ForEach(SmartFillSettings.Preset.allCases, id: \.rawValue) { preset in
@@ -201,67 +207,133 @@ struct SmartFillWorkspaceView: View {
                 }
             }
 
-            VStack(spacing: 12) {
-                summaryRow(
+            HStack(spacing: 10) {
+                summaryChip(
                     icon: "circle.dotted",
                     title: "Blur",
                     value: "\(Int(settings.blurRadius)) px"
                 )
-                summaryRow(
+                summaryChip(
                     icon: "moon.fill",
                     title: "Darken",
                     value: "\(Int(settings.darkenAmount * 100))%"
                 )
-                summaryRow(
+                summaryChip(
                     icon: "arrow.up.left.and.arrow.down.right",
                     title: "Background scale",
                     value: String(format: "%.1f×", settings.backgroundScale)
                 )
-                summaryRow(
-                    icon: "rectangle.compress.vertical",
-                    title: "Render size",
-                    value: "\(Int(settings.renderSize.width))×\(Int(settings.renderSize.height))"
-                )
             }
 
-            HStack(spacing: 12) {
-                Button {
-                    showAdvancedSettings = true
-                } label: {
-                    Label("Advanced settings", systemImage: "slider.horizontal.3")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
+            Button {
+                showAdvancedSettings = true
+            } label: {
+                Label("Fine-tune background blur, darkening, and spread", systemImage: "slider.horizontal.3")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.bordered)
+        }
+        .padding(18)
+        .background(panelBackground)
+    }
 
-                Menu {
-                    renderSizeButton(width: 1920, height: 1080, label: "1920×1080 (Full HD)")
-                    renderSizeButton(width: 1280, height: 720, label: "1280×720 (HD)")
-                    renderSizeButton(width: 3840, height: 2160, label: "3840×2160 (4K)")
-                } label: {
-                    Label("Output size", systemImage: "rectangle.expand.vertical")
-                        .frame(maxWidth: .infinity)
+    private var framingSurface: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Subject framing")
+                .font(.headline)
+                .foregroundStyle(Theme.textPrimary)
+
+            Text(SmartFillWorkspacePresentation.framingCaption(for: settings))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            summaryRow(
+                icon: "person.crop.rectangle",
+                title: "Subject scale",
+                value: String(format: "%.2f×", settings.foregroundScale)
+            )
+
+            Slider(value: foregroundScaleBinding, in: 0.85...1.25, step: 0.05) {
+                Text("Subject scale")
+            }
+            .tint(Theme.primary)
+        }
+        .padding(18)
+        .background(panelBackground)
+    }
+
+    private var outputSurface: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Output")
+                .font(.headline)
+                .foregroundStyle(Theme.textPrimary)
+
+            Text(SmartFillWorkspacePresentation.outputCaption(for: settings))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            LazyVGrid(columns: outputOptionColumns, spacing: 12) {
+                renderSizeOption(width: 1920, height: 1080, title: "Full HD", subtitle: "1920×1080")
+                renderSizeOption(width: 1280, height: 720, title: "HD", subtitle: "1280×720")
+                renderSizeOption(width: 3840, height: 2160, title: "4K", subtitle: "3840×2160")
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Processing speed")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.textPrimary)
+
+                Picker("Processing speed", selection: processingPriorityBinding) {
+                    ForEach(SmartFillSettings.ProcessingPriority.allCases, id: \.self) { priority in
+                        Text(SmartFillWorkspacePresentation.processingPriorityTitle(for: priority))
+                            .tag(priority)
+                    }
                 }
-                .buttonStyle(.bordered)
+                .pickerStyle(.segmented)
+
+                Text(SmartFillWorkspacePresentation.processingPriorityCaption(for: settings.processingPriority))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
         .padding(18)
         .background(panelBackground)
     }
 
-    private var exportSurface: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Save back into this session")
+    private var saveSurface: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Save back to session")
                 .font(.headline)
                 .foregroundStyle(Theme.textPrimary)
 
-            Text("SmartFill keeps the current take context intact. When processing finishes, the updated landscape version returns to this session and stays tied to the original take.")
+            Text(SmartFillWorkspacePresentation.saveLaneMessage(for: context))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
+            summaryRow(
+                icon: "square.and.arrow.down",
+                title: "Destination",
+                value: SmartFillWorkspacePresentation.destinationTitle(for: context)
+            )
+            summaryRow(
+                icon: "arrowshape.turn.up.backward",
+                title: "Return to",
+                value: SmartFillWorkspacePresentation.returnTargetTitle(for: context)
+            )
+            summaryRow(
+                icon: "sparkles.rectangle.stack",
+                title: "Current action",
+                value: primaryActionTitle
+            )
+
             if let statusMessage {
-                Text(statusMessage)
+                Label(statusMessage, systemImage: stageIcon)
                     .font(.caption)
                     .foregroundStyle(stageColor)
+            } else {
+                Text(SmartFillWorkspacePresentation.saveFootnote(for: context))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
         .padding(18)
@@ -318,6 +390,23 @@ struct SmartFillWorkspaceView: View {
         )
     }
 
+    private var foregroundScaleBinding: Binding<Double> {
+        Binding(
+            get: { Double(settings.foregroundScale) },
+            set: {
+                settings.foregroundScale = CGFloat($0)
+                markPreviewDirty()
+            }
+        )
+    }
+
+    private var processingPriorityBinding: Binding<SmartFillSettings.ProcessingPriority> {
+        Binding(
+            get: { settings.processingPriority },
+            set: { settings.processingPriority = $0 }
+        )
+    }
+
     private var panelBackground: some View {
         RoundedRectangle(cornerRadius: 22, style: .continuous)
             .fill(Color.white.opacity(0.06))
@@ -328,11 +417,18 @@ struct SmartFillWorkspaceView: View {
     }
 
     private var primaryActionTitle: String {
-        context.existingSettings == nil ? "Create SmartFill" : "Update SmartFill"
+        SmartFillWorkspacePresentation.actionTitle(for: context)
     }
 
     private var fileNameLabel: String {
         context.previewURL.lastPathComponent
+    }
+
+    private var outputOptionColumns: [GridItem] {
+        [
+            GridItem(.flexible(), spacing: 12),
+            GridItem(.flexible(), spacing: 12)
+        ]
     }
 
     private var stageLabel: String {
@@ -407,11 +503,45 @@ struct SmartFillWorkspaceView: View {
         .font(.subheadline)
     }
 
-    private func renderSizeButton(width: CGFloat, height: CGFloat, label: String) -> some View {
-        Button(label) {
+    @ViewBuilder
+    private func summaryChip(icon: String, title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(title, systemImage: icon)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.textPrimary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private func renderSizeOption(width: CGFloat, height: CGFloat, title: String, subtitle: String) -> some View {
+        let isSelected = Int(settings.renderSize.width) == Int(width) && Int(settings.renderSize.height) == Int(height)
+
+        return Button {
             settings.renderSize = CGSize(width: width, height: height)
             markPreviewDirty()
+        } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+            .background(isSelected ? Theme.primary.opacity(0.16) : Color.white.opacity(0.02), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(isSelected ? Theme.primary.opacity(0.6) : Color.white.opacity(0.10), lineWidth: 1)
+            )
         }
+        .buttonStyle(.plain)
     }
 
     private func applyPreset(_ preset: SmartFillSettings.Preset) {
@@ -452,5 +582,86 @@ struct SmartFillWorkspaceView: View {
     private func handleClose() {
         onCancel()
         dismiss()
+    }
+}
+
+enum SmartFillWorkspacePresentation {
+    static func headerTitle(for context: SmartFillSettingsContext) -> String {
+        context.infoTitle ?? "SmartFill Editor"
+    }
+
+    static func headerMessage(for context: SmartFillSettingsContext) -> String {
+        context.infoMessage ?? "Open one take, shape the SmartFill look, then save the landscape version back into this session."
+    }
+
+    static func actionTitle(for context: SmartFillSettingsContext) -> String {
+        context.take.isSmartFillVariant || context.existingSettings != nil ? "Update SmartFill" : "Create SmartFill"
+    }
+
+    static func destinationTitle(for context: SmartFillSettingsContext) -> String {
+        context.take.isSmartFillVariant ? "Update current SmartFill take" : "Create or refresh SmartFill take"
+    }
+
+    static func saveLaneMessage(for context: SmartFillSettingsContext) -> String {
+        context.take.isSmartFillVariant
+        ? "This keeps the existing SmartFill take in sync with your latest edits and returns you to the same review flow."
+        : "This creates or refreshes the SmartFill version of the selected take and keeps it tied to the original session context."
+    }
+
+    static func saveFootnote(for context: SmartFillSettingsContext) -> String {
+        "When processing completes, SmartFill returns to \(returnTargetTitle(for: context).lowercased()) with the landscape result still tied to “\(context.displayName)”."
+    }
+
+    static func returnTargetTitle(for context: SmartFillSettingsContext) -> String {
+        switch context.autoLaunchEditor ? SmartFillReturnTarget.editor : .takeReview {
+        case .projectDetail:
+            return "Project detail"
+        case .takeReview:
+            return "Session review"
+        case .swipeablePlayer:
+            return "Player review"
+        case .editor:
+            return "Editor"
+        case .standaloneWorkspace:
+            return "Standalone workspace"
+        }
+    }
+
+    static func framingCaption(for settings: SmartFillSettings) -> String {
+        switch settings.foregroundScale {
+        case ..<0.95:
+            return "Show more breathing room around the subject."
+        case 0.95...1.08:
+            return "Keep the subject close to the original framing."
+        default:
+            return "Push the subject forward for a tighter, more dramatic frame."
+        }
+    }
+
+    static func outputCaption(for settings: SmartFillSettings) -> String {
+        let size = "\(Int(settings.renderSize.width))×\(Int(settings.renderSize.height))"
+        return "\(size) output with \(processingPriorityTitle(for: settings.processingPriority).lowercased()) processing."
+    }
+
+    static func processingPriorityTitle(for priority: SmartFillSettings.ProcessingPriority) -> String {
+        switch priority {
+        case .background:
+            return "Batch"
+        case .userInitiated:
+            return "Normal"
+        case .high:
+            return "Fast"
+        }
+    }
+
+    static func processingPriorityCaption(for priority: SmartFillSettings.ProcessingPriority) -> String {
+        switch priority {
+        case .background:
+            return "Use the most patient queue when speed is not important."
+        case .userInitiated:
+            return "Balanced processing for most SmartFill passes."
+        case .high:
+            return "Prioritize this pass when you need the result quickly."
+        }
     }
 }

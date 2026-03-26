@@ -1,5 +1,68 @@
 # CODEX Thread Continuity
 
+## Ticket 011 Explicit Workspace Controls And Save Flow (2026-03-26)
+- Thread Status: explicit background/look, framing, output, and save lanes are implemented in the rebuild workspace, locally gated, and commit/push is the active next action.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-rebuild`
+- Working Head SHA: `17de187c9b6da05e712b0e1e4a1b34902022371a`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Expose the real SmartFill product decisions directly inside the rebuild workspace now that entry, defaults, preview, and repository adoption all live under rebuild ownership:
+1. make background/look choices explicit instead of hiding them behind generic presets-only copy
+2. add a real subject-framing lane the user can understand and manipulate
+3. expose output size and processing-priority choices as first-class workspace controls
+4. make save-back behavior visible so the workspace tells the user where SmartFill output goes and what action will occur
+5. record how the same explicit control lanes later become the standalone utility editor behind a hidden static session
+
+### Completed This Pass
+- `SmartFillWorkspaceView` now uses five intentional product lanes:
+  - preview
+  - background look
+  - subject framing
+  - output
+  - save back to session
+- Workspace header copy now derives from `SmartFillWorkspacePresentation` so the same launch context can describe itself clearly for flagship review/edit entry and later standalone derivation.
+- The look lane now keeps the existing preset affordance but also surfaces blur, darken, and background-scale summaries in plain language.
+- The framing lane now exposes a real `foregroundScale` slider and descriptive framing copy instead of leaving subject treatment implicit.
+- The output lane now presents explicit render-size choices plus processing-priority controls in the main workspace.
+- The save lane now makes destination, return target, current action, and status/error copy visible without reviving any deleted legacy shell.
+- Focused tests now cover context-driven copy, SmartFill-variant save messaging, and framing/priority descriptions.
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase11_gateA build | tee /tmp/itfactor_smartfill_phase11_gateA.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase11_gateA.log`
+- Focused parity command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath /tmp/itfactor_smartfill_phase11_tests -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase11_tests.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase11_tests.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase11_tests/Logs/Test/Test-STSiPhone-2026.03.26_11-04-50--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Archaeology Snapshot
+- `SF-REBUILD-010` restored the real SmartFill preview, but the workspace still hid major product choices behind implicit settings and generic button language.
+- The underlying `SmartFillSettings` model already carried background, framing, render-size, and processing-priority state, so the correct next move was to expose those seams directly rather than create another modal/settings shell.
+- The new presentation helpers stay inside the rebuild workspace and avoid reviving any deleted controller/modal/dashboard surface.
+
+### Next Action
+1. Commit and push the explicit workspace controls and save-flow slice on `gm/smartfill-itfactor-rebuild`.
+2. Choose the next flagship SmartFill workspace/product phase now that the rebuild exposes preview, look, framing, output, and save lanes together.
+3. Keep the standalone derivation ledger synchronized so the same lane model can later back the hidden-session utility app.
+
 ## Ticket 010 Real SmartFill Preview Restoration (2026-03-26)
 - Thread Status: the rebuild workspace now renders the real SmartFill preview path, the slice is locally gated, and commit/push is the active next action.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

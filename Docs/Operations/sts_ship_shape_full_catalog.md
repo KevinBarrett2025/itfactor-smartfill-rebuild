@@ -30,6 +30,7 @@ Rules:
 | SF-REBUILD-006 | Legacy SmartFill cutover cleanup | COMPLETE | Phase 5 retired the editor-only seams (`SmartFillController.swift`, `SmartFillSettingsModal.swift`, `SmartFillRealPreviewSectionHandoff.swift`) with Gate A PASS `/tmp/itfactor_smartfill_phase5_gateA.log`, focused parity PASS `/tmp/itfactor_smartfill_phase5_tests.log`, xcresult `/tmp/itfactor_smartfill_phase5_tests/Logs/Test/Test-STSiPhone-2026.03.26_09-25-08--0400.xcresult`; Phase 6 retired the dormant settings-side shells (`SmartFillSettingsView.swift`, `SmartFillMigrationDashboard.swift`, `SmartFillBatchProcessingView.swift`) and moved `SmartFillAdvancedSettingsView` under `Features/SmartFill/Rebuild` with Gate A PASS `/tmp/itfactor_smartfill_phase6_gateA.log`, focused parity PASS `/tmp/itfactor_smartfill_phase6_tests.log`, xcresult `/tmp/itfactor_smartfill_phase6_tests/Logs/Test/Test-STSiPhone-2026.03.26_09-53-26--0400.xcresult` |
 | SF-REBUILD-009 | Intentional SmartFill defaults entry under rebuild namespace | COMPLETE | `SettingsView` now presents `SmartFillDefaultsView`; defaults persist shared `SmartFillSettings`, reuse `SmartFillAdvancedSettingsView`, and seed rebuild workspace sessions; Gate A PASS `/tmp/itfactor_smartfill_phase7_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase7_tests.log`; xcresult `/tmp/itfactor_smartfill_phase7_tests/Logs/Test/Test-STSiPhone-2026.03.26_10-11-10--0400.xcresult` |
 | SF-REBUILD-010 | Real SmartFill preview in rebuild workspace | COMPLETE | `SmartFillWorkspaceView` now renders `SmartFillPreviewPlayer` against the active preview URL instead of a raw source player fallback; preview reload is keyed on URL, settings, and explicit refresh token; Gate A PASS `/tmp/itfactor_smartfill_phase8_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase8_tests.log`; xcresult `/tmp/itfactor_smartfill_phase8_tests/Logs/Test/Test-STSiPhone-2026.03.26_10-29-03--0400.xcresult` |
+| SF-REBUILD-011 | Explicit workspace controls and save flow | COMPLETE | `SmartFillWorkspaceView` now exposes background look, subject framing, output, and save-back lanes directly in the rebuild workspace; `SmartFillWorkspacePresentation` centralizes user-facing copy for header/action/save/output decisions; Gate A PASS `/tmp/itfactor_smartfill_phase11_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase11_tests.log`; xcresult `/tmp/itfactor_smartfill_phase11_tests/Logs/Test/Test-STSiPhone-2026.03.26_11-04-50--0400.xcresult` |
 | SF-REBUILD-007 | Standalone utility extraction package from flagship architecture | OPEN | Same engine/workspace, hidden static session, reduced shell |
 
 ## Protected Persistence / Data Seams
@@ -64,6 +65,7 @@ None currently open under `SF-REBUILD-006`.
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillDefaultsView.swift` — authoritative flagship defaults surface for rebuild-owned SmartFill tuning
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillAdvancedSettingsView.swift` — shared advanced defaults/settings sheet used by both defaults and workspace flows
 - `STSiPhone/STSiPhone/Core/VideoPipeline/SmartFill/SmartFillPreviewPlayer.swift` — authoritative preview seam reused by the rebuild workspace and later standalone utility
+- `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspacePresentation` — authoritative user-facing copy seam for workspace launch, look, framing, output, and save messaging
 
 ## Shared-vs-Flagship-vs-Standalone Rule
 - Flagship-only:
@@ -81,6 +83,6 @@ None currently open under `SF-REBUILD-006`.
   - simplified history/export shell over the same engine
 
 ## Next Action
-1. Commit and push the real SmartFill preview restoration slice.
-2. Choose the next intentional flagship SmartFill workspace/product phase now that `SF-REBUILD-009` and `SF-REBUILD-010` give the rebuild a clean defaults surface plus real preview.
+1. Commit and push the explicit workspace controls and save-flow slice.
+2. Choose the next intentional flagship SmartFill workspace/product phase now that `SF-REBUILD-009`, `SF-REBUILD-010`, and `SF-REBUILD-011` give the rebuild defaults, real preview, and explicit user-facing control lanes.
 3. Keep standalone derivation synchronized in every phase.
