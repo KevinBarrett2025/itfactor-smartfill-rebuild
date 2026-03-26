@@ -122,7 +122,8 @@ struct SmartFillWorkspaceView: View {
                 statusMessage = SmartFillWorkspacePresentation.completionMessage(
                     for: context,
                     adoptionMode: record.adoptionMode,
-                    completionBehavior: completionBehavior
+                    completionBehavior: completionBehavior,
+                    adoptedTakeDisplayName: record.adoptedTakeDisplayName
                 )
                 queueAttempted = false
                 scheduleAutoReturn()
@@ -681,7 +682,8 @@ struct SmartFillWorkspaceView: View {
             for: context,
             stage: coordinator.stage,
             completionBehavior: completionBehavior,
-            hasUnsavedChanges: hasUnsavedChangesSinceLastSave
+            hasUnsavedChanges: hasUnsavedChangesSinceLastSave,
+            adoptedTakeDisplayName: coordinator.lastResult?.adoptedTakeDisplayName
         )
     }
 
@@ -831,7 +833,8 @@ struct SmartFillWorkspaceView: View {
                     stage: coordinator.stage,
                     completionBehavior: completionBehavior,
                     hasPendingAutoReturn: hasPendingAutoReturn,
-                    hasUnsavedChanges: hasUnsavedChangesSinceLastSave
+                    hasUnsavedChanges: hasUnsavedChangesSinceLastSave,
+                    adoptedTakeDisplayName: coordinator.lastResult?.adoptedTakeDisplayName
                 )
             )
 
@@ -842,7 +845,8 @@ struct SmartFillWorkspaceView: View {
                     stage: coordinator.stage,
                     completionBehavior: completionBehavior,
                     hasPendingAutoReturn: hasPendingAutoReturn,
-                    hasUnsavedChanges: hasUnsavedChangesSinceLastSave
+                    hasUnsavedChanges: hasUnsavedChangesSinceLastSave,
+                    adoptedTakeDisplayName: coordinator.lastResult?.adoptedTakeDisplayName
                 )
             )
             .font(.caption)
@@ -1137,7 +1141,8 @@ struct SmartFillWorkspaceView: View {
         statusMessage = SmartFillWorkspacePresentation.deferredReturnMessage(
             for: context,
             adoptionMode: coordinator.lastResult?.adoptionMode,
-            completionBehavior: completionBehavior
+            completionBehavior: completionBehavior,
+            adoptedTakeDisplayName: coordinator.lastResult?.adoptedTakeDisplayName
         )
     }
 
@@ -1382,13 +1387,17 @@ enum SmartFillWorkspacePresentation {
         for context: SmartFillSettingsContext,
         stage: SmartFillWorkspaceCoordinator.Stage,
         completionBehavior: SmartFillWorkspaceCompletionBehavior = .returnAutomatically,
-        hasUnsavedChanges: Bool = false
+        hasUnsavedChanges: Bool = false,
+        adoptedTakeDisplayName: String? = nil
     ) -> String {
         switch stage {
         case .export:
             return "Saving SmartFill…"
         case .completed:
             if !hasUnsavedChanges {
+                if let adoptedTakeDisplayName {
+                    return "Open \(adoptedTakeDisplayName)"
+                }
                 return "Return to \(shortReturnTargetTitle(for: context))"
             }
             fallthrough
@@ -1457,46 +1466,53 @@ enum SmartFillWorkspacePresentation {
     static func completionMessage(
         for context: SmartFillSettingsContext,
         adoptionMode: SmartFillResultAdoptionMode,
-        completionBehavior: SmartFillWorkspaceCompletionBehavior = .returnAutomatically
+        completionBehavior: SmartFillWorkspaceCompletionBehavior = .returnAutomatically,
+        adoptedTakeDisplayName: String? = nil
     ) -> String {
         if completionBehavior == .stayHere {
             switch adoptionMode {
             case .updateExistingTakePath:
-                return "Updated SmartFill. Staying here to compare the preview."
+                let resultTitle = adoptedTakeDisplayName ?? "SmartFill"
+                return "Updated \(resultTitle). Staying here to compare the preview."
             case .createStandaloneVariantTake:
-                return "Saved the SmartFill take. Staying here to compare the preview."
+                let resultTitle = adoptedTakeDisplayName ?? "the SmartFill take"
+                return "Saved \(resultTitle). Staying here to compare the preview."
             }
         }
         switch adoptionMode {
         case .updateExistingTakePath:
-            return "Updated SmartFill. Returning to \(returnTargetTitle(for: context))…"
+            let resultTitle = adoptedTakeDisplayName ?? "SmartFill"
+            return "Updated \(resultTitle). Returning to \(returnTargetTitle(for: context))…"
         case .createStandaloneVariantTake:
-            return "Saved the SmartFill take. Returning to \(returnTargetTitle(for: context))…"
+            let resultTitle = adoptedTakeDisplayName ?? "the SmartFill take"
+            return "Saved \(resultTitle). Returning to \(returnTargetTitle(for: context))…"
         }
     }
 
     static func deferredReturnMessage(
         for context: SmartFillSettingsContext,
         adoptionMode: SmartFillResultAdoptionMode?,
-        completionBehavior: SmartFillWorkspaceCompletionBehavior = .returnAutomatically
+        completionBehavior: SmartFillWorkspaceCompletionBehavior = .returnAutomatically,
+        adoptedTakeDisplayName: String? = nil
     ) -> String {
+        let savedResultTitle = adoptedTakeDisplayName ?? "SmartFill"
         if completionBehavior == .stayHere {
             switch adoptionMode {
             case .updateExistingTakePath:
-                return "SmartFill is updated. Stay here to compare the preview, then return to \(returnTargetTitle(for: context)) when you're ready."
+                return "\(savedResultTitle) is updated. Stay here to compare the preview, then open it in \(returnTargetTitle(for: context)) when you're ready."
             case .createStandaloneVariantTake:
-                return "SmartFill is saved. Stay here to compare the preview, then return to \(returnTargetTitle(for: context)) when you're ready."
+                return "\(savedResultTitle) is saved. Stay here to compare the preview, then open it in \(returnTargetTitle(for: context)) when you're ready."
             case nil:
-                return "SmartFill is ready. Stay here to compare the preview, then return to \(returnTargetTitle(for: context)) when you're ready."
+                return "\(savedResultTitle) is ready. Stay here to compare the preview, then open it in \(returnTargetTitle(for: context)) when you're ready."
             }
         }
         switch adoptionMode {
         case .updateExistingTakePath:
-            return "SmartFill is updated. Return to \(returnTargetTitle(for: context)) when you're ready."
+            return "\(savedResultTitle) is updated. Open it in \(returnTargetTitle(for: context)) when you're ready."
         case .createStandaloneVariantTake:
-            return "SmartFill is saved. Return to \(returnTargetTitle(for: context)) when you're ready."
+            return "\(savedResultTitle) is saved. Open it in \(returnTargetTitle(for: context)) when you're ready."
         case nil:
-            return "SmartFill is ready. Return to \(returnTargetTitle(for: context)) when you're ready."
+            return "\(savedResultTitle) is ready. Open it in \(returnTargetTitle(for: context)) when you're ready."
         }
     }
 
@@ -1508,9 +1524,9 @@ enum SmartFillWorkspacePresentation {
         let takeTitle = adoptedTakeDisplayName ?? "The SmartFill take"
         switch adoptionMode {
         case .updateExistingTakePath:
-            return "\(takeTitle) is updated and ready in this session. Compare the preview here, then return to \(returnTargetTitle(for: context)) when you are ready."
+            return "\(takeTitle) is updated and ready in this session. Compare the preview here, then open it in \(returnTargetTitle(for: context)) when you are ready."
         case .createStandaloneVariantTake:
-            return "\(takeTitle) is saved into this session. Compare the preview here, then return to \(returnTargetTitle(for: context)) when you are ready."
+            return "\(takeTitle) is saved into this session. Compare the preview here, then open it in \(returnTargetTitle(for: context)) when you are ready."
         }
     }
 
@@ -1521,9 +1537,9 @@ enum SmartFillWorkspacePresentation {
     ) -> String {
         switch adoptionMode {
         case .updateExistingTakePath:
-            return "\(adoptedTakeDisplayName) is updated and ready in this session. Stay here to compare the preview or use the primary action to return to \(returnTargetTitle(for: context))."
+            return "\(adoptedTakeDisplayName) is updated and ready in this session. Stay here to compare the preview or use the primary action to open it in \(returnTargetTitle(for: context))."
         case .createStandaloneVariantTake:
-            return "\(adoptedTakeDisplayName) is saved into this session. Stay here to compare the preview or use the primary action to return to \(returnTargetTitle(for: context))."
+            return "\(adoptedTakeDisplayName) is saved into this session. Stay here to compare the preview or use the primary action to open it in \(returnTargetTitle(for: context))."
         }
     }
 
@@ -1555,7 +1571,8 @@ enum SmartFillWorkspacePresentation {
         stage: SmartFillWorkspaceCoordinator.Stage,
         completionBehavior: SmartFillWorkspaceCompletionBehavior,
         hasPendingAutoReturn: Bool,
-        hasUnsavedChanges: Bool
+        hasUnsavedChanges: Bool,
+        adoptedTakeDisplayName: String? = nil
     ) -> String {
         if stage == .export {
             if completionBehavior == .stayHere {
@@ -1564,11 +1581,17 @@ enum SmartFillWorkspacePresentation {
             return "Return to \(shortReturnTargetTitle(for: context)) after save"
         }
         if hasPendingAutoReturn {
+            if let adoptedTakeDisplayName {
+                return "Auto-returning to \(adoptedTakeDisplayName)"
+            }
             return "Auto-returning to \(shortReturnTargetTitle(for: context))"
         }
         if stage == .completed && !hasUnsavedChanges {
             if completionBehavior == .stayHere {
                 return "Stay here after save"
+            }
+            if let adoptedTakeDisplayName {
+                return "Open \(adoptedTakeDisplayName)"
             }
             return "Return to \(shortReturnTargetTitle(for: context)) when ready"
         }
@@ -1584,7 +1607,8 @@ enum SmartFillWorkspacePresentation {
         stage: SmartFillWorkspaceCoordinator.Stage,
         completionBehavior: SmartFillWorkspaceCompletionBehavior,
         hasPendingAutoReturn: Bool,
-        hasUnsavedChanges: Bool
+        hasUnsavedChanges: Bool,
+        adoptedTakeDisplayName: String? = nil
     ) -> String {
         let destination = sentenceDestinationOutcomeTitle(for: adoptionMode)
         let returnTarget = returnTargetTitle(for: context)
@@ -1599,11 +1623,20 @@ enum SmartFillWorkspacePresentation {
             return "SmartFill is saving now. The source clip stays untouched while the session \(destination) before returning to \(returnTarget.lowercased())."
         }
         if hasPendingAutoReturn {
+            if let adoptedTakeDisplayName {
+                return "Save finished. \(adoptedTakeDisplayName) is ready in \(returnTarget.lowercased()), and SmartFill will return there unless you stay here to compare the preview."
+            }
             return "Save finished. The session \(destination), and SmartFill will return to \(returnTarget.lowercased()) unless you stay here to compare the preview."
         }
         if stage == .completed {
             if completionBehavior == .stayHere {
+                if let adoptedTakeDisplayName {
+                    return "Save finished. \(adoptedTakeDisplayName) is ready in \(returnTarget). SmartFill will stay here so you can compare the preview before opening it."
+                }
                 return "Save finished. The session \(destination), and SmartFill will stay here so you can compare the preview before returning to \(returnTarget)."
+            }
+            if let adoptedTakeDisplayName {
+                return "Save finished. \(adoptedTakeDisplayName) is ready in \(returnTarget). Open it when you're ready."
             }
             return "Save finished. The session \(destination). Return to \(returnTarget) when you're ready."
         }

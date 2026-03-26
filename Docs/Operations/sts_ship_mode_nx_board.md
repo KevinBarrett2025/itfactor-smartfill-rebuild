@@ -44,6 +44,7 @@ Rules:
 - The rebuild workspace now surfaces live save progress from the SmartFill engine and lets the user cancel auto-return with `Stay Here` when they need to linger after save.
 - The rebuild workspace now keeps the latest saved result visible and drops back into a save-needed state whenever the user changes settings after a completed save.
 - The rebuild workspace now carries the real adopted SmartFill take label through save outcome summaries, completed-state guidance, and latest saved-result details instead of falling back to generic `SmartFill take` wording.
+- The rebuild workspace now uses that same saved take label in the completed-state primary action, pending auto-return messaging, and deferred-return guidance so users know exactly what result opens next.
 - `authority/main` now exists remotely and locally at the untouched Jan 23 baseline.
 
 ---
@@ -68,6 +69,7 @@ Rules:
 | 4I | SF-REBUILD-017 | Add treatment finish presets and explicit post-save stay mode | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase17_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase17_tests.log`; workspace now offers one-tap `Soft`/`Balanced`/`Bold` treatment presets and lets the user choose `Return` versus `Stay` before save |
 | 4J | SF-REBUILD-018 | Align save affordances with chosen finish behavior | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase18_gateA_rerun.log`; focused parity PASS `/tmp/itfactor_smartfill_phase18_tests_rerun.log`; save/update actions, save-lane copy, and completed-state comparison guidance now match whether the user chose `Return` or `Stay` |
 | 4K | SF-REBUILD-019 | Surface real saved take outcomes in rebuild workspace | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase19_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase19_tests.log`; repository-backed and notification-backed SmartFill result adoption now feed the exact saved take label into save outcome summaries and completed-state stay/return guidance |
+| 4L | SF-REBUILD-020 | Tighten post-save actions around real saved take | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase20_gateA_rerun.log`; focused parity PASS `/tmp/itfactor_smartfill_phase20_tests_rerun.log`; completed-state primary actions, pending auto-return copy, and deferred-return guidance now point at the actual saved SmartFill take instead of generic return wording |
 
 ---
 
@@ -88,6 +90,6 @@ Rules:
 ---
 
 ## Next Action
-1. Choose the next intentional flagship SmartFill workspace/product phase now that entry, defaults, result adoption, preview, quick fill choices, treatment-finish presets, explicit stay/return choice, honest save-outcome messaging, finish-state-aware save/update affordances, and concrete saved-take outcome messaging all live under the rebuild namespace.
+1. Choose the next intentional flagship SmartFill workspace/product phase now that entry, defaults, result adoption, preview, quick fill choices, treatment-finish presets, explicit stay/return choice, honest save-outcome messaging, finish-state-aware save/update affordances, concrete saved-take outcome messaging, and saved-take-aware post-save actions all live under the rebuild namespace.
 2. Implement that slice on `gm/smartfill-itfactor-rebuild`, then rerun Gate A plus focused SmartFill parity before any promotion discussion.
 3. Keep the standalone derivation ledger in sync while future shared-workspace work lands.

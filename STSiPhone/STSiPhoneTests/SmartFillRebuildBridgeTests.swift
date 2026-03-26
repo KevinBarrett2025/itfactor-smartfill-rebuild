@@ -431,6 +431,22 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertEqual(SmartFillWorkspacePresentation.actionTitle(for: context, stage: .export), "Saving SmartFill…")
         XCTAssertEqual(SmartFillWorkspacePresentation.actionTitle(for: context, stage: .completed), "Return to Review")
         XCTAssertEqual(
+            SmartFillWorkspacePresentation.actionTitle(
+                for: context,
+                stage: .completed,
+                adoptedTakeDisplayName: "S1T1 SmartFill"
+            ),
+            "Open S1T1 SmartFill"
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.completionMessage(
+                for: context,
+                adoptionMode: .createStandaloneVariantTake,
+                adoptedTakeDisplayName: "S1T1 SmartFill"
+            ),
+            "Saved S1T1 SmartFill. Returning to Session review…"
+        )
+        XCTAssertEqual(
             SmartFillWorkspacePresentation.completionMessage(for: context, adoptionMode: .createStandaloneVariantTake),
             "Saved the SmartFill take. Returning to Session review…"
         )
@@ -444,14 +460,33 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
             returnTarget: .editor
         )
 
-        XCTAssertEqual(SmartFillWorkspacePresentation.actionTitle(for: context, stage: .completed), "Return to Editor")
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.actionTitle(
+                for: context,
+                stage: .completed,
+                adoptedTakeDisplayName: "S1T1 SmartFill"
+            ),
+            "Open S1T1 SmartFill"
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.completionMessage(
+                for: context,
+                adoptionMode: .updateExistingTakePath,
+                adoptedTakeDisplayName: "S1T1 SmartFill"
+            ),
+            "Updated S1T1 SmartFill. Returning to Editor…"
+        )
         XCTAssertEqual(
             SmartFillWorkspacePresentation.completionMessage(for: context, adoptionMode: .updateExistingTakePath),
             "Updated SmartFill. Returning to Editor…"
         )
         XCTAssertEqual(
-            SmartFillWorkspacePresentation.deferredReturnMessage(for: context, adoptionMode: .updateExistingTakePath),
-            "SmartFill is updated. Return to Editor when you're ready."
+            SmartFillWorkspacePresentation.deferredReturnMessage(
+                for: context,
+                adoptionMode: .updateExistingTakePath,
+                adoptedTakeDisplayName: "S1T1 SmartFill"
+            ),
+            "S1T1 SmartFill is updated. Open it in Editor when you're ready."
         )
     }
 
@@ -541,9 +576,10 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
                 stage: .completed,
                 completionBehavior: .returnAutomatically,
                 hasPendingAutoReturn: true,
-                hasUnsavedChanges: false
+                hasUnsavedChanges: false,
+                adoptedTakeDisplayName: "S1T1 SmartFill"
             ),
-            "Auto-returning to Editor"
+            "Auto-returning to S1T1 SmartFill"
         )
         XCTAssertEqual(
             SmartFillWorkspacePresentation.saveOutcomeMessage(
@@ -552,9 +588,10 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
                 stage: .completed,
                 completionBehavior: .returnAutomatically,
                 hasPendingAutoReturn: true,
-                hasUnsavedChanges: false
+                hasUnsavedChanges: false,
+                adoptedTakeDisplayName: "S1T1 SmartFill"
             ),
-            "Save finished. The session updated current SmartFill take, and SmartFill will return to editor unless you stay here to compare the preview."
+            "Save finished. S1T1 SmartFill is ready in editor, and SmartFill will return there unless you stay here to compare the preview."
         )
         XCTAssertEqual(
             SmartFillWorkspacePresentation.saveOutcomeMessage(
@@ -603,9 +640,10 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
                 stage: .completed,
                 completionBehavior: .stayHere,
                 hasPendingAutoReturn: false,
-                hasUnsavedChanges: false
+                hasUnsavedChanges: false,
+                adoptedTakeDisplayName: "S1T1 SmartFill"
             ),
-            "Save finished. The session created or refreshed SmartFill take, and SmartFill will stay here so you can compare the preview before returning to Session review."
+            "Save finished. S1T1 SmartFill is ready in Session review. SmartFill will stay here so you can compare the preview before opening it."
         )
         XCTAssertEqual(
             SmartFillWorkspacePresentation.processingMessage(
@@ -619,9 +657,10 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
             SmartFillWorkspacePresentation.deferredReturnMessage(
                 for: context,
                 adoptionMode: .createStandaloneVariantTake,
-                completionBehavior: .stayHere
+                completionBehavior: .stayHere,
+                adoptedTakeDisplayName: "S1T1 SmartFill"
             ),
-            "SmartFill is saved. Stay here to compare the preview, then return to Session review when you're ready."
+            "S1T1 SmartFill is saved. Stay here to compare the preview, then open it in Session review when you're ready."
         )
         XCTAssertEqual(
             SmartFillWorkspacePresentation.stayComparisonMessage(
@@ -629,7 +668,7 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
                 adoptionMode: .createStandaloneVariantTake,
                 adoptedTakeDisplayName: "S1T1 SmartFill"
             ),
-            "S1T1 SmartFill is saved into this session. Compare the preview here, then return to Session review when you are ready."
+            "S1T1 SmartFill is saved into this session. Compare the preview here, then open it in Session review when you are ready."
         )
         XCTAssertEqual(
             SmartFillWorkspacePresentation.returnControlMessage(
@@ -637,7 +676,7 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
                 adoptionMode: .createStandaloneVariantTake,
                 adoptedTakeDisplayName: "S1T1 SmartFill"
             ),
-            "S1T1 SmartFill is saved into this session. Stay here to compare the preview or use the primary action to return to Session review."
+            "S1T1 SmartFill is saved into this session. Stay here to compare the preview or use the primary action to open it in Session review."
         )
     }
 
