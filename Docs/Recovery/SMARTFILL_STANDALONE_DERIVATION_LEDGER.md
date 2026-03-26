@@ -22,7 +22,7 @@ This ledger records, at every flagship SmartFill integration stage, how the same
 | `SmartFillSessionContext` | Carries project/session/take launch truth | Becomes the standalone utility’s hidden static session context |
 | `SmartFillTakeBridge` | Maps flagship take/session models into SmartFill requests | Maps utility local clip/import metadata into the same SmartFill request model |
 | `SmartFillResultBridge` | Writes output back into project/session/take review | Writes output into lightweight utility history and destination records |
-| Workspace coordinator/editor shell | Hosts the real SmartFill workspace | Reused almost directly, minus flagship navigation and project/session return flow |
+| `SmartFillWorkspaceView` + `SmartFillWorkspaceCoordinator` | Hosts the real SmartFill workspace launched from take review | Reused as the standalone utility editor scene, but launched from a hidden static-session import flow instead of project/session/take review |
 
 ## What Must Stay Flagship-Only
 - project lists
@@ -46,5 +46,17 @@ This ledger records, at every flagship SmartFill integration stage, how the same
 5. User exports/saves/shares.
 6. App keeps lightweight local history, but never exposes project/session vocabulary.
 
+## Current Phase Note
+The flagship rebuild now has a real SmartFill entry seam:
+- `ProjectDetailView` bypasses the legacy `SmartFillSettingsModal` on the review/player sheet path.
+- `SmartFillWorkspaceView` owns the new grouped workspace entry experience.
+- `SmartFillTakeBridge` now round-trips settings between take snapshots and rebuild workspace settings.
+
+This means the future standalone utility already has a clear derivation path:
+1. import one clip
+2. create or reuse a hidden static `SmartFillSessionContext`
+3. open the same `SmartFillWorkspaceView`-style editor scene
+4. write result history/export data through a utility-local result bridge
+
 ## Current Next Step
-Build the flagship bridge/coordinator layer first inside `itFactor_1.23.26_git`. Do not attempt to rescue the current standalone UI shell as the architectural baseline.
+Complete repository result adoption in the flagship repo so the standalone utility can later swap only the persistence layer, not the workspace model.

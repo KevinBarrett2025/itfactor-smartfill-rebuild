@@ -1,5 +1,63 @@
 # CODEX Thread Continuity
 
+## Ticket 002 SmartFill Review Launch + Workspace Entry (2026-03-25)
+- Thread Status: the second rebuild slice is implemented and locally gated in the writable integration repo.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-rebuild`
+- Working Head SHA: `342eb22253f38f019508978271bca1822237802a`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Move SmartFill entry out of the legacy settings modal and into the rebuild bridge layer that fits the shipped itFactor shell:
+1. launch from project/session/take review with one selected clip already loaded
+2. seed workspace settings from take snapshot plus default preferences
+3. host one bounded SmartFill workspace entry point in the flagship shell
+4. keep standalone-derivation truth updated in the same slice
+
+### Completed This Pass
+- Replaced the `ProjectDetailView` SmartFill sheet branch so it now presents:
+  - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspaceView.swift`
+  - instead of `STSiPhone/STSiPhone/Features/Editing/SmartFillSettingsModal.swift`
+- Added a new rebuild workspace entry view:
+  - preview-backed clip hero
+  - grouped preset buttons
+  - advanced settings section
+  - queue/create action tied to `SmartFillWorkspaceCoordinator`
+- Added settings round-trip helpers to `SmartFillTakeBridge` so take snapshots and rebuild settings stay synchronized.
+- Expanded focused rebuild bridge tests to cover:
+  - settings round-trip fidelity
+  - coordinator completion/result record behavior
+- Updated standalone derivation notes so the same review-launch seam maps cleanly to a later hidden static-session utility flow.
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase2_gateA build | tee /tmp/itfactor_smartfill_phase2_gateA.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase2_gateA.log`
+- Focused parity command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath /tmp/itfactor_smartfill_phase2_tests -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase2_tests.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase2_tests.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase2_tests/Logs/Test/Test-STSiPhone-2026.03.25_21-16-50--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Next Action
+1. Commit and push this review-launch integration slice on `gm/smartfill-itfactor-rebuild`.
+2. Route workspace completion and export adoption fully through repository/take/session truth.
+3. Finish bypassing and then remove the remaining duplicate SmartFill settings/editor surfaces after cutover.
+
 ## Ticket 001 SmartFill Rebuild Bootstrap (2026-03-25)
 - Thread Status: initial itFactor-first SmartFill rebuild slice is implemented and locally gated in the writable integration repo.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

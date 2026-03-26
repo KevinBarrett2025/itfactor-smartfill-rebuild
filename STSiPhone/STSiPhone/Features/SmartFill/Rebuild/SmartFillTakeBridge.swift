@@ -17,6 +17,33 @@ public struct SmartFillWorkspaceDefaults: Equatable, Sendable {
 }
 
 enum SmartFillTakeBridge {
+    static func settings(from snapshot: SmartFillSettingsSnapshot) -> SmartFillSettings {
+        SmartFillSettings(
+            isEnabled: snapshot.isEnabled,
+            blurRadius: CGFloat(snapshot.blurRadius),
+            darkenAmount: CGFloat(snapshot.darkenAmount),
+            backgroundScale: CGFloat(snapshot.backgroundScale),
+            foregroundScale: CGFloat(snapshot.foregroundScale),
+            presetName: snapshot.presetName,
+            renderSize: CGSize(width: snapshot.renderWidth, height: snapshot.renderHeight),
+            processingPriority: SmartFillSettings.ProcessingPriority(rawValue: snapshot.processingPriority) ?? .userInitiated
+        )
+    }
+
+    static func snapshot(from settings: SmartFillSettings) -> SmartFillSettingsSnapshot {
+        SmartFillSettingsSnapshot(
+            isEnabled: settings.isEnabled,
+            blurRadius: Double(settings.blurRadius),
+            darkenAmount: Double(settings.darkenAmount),
+            backgroundScale: Double(settings.backgroundScale),
+            foregroundScale: Double(settings.foregroundScale),
+            renderWidth: Double(settings.renderSize.width),
+            renderHeight: Double(settings.renderSize.height),
+            processingPriority: settings.processingPriority.rawValue,
+            presetName: settings.presetName
+        )
+    }
+
     static func makeContext(
         project: Project,
         session: ProjectSession,

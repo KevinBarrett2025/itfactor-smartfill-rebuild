@@ -24,7 +24,7 @@ _Current rebuild working baseline:_ `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 
 - SmartFill legacy audit: ACTIVE
 - SmartFill bridge-layer bootstrap: COMPLETE (LOCAL-GATED)
-- Project/session/take launch integration: OPEN
+- Project/session/take launch integration: COMPLETE (LOCAL-GATED)
 - SmartFill bounded workspace replacement: OPEN
 - Result adoption + repository writeback: OPEN
 - Standalone derivation ledger: ACTIVE
@@ -40,8 +40,12 @@ If anything above is not true, it must be reflected here.
   - Focused parity PASS: `/tmp/itfactor_smartfill_rebuild_tests_final2.log`
   - xcresult: `/tmp/itfactor_smartfill_rebuild_tests_final2/Logs/Test/Test-STSiPhone-2026.03.25_19-50-58--0400.xcresult`
 - `SF-REBUILD-002` — repo bootstrap truth (`origin` + `authority/main` + promotion path) — `COMPLETE`
-- `SF-REBUILD-003` — review/player launch into SmartFill session context — `OPEN`
+- `SF-REBUILD-003` — review/player launch into SmartFill session context — `COMPLETE (LOCAL-GATED 2026-03-25)`
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase2_gateA.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase2_tests.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase2_tests/Logs/Test/Test-STSiPhone-2026.03.25_21-16-50--0400.xcresult`
 - `SF-REBUILD-004` — bounded SmartFill workspace in flagship itFactor shell — `OPEN`
+  - Initial rebuild entry view is live through `ProjectDetailView`; broader legacy cutover is still pending.
 - `SF-REBUILD-005` — result adoption bridge into repository/session/take truth — `OPEN`
 - `SF-REBUILD-006` — legacy SmartFill UI cutover cleanup (`DELETE_AFTER_CUTOVER`) — `OPEN`
 - `SF-REBUILD-007` — standalone extraction package from flagship architecture — `OPEN`
@@ -65,7 +69,7 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Configure repo remote + authority branch truth.
-2. Integrate launch from review/player into the rebuild bridge layer.
-3. Replace legacy SmartFill settings/editor surfaces with one bounded workspace.
+1. Commit and push the review/player launch slice on `gm/smartfill-itfactor-rebuild`.
+2. Route workspace completion and export adoption back into repository/session/take truth.
+3. Continue replacing legacy SmartFill settings/editor surfaces until the rebuild workspace fully owns entry.
 4. Keep the standalone derivation ledger updated in every phase.

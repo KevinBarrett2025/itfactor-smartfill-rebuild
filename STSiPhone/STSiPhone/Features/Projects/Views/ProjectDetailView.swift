@@ -619,21 +619,13 @@ public struct ProjectDetailView: View {
             
         // PHASE 1: NEW - Lightweight Editor modal
         case .smartFillSettings(let context):
-            SmartFillSettingsModal(
-                currentSettings: context.existingSettings ?? SmartFillSettings(),
-                previewVideoURL: context.previewURL,
-                infoTitle: context.infoTitle,
-                infoMessage: context.infoMessage,
-                pipSlateSession: context.pipSlateSession,
-                onApplySettings: { settings in
+            SmartFillWorkspaceView(
+                context: context,
+                onQueueSmartFill: { settings in
                     enqueueSmartFill(using: settings, context: context)
-                    activeModal = .none
                 },
                 onCancel: {
                     activeModal = .none
-                },
-                onUpdatePIPSession: { newValue in
-                    context.onUpdatePIPSession?(newValue)
                 }
             )
             .onDisappear {
@@ -1515,7 +1507,7 @@ public struct ProjectDetailView: View {
         
         let infoTitle = "Fine-Tune SmartFill"
         let infoMessage = "Adjust the SmartFill look for “\(friendlyTakeDisplayName(for: original, in: session))”."
-        let existingSettings = take.smartFillSettings.map { makeSmartFillSettings(from: $0) }
+        let existingSettings = take.smartFillSettings.map { SmartFillTakeBridge.settings(from: $0) }
         
         openSmartFillSettings(
             for: original,
@@ -1885,19 +1877,6 @@ public struct ProjectDetailView: View {
     
     private func isSmartFillFilename(_ path: String) -> Bool {
         URL(fileURLWithPath: path).lastPathComponent.lowercased().contains("_smartfill")
-    }
-    
-    private func makeSmartFillSettings(from snapshot: SmartFillSettingsSnapshot) -> SmartFillSettings {
-        SmartFillSettings(
-            isEnabled: snapshot.isEnabled,
-            blurRadius: CGFloat(snapshot.blurRadius),
-            darkenAmount: CGFloat(snapshot.darkenAmount),
-            backgroundScale: CGFloat(snapshot.backgroundScale),
-            foregroundScale: CGFloat(snapshot.foregroundScale),
-            presetName: snapshot.presetName,
-            renderSize: CGSize(width: snapshot.renderWidth, height: snapshot.renderHeight),
-            processingPriority: SmartFillSettings.ProcessingPriority(rawValue: snapshot.processingPriority) ?? .userInitiated
-        )
     }
     
     // STEP 1: Add helper method to convert ProjectSession to EnhancedTakes
