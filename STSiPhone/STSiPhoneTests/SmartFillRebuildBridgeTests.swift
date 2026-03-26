@@ -691,6 +691,38 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         )
     }
 
+    func testWorkspaceFollowUpRoutePrefersEditorForEditorReturnTarget() {
+        XCTAssertEqual(
+            SmartFillWorkspaceFollowUpRoute.resolve(for: .editor),
+            .editor
+        )
+    }
+
+    func testWorkspaceFollowUpRouteKeepsReviewTargetsInPlayerFlow() {
+        XCTAssertEqual(
+            SmartFillWorkspaceFollowUpRoute.resolve(for: .takeReview),
+            .player(returnToTakeReviewOnDismiss: true)
+        )
+        XCTAssertEqual(
+            SmartFillWorkspaceFollowUpRoute.resolve(for: .swipeablePlayer),
+            .player(returnToTakeReviewOnDismiss: true)
+        )
+    }
+
+    func testWorkspaceFollowUpRouteUsesProjectDetailPlayerWithoutReviewBounce() {
+        XCTAssertEqual(
+            SmartFillWorkspaceFollowUpRoute.resolve(for: .projectDetail),
+            .player(returnToTakeReviewOnDismiss: false)
+        )
+    }
+
+    func testWorkspaceFollowUpRouteLeavesStandaloneWorkspaceAsCloseOnly() {
+        XCTAssertEqual(
+            SmartFillWorkspaceFollowUpRoute.resolve(for: .standaloneWorkspace),
+            .closeOnly
+        )
+    }
+
     @MainActor
     func testCoordinatorBeginsInConfigureAndCompletesWithResultRecord() {
         let coordinator = SmartFillWorkspaceCoordinator()

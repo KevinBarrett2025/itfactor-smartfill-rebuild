@@ -48,6 +48,7 @@ These seams are the correct architectural anchors for the rebuild:
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillResultBridge.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspaceCoordinator.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspaceView.swift`
+- `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspaceFollowUpRoute.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspacePresentation` (declared in `SmartFillWorkspaceView.swift`)
 - `STSiPhone/STSiPhone/Features/Editing/LightweightEditorViewController+ModularWiring.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillDefaultsView.swift`
@@ -99,3 +100,4 @@ These fields and APIs carry shipped SmartFill truth and must not be deleted duri
 12. Save/update action titles, save-lane explanation, and completed-state guidance must obey the chosen finish behavior; never tell the user `Return` when the active SmartFill session is configured to `Stay`.
 13. Saved-result summaries and completion guidance must carry the real adopted SmartFill take label from `SmartFillResultBridge`; never fall back to generic `SmartFill take` wording when repository truth already knows which session take was created or updated.
 14. Completed-state primary actions and post-save handoff messaging must point at the real saved SmartFill take whenever repository truth already knows its label; never hide a concrete saved-result identity behind generic `Return to ...` wording.
+15. Completed-state primary actions must reopen the adopted SmartFill take through an explicit follow-up route for project review/player, editor, or standalone fallback flows; never collapse a concrete saved-result handoff back into a generic close action.

@@ -526,6 +526,11 @@ extension LightweightEditorViewController {
                 onQueueSmartFill: { [weak self] settings in
                     self?.queueSmartFillFromWorkspace(settings, context: context)
                 },
+                onOpenSavedTake: { [weak self] record in
+                    self?.dismiss(animated: true) { [weak self] in
+                        self?.openSavedSmartFillTakeFromWorkspace(record)
+                    }
+                },
                 onCancel: {
                     print("🎭 SMARTFILL WORKSPACE: User closed rebuild workspace")
                 }
@@ -647,6 +652,30 @@ extension LightweightEditorViewController {
                 }
             }
         }
+    }
+
+    private func openSavedSmartFillTakeFromWorkspace(_ record: SmartFillResultBridgeRecord) {
+        guard let repository = repository ?? SessionManager.shared.repositoryInstance,
+              let project = repository.project(by: record.projectID),
+              let session = project.sessions.first(where: { $0.id == record.sessionID }),
+              let take = session.takes.first(where: { $0.id == record.adoptedTakeID }) else {
+            print("❌ SMARTFILL WORKSPACE: Could not resolve saved take \(record.adoptedTakeID) for reopen")
+            return
+        }
+
+        setupWithRepository(repository, take: take, session: session, project: project)
+
+        let effectiveURL = VideoVariantResolver.effectiveURL(for: take)
+        replacePlayerAsset(withURL: effectiveURL)
+
+        Task { @MainActor in
+            let newKind = await AssetClassifier.classify(fallbackURL: effectiveURL)
+            self.coordinator?.assetKind = newKind
+            self.reloadSurface(for: newKind)
+            self.updateToolbar(for: .playback, kind: newKind)
+        }
+
+        print("✅ SMARTFILL WORKSPACE: Reopened saved take \(record.adoptedTakeDisplayName) in editor")
     }
     
     private func handleSmartFillComplete(outputURL: URL) {

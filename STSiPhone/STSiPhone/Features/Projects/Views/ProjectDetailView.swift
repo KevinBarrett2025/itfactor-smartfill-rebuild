@@ -118,6 +118,11 @@ struct SmartFillInFlight: Identifiable {
     let displayName: String
 }
 
+private struct PendingSmartFillOpenRequest {
+    let result: SmartFillResultBridgeRecord
+    let context: SmartFillSettingsContext
+}
+
 struct SmartFillErrorMessage: Identifiable {
     let id = UUID()
     let message: String
@@ -245,6 +250,7 @@ public struct ProjectDetailView: View {
     @State private var isSmartFillPresentationScheduled = false
     @State private var suppressTakeReviewReturn = false
     @State private var pendingTakeReviewAfterSmartFill: TakeReviewData?
+    @State private var pendingSmartFillOpenRequest: PendingSmartFillOpenRequest?
     @State private var activePlayerData: SwipeableVideoPlayerData?
     @State private var smartFillInFlight: SmartFillInFlight?
     @State private var smartFillError: SmartFillErrorMessage?
@@ -645,13 +651,22 @@ public struct ProjectDetailView: View {
                 onQueueSmartFill: { settings in
                     enqueueSmartFill(using: settings, context: context)
                 },
+                onOpenSavedTake: { record in
+                    pendingSmartFillOpenRequest = PendingSmartFillOpenRequest(
+                        result: record,
+                        context: context
+                    )
+                    activeModal = .none
+                },
                 onCancel: {
                     activeModal = .none
                 }
             )
             .onDisappear {
                 presentPendingSmartFillSheetIfPossible()
-                restoreTakeReviewAfterSmartFill()
+                if !openPendingSmartFillResultIfPossible() {
+                    restoreTakeReviewAfterSmartFill()
+                }
             }
         }
     }
@@ -1263,7 +1278,11 @@ public struct ProjectDetailView: View {
         }
     }
     
-    private func presentVideoPlayer(_ data: SwipeableVideoPlayerData, transitionFromCurrentFlow: Bool = false) {
+    private func presentVideoPlayer(
+        _ data: SwipeableVideoPlayerData,
+        transitionFromCurrentFlow: Bool = false,
+        returnToTakeReviewOnDismiss: Bool = true
+    ) {
         activePlayerData = data
         if transitionFromCurrentFlow {
             takeReviewState = nil
@@ -1280,7 +1299,7 @@ public struct ProjectDetailView: View {
                         suppressTakeReviewReturn = false
                         FlowCoordinator.shared.dismiss()
                         presentPendingSmartFillSheetIfPossible()
-                    } else {
+                    } else if returnToTakeReviewOnDismiss {
                         let reviewData = TakeReviewData(
                             session: data.session,
                             project: data.project,
@@ -1289,6 +1308,8 @@ public struct ProjectDetailView: View {
                             isReadOnly: isReadOnly
                         )
                         presentTakeReviewFlow(reviewData, transitionFromCurrentFlow: true)
+                    } else {
+                        FlowCoordinator.shared.dismiss()
                     }
                 },
                 onTakeAction: { action, take in
@@ -1831,6 +1852,77 @@ public struct ProjectDetailView: View {
         }
         pendingTakeReviewAfterSmartFill = nil
         presentTakeReviewFlow(pending)
+    }
+
+    private func openPendingSmartFillResultIfPossible() -> Bool {
+        guard case .none = activeModal,
+              let pending = pendingSmartFillOpenRequest else {
+            return false
+        }
+
+        pendingSmartFillOpenRequest = nil
+
+        guard let resolved = resolveSavedSmartFillResult(for: pending.result) else {
+            return false
+        }
+
+        switch SmartFillWorkspaceFollowUpRoute.resolve(for: pending.context.returnTarget) {
+        case .editor:
+            pendingTakeReviewAfterSmartFill = nil
+            presentEditor(for: resolved.take, session: resolved.session, project: resolved.project)
+            return true
+        case .player(let returnToTakeReviewOnDismiss):
+            let reviewData = pendingTakeReviewAfterSmartFill
+            pendingTakeReviewAfterSmartFill = nil
+            guard let playerData = makeSmartFillPlayerData(
+                for: resolved.take,
+                session: resolved.session,
+                project: resolved.project,
+                preferredReviewData: reviewData
+            ) else {
+                return false
+            }
+            presentVideoPlayer(
+                playerData,
+                transitionFromCurrentFlow: false,
+                returnToTakeReviewOnDismiss: returnToTakeReviewOnDismiss
+            )
+            return true
+        case .closeOnly:
+            return false
+        }
+    }
+
+    private func resolveSavedSmartFillResult(
+        for record: SmartFillResultBridgeRecord
+    ) -> (project: Project, session: ProjectSession, take: ProjectTake)? {
+        guard let project = vm.repo.project(by: record.projectID),
+              let session = project.sessions.first(where: { $0.id == record.sessionID }),
+              let take = session.takes.first(where: { $0.id == record.adoptedTakeID }) else {
+            return nil
+        }
+        return (project, session, take)
+    }
+
+    private func makeSmartFillPlayerData(
+        for take: ProjectTake,
+        session: ProjectSession,
+        project: Project,
+        preferredReviewData: TakeReviewData?
+    ) -> SwipeableVideoPlayerData? {
+        guard let initialIndex = session.takes.firstIndex(where: { $0.id == take.id }) else {
+            return nil
+        }
+
+        let fallbackViewType: TakeReviewPage.ViewType = take.takeType.isSlateLike ? .slates : .scenes
+        return SwipeableVideoPlayerData(
+            takes: session.takes,
+            initialIndex: initialIndex,
+            session: session,
+            project: project,
+            contextViewType: preferredReviewData?.selectedViewType ?? fallbackViewType,
+            contextSceneNumber: preferredReviewData?.selectedSceneNumber ?? take.sceneNumber
+        )
     }
     
     private func existingSmartFillTake(for original: ProjectTake, in session: ProjectSession, excluding excludedID: UUID? = nil) -> ProjectTake? {

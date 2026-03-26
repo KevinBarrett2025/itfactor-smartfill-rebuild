@@ -3,6 +3,7 @@ import SwiftUI
 struct SmartFillWorkspaceView: View {
     let context: SmartFillSettingsContext
     let onQueueSmartFill: (SmartFillSettings) -> Void
+    let onOpenSavedTake: ((SmartFillResultBridgeRecord) -> Void)?
     let onCancel: () -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -21,10 +22,12 @@ struct SmartFillWorkspaceView: View {
     init(
         context: SmartFillSettingsContext,
         onQueueSmartFill: @escaping (SmartFillSettings) -> Void,
+        onOpenSavedTake: ((SmartFillResultBridgeRecord) -> Void)? = nil,
         onCancel: @escaping () -> Void
     ) {
         self.context = context
         self.onQueueSmartFill = onQueueSmartFill
+        self.onOpenSavedTake = onOpenSavedTake
         self.onCancel = onCancel
 
         let defaults = SmartFillTakeBridge.defaultWorkspaceSettings(for: context.take, in: context.session)
@@ -1031,7 +1034,14 @@ struct SmartFillWorkspaceView: View {
 
     private func handlePrimaryAction() {
         if effectiveStage == .completed {
-            handleClose()
+            autoReturnWorkItem?.cancel()
+            autoReturnWorkItem = nil
+            if let record = coordinator.lastResult,
+               let onOpenSavedTake {
+                onOpenSavedTake(record)
+            } else {
+                handleClose()
+            }
             return
         }
 
