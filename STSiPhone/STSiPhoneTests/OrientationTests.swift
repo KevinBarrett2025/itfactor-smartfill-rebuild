@@ -9,7 +9,7 @@ final class OrientationTests: XCTestCase {
     override func setUp() {
         super.setUp()
         // Enable diagnostics for testing
-        putenv("STS_ORIENTATION_DIAG=1".cString(using: .utf8)!)
+        setenv("STS_ORIENTATION_DIAG", "1", 1)
     }
 
     func testOrientationPolicyBasics() throws {
@@ -74,7 +74,7 @@ final class OrientationTests: XCTestCase {
     func testAsyncAssetInfoCreation() async throws {
         // Create a minimal test asset URL (using app bundle as placeholder)
         guard let testURL = Bundle.main.url(forResource: "Info", withExtension: "plist") else {
-            XCTSkip("No test asset available")
+            throw XCTSkip("No test asset available")
         }
         
         let asset = AVURLAsset(url: testURL)

@@ -1,0 +1,64 @@
+# CODEX Thread Continuity
+
+## Ticket 001 SmartFill Rebuild Bootstrap (2026-03-25)
+- Thread Status: initial itFactor-first SmartFill rebuild slice is implemented and locally gated in the writable integration repo.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-rebuild`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` configured at baseline `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` configured at baseline `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/main` also exists as the bootstrap branch
+
+### Objective
+Rebuild SmartFill inside the itFactor shell first, not inside the current standalone utility shell:
+1. classify and clear legacy SmartFill seams
+2. preserve shipped persistence and take-lineage truth
+3. introduce shared SmartFill bridge/coordinator seams
+4. record standalone derivation truth at every stage so the future utility app is a fast extraction, not a reinvention
+
+### Completed This Pass
+- Added legacy SmartFill audit matrix:
+  - `Docs/Recovery/SMARTFILL_ITFACTOR_REBUILD_AUDIT.md`
+- Added standalone derivation ledger:
+  - `Docs/Recovery/SMARTFILL_STANDALONE_DERIVATION_LEDGER.md`
+- Added first rebuild bridge/coordinator seams:
+  - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillSessionContext.swift`
+  - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillTakeBridge.swift`
+  - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillResultBridge.swift`
+  - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspaceCoordinator.swift`
+- Added focused bridge parity coverage:
+  - `STSiPhone/STSiPhoneTests/SmartFillRebuildBridgeTests.swift`
+- Fixed inherited baseline test debt in `STSiPhone/STSiPhoneTests/OrientationTests.swift` so focused parity can run truthfully.
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_rebuild_gateA_final build | tee /tmp/itfactor_smartfill_rebuild_gateA_final.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_rebuild_gateA_final.log`
+- Focused parity command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath /tmp/itfactor_smartfill_rebuild_tests_final2 -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_rebuild_tests_final2.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_rebuild_tests_final2.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_rebuild_tests_final2/Logs/Test/Test-STSiPhone-2026.03.25_19-50-58--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Laws In Force
+1. `/Users/kevinbarrett/Dev/SelfTapeStudio` is read-only reference truth. No writes are allowed there.
+2. `/Users/kevinbarrett/Dev/itFactor_1.23.26_git` is the writable flagship SmartFill rebuild repo.
+3. The current standalone SmartFill utility UI is not the shell authority; only its SmartFill engine/domain/store work should be preserved conceptually.
+4. Every integration cut must update standalone derivation truth in the ledger so the later utility extraction remains straightforward.
+
+### Next Action
+1. Commit and push this first rebuild bootstrap slice on `gm/smartfill-itfactor-rebuild`.
+2. Wire SmartFill launch from project/session/take review into the new `SmartFillSessionContext` and `SmartFillWorkspaceCoordinator` seams.
+3. Route result adoption through repository truth and remove or bypass the legacy duplicate SmartFill settings/editor surfaces after cutover.
