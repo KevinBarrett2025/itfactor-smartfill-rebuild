@@ -2,6 +2,20 @@ import XCTest
 @testable import STSiPhone
 
 final class SmartFillRebuildBridgeTests: XCTestCase {
+    private let smartFillDefaultKeys = [
+        "smartFillDefaultEnabled",
+        "smartFillEnabled",
+        "smartFillBlurRadius",
+        "smartFillDarkenAmount",
+        "smartFillBackgroundScale",
+        "smartFillForegroundScale",
+        "smartFillPresetName",
+        "smartFillRenderWidth",
+        "smartFillRenderHeight",
+        "smartFillProcessingPriority",
+        "smartFillForceUpdateToken"
+    ]
+
     func testShouldOfferSmartFillForPortraitTakeInLandscapeSession() {
         let take = ProjectTake(
             filePath: "/tmp/original.mov",
@@ -60,6 +74,89 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertEqual(defaults.snapshot, snapshot)
         XCTAssertTrue(defaults.usesSessionOverride)
         XCTAssertTrue(defaults.shouldOfferSmartFill)
+    }
+
+    func testDefaultWorkspaceSettingsUsePersistedSmartFillDefaultsWhenSnapshotMissing() {
+        let persisted = SmartFillSettings(
+            isEnabled: false,
+            blurRadius: 36,
+            darkenAmount: 0.32,
+            backgroundScale: 6.5,
+            foregroundScale: 1.4,
+            presetName: "Custom",
+            renderSize: CGSize(width: 1280, height: 720),
+            processingPriority: .high
+        )
+
+        preservingSmartFillDefaults {
+            persisted.saveToUserDefaults()
+
+            let take = ProjectTake(
+                filePath: "/tmp/original.mov",
+                durationSeconds: 12,
+                capturedOrientation: .portrait
+            )
+            let session = ProjectSession(
+                type: .selfTape,
+                primaryOrientation: .landscape
+            )
+
+            let defaults = SmartFillTakeBridge.defaultWorkspaceSettings(for: take, in: session)
+
+            XCTAssertEqual(defaults.snapshot.blurRadius, Double(persisted.blurRadius))
+            XCTAssertEqual(defaults.snapshot.darkenAmount, Double(persisted.darkenAmount))
+            XCTAssertEqual(defaults.snapshot.backgroundScale, Double(persisted.backgroundScale))
+            XCTAssertEqual(defaults.snapshot.foregroundScale, Double(persisted.foregroundScale))
+            XCTAssertEqual(defaults.snapshot.renderWidth, Double(persisted.renderSize.width))
+            XCTAssertEqual(defaults.snapshot.renderHeight, Double(persisted.renderSize.height))
+            XCTAssertEqual(defaults.snapshot.processingPriority, persisted.processingPriority.rawValue)
+            XCTAssertEqual(defaults.snapshot.presetName, persisted.presetName)
+            XCTAssertTrue(defaults.snapshot.isEnabled)
+        }
+    }
+
+    func testEditorLaunchSeedUsesCanonicalOriginalTakeAndVariantSettings() {
+        let originalID = UUID()
+        let snapshot = SmartFillSettingsSnapshot(
+            isEnabled: true,
+            blurRadius: 20,
+            darkenAmount: 0.18,
+            backgroundScale: 5,
+            foregroundScale: 1,
+            renderWidth: 1920,
+            renderHeight: 1080,
+            processingPriority: "interactive",
+            presetName: "Medium"
+        )
+        let original = ProjectTake(
+            id: originalID,
+            filePath: "/tmp/take_1.mov",
+            durationSeconds: 12,
+            sceneNumber: 2,
+            takeNumber: 3,
+            capturedOrientation: .portrait
+        )
+        let smartFillVariant = ProjectTake(
+            filePath: "/tmp/take_1_smartfill.mov",
+            durationSeconds: 12,
+            takeNotes: "[SMARTFILL_ORIGINAL:\(originalID.uuidString)]",
+            sceneNumber: 2,
+            takeNumber: 3,
+            capturedOrientation: .portrait,
+            smartFillSettings: snapshot
+        )
+        let session = ProjectSession(
+            type: .selfTape,
+            takes: [original, smartFillVariant],
+            primaryOrientation: .landscape
+        )
+
+        let seed = SmartFillTakeBridge.editorLaunchSeed(for: smartFillVariant, in: session)
+
+        XCTAssertEqual(seed.sourceTakeID, originalID)
+        XCTAssertEqual(seed.displayName, "S2T3")
+        XCTAssertEqual(seed.infoTitle, "Fine-Tune SmartFill")
+        XCTAssertEqual(seed.existingSettings, snapshot)
     }
 
     func testResultBridgeCreatesVariantForOriginalTake() {
@@ -227,5 +324,22 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
 
         XCTAssertEqual(coordinator.stage, .completed)
         XCTAssertEqual(coordinator.lastResult?.outputURL.path, "/tmp/output_smartfill.mov")
+    }
+
+    private func preservingSmartFillDefaults(_ body: () -> Void) {
+        let defaults = UserDefaults.standard
+        let originalValues = Dictionary(uniqueKeysWithValues: smartFillDefaultKeys.map { ($0, defaults.object(forKey: $0)) })
+
+        defer {
+            for (key, value) in originalValues {
+                if let value {
+                    defaults.set(value, forKey: key)
+                } else {
+                    defaults.removeObject(forKey: key)
+                }
+            }
+        }
+
+        body()
     }
 }

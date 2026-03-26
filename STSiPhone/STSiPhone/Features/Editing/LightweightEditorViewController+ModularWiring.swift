@@ -512,103 +512,116 @@ extension LightweightEditorViewController {
     // MARK: - Modular Actions
     
     @objc func modularSmartFillTapped() {
-        print("🎭 MODULAR SMARTFILL: Opening SmartFill settings modal")
-        
-        // 🚨 CRITICAL FIX: Load persisted SmartFill settings exactly as saved
-        // SmartFillSettings() now normalizes legacy keys, so this reflects the user's choices
-        let currentSettings = SmartFillSettings()
-        
-        print("🔍 SETTINGS DEBUG: Loaded from UserDefaults")
-        print("   📐 backgroundScale: \(currentSettings.backgroundScale)")
-        print("   🌀 defaultBlurRadius: \(currentSettings.defaultBlurRadius)")
-        print("   🌙 defaultDarkenAmount: \(currentSettings.defaultDarkenAmount)")
-        print("   📺 defaultRenderSize: \(currentSettings.defaultRenderSize)")
-        print("   ✅ defaultEnabled: \(currentSettings.defaultEnabled)")
-        
-        // Get video URL for preview from the current asset
-        let videoURL: URL? = {
-            // Try to get URL from current take context
-            if let take = self.currentTake {
-                return VideoVariantResolver.effectiveURL(for: take)
-            }
-            
-            // Fallback: try to extract from current asset if it's a URL asset
-            if let urlAsset = self.originalAsset as? AVURLAsset {
-                return urlAsset.url
-            }
-            
-            return nil
-        }()
-        
-        // Present SmartFill settings modal
-        let smartFillModal = UIHostingController(
-            rootView: SmartFillSettingsModal(
-                currentSettings: currentSettings, // 🚨 Now uses actual user settings
-                previewVideoURL: videoURL,
-                infoTitle: nil,
-                infoMessage: nil,
-                onApplySettings: { [weak self] settings in
-                    print("🎭 SMARTFILL SETTINGS: User applied settings")
-                    print("   📐 Applied backgroundScale: \(settings.backgroundScale)")
-                    print("   🌀 Applied blurRadius: \(settings.defaultBlurRadius)")
-                    print("   🌙 Applied darkenAmount: \(settings.defaultDarkenAmount)")
-                    self?.applySmartFillSettings(settings)
+        print("🎭 MODULAR SMARTFILL: Opening rebuild workspace")
+
+        guard let context = buildEditorSmartFillContext() else {
+            let alert = UIAlertController(
+                title: "SmartFill Unavailable",
+                message: "We couldn't find the project, session, and take context needed to open SmartFill.",
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            present(alert, animated: true)
+            return
+        }
+
+        let workspace = UIHostingController(
+            rootView: SmartFillWorkspaceView(
+                context: context,
+                onQueueSmartFill: { [weak self] settings in
+                    self?.queueSmartFillFromWorkspace(settings, context: context)
                 },
                 onCancel: {
-                    print("🎭 SMARTFILL SETTINGS: User cancelled")
-                },
-                onRevertSmartFill: { [weak self] in
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                        self?.handleRevertSmartFillTapped()
-                    }
+                    print("🎭 SMARTFILL WORKSPACE: User closed rebuild workspace")
                 }
             )
         )
-        
-        smartFillModal.modalPresentationStyle = UIModalPresentationStyle.pageSheet
-        smartFillModal.isModalInPresentation = false
-        
-        if let sheet = smartFillModal.sheetPresentationController {
-            sheet.detents = [UISheetPresentationController.Detent.large()]
+
+        workspace.modalPresentationStyle = .pageSheet
+        workspace.isModalInPresentation = false
+
+        if let sheet = workspace.sheetPresentationController {
+            sheet.detents = [.large()]
             sheet.prefersGrabberVisible = true
             sheet.preferredCornerRadius = 16
         }
-        
-        present(smartFillModal, animated: true)
-        print("✅ SMARTFILL MODAL: Presented settings modal with current user settings")
+
+        present(workspace, animated: true)
+        print("✅ SMARTFILL WORKSPACE: Presented rebuild workspace from editor")
     }
     
     // MARK: - SmartFill Settings Application
     
-    private func applySmartFillSettings(_ settings: SmartFillSettings) {
-        print("🎭 APPLYING SMARTFILL: Settings received, starting processing")
+    private func buildEditorSmartFillContext() -> SmartFillSettingsContext? {
+        guard let take = currentTake,
+              let session = currentSession,
+              let project = currentProject else {
+            return nil
+        }
+
+        let launchSeed = SmartFillTakeBridge.editorLaunchSeed(for: take, in: session)
+        let sourceTake = session.takes.first(where: { $0.id == launchSeed.sourceTakeID }) ?? take
+        let existingSettings = launchSeed.existingSettings.map { SmartFillTakeBridge.settings(from: $0) }
+
+        return SmartFillSettingsContext(
+            take: sourceTake,
+            session: session,
+            project: project,
+            autoLaunchEditor: false,
+            displayName: launchSeed.displayName,
+            infoTitle: launchSeed.infoTitle,
+            infoMessage: launchSeed.infoMessage,
+            existingSettings: existingSettings,
+            onUpdatePIPSession: { [weak self] newValue in
+                self?.updateEditorPIPSession(newValue, sessionID: session.id, projectID: project.id)
+            }
+        )
+    }
+
+    private func updateEditorPIPSession(_ newValue: SlatePIPSession?, sessionID: UUID, projectID: UUID) {
+        guard let repository = repository ?? SessionManager.shared.repositoryInstance,
+              var session = currentSession ?? repository.project(by: projectID)?.sessions.first(where: { $0.id == sessionID }) else {
+            return
+        }
+
+        session.pipSlateSession = newValue
+        repository.updateSession(session, in: projectID)
+
+        if let refreshedProject = repository.project(by: projectID),
+           let refreshedSession = refreshedProject.sessions.first(where: { $0.id == sessionID }) {
+            currentProject = refreshedProject
+            currentSession = refreshedSession
+            if let takeID = currentTake?.id,
+               let refreshedTake = refreshedSession.takes.first(where: { $0.id == takeID }) {
+                currentTake = refreshedTake
+            }
+        }
+    }
+
+    private func queueSmartFillFromWorkspace(
+        _ settings: SmartFillSettings,
+        context: SmartFillSettingsContext
+    ) {
+        print("🎭 APPLYING SMARTFILL: Rebuild workspace queued processing")
         print("🔍 PROCESSING SETTINGS DEBUG:")
         print("   📐 backgroundScale: \(settings.backgroundScale)")
         print("   🌀 defaultBlurRadius: \(settings.defaultBlurRadius)")
         print("   🌙 defaultDarkenAmount: \(settings.defaultDarkenAmount)")
         print("   📺 defaultRenderSize: \(settings.defaultRenderSize)")
         print("   ✅ defaultEnabled: \(settings.defaultEnabled)")
-        
-        guard let take = currentTake,
-              let sessionID = currentSession?.id,
-              let projectID = currentProject?.id else {
-            print("❌ SMARTFILL: Missing required context for processing")
+
+        guard let repository = repository ?? SessionManager.shared.repositoryInstance else {
+            print("❌ SMARTFILL: Missing repository for workspace launch")
             return
         }
 
-        // Persist user preference immediately so future sessions reflect current choice
         settings.saveToUserDefaults()
-        
-        // Create SmartFill operation and apply it to edit stack
-        let smartFillOperation = SmartFillOperation(settings: settings) // 🚨 Pass actual settings
-        editStack.apply(operation: smartFillOperation)
-        
-        // Get the video file paths
+
+        let take = context.take
         let originalURL = VideoVariantResolver.originalURL(for: take)
         let originalFileName = originalURL.lastPathComponent
         let smartFillOutputURL = SmartFillManager.shared.getSmartFillURL(for: originalURL)
-        
-        // 🚨 CRITICAL: Pass the modal settings to the processing manager
+
         Task { [weak self] in
             guard let self = self else { return }
             let jobQueued = await SmartFillProcessingManager.shared.enqueueJob(
@@ -616,15 +629,16 @@ extension LightweightEditorViewController {
                 outputPath: smartFillOutputURL.path,
                 fileName: originalFileName,
                 takeID: take.id,
-                sessionID: sessionID,
-                projectID: projectID,
+                sessionID: context.session.id,
+                projectID: context.project.id,
                 capturedOrientation: take.capturedOrientation,
-                settings: settings // 🚨 Use the modal settings, not defaults
+                settings: settings
             )
-            
+
             await MainActor.run {
                 if jobQueued {
                     SmartFillProcessingManager.shared.delegate = self
+                    self.repository = repository
                     print("✅ SMARTFILL: Job enqueued with modal settings (output: \(smartFillOutputURL.lastPathComponent))")
                 } else {
                     print("ℹ️ SMARTFILL: Job not queued (orientation check failed)")

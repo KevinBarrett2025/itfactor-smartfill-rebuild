@@ -16,6 +16,28 @@ public struct SmartFillWorkspaceDefaults: Equatable, Sendable {
     }
 }
 
+public struct SmartFillEditorLaunchSeed: Equatable, Sendable {
+    public let sourceTakeID: UUID
+    public let displayName: String
+    public let infoTitle: String
+    public let infoMessage: String
+    public let existingSettings: SmartFillSettingsSnapshot?
+
+    public init(
+        sourceTakeID: UUID,
+        displayName: String,
+        infoTitle: String,
+        infoMessage: String,
+        existingSettings: SmartFillSettingsSnapshot?
+    ) {
+        self.sourceTakeID = sourceTakeID
+        self.displayName = displayName
+        self.infoTitle = infoTitle
+        self.infoMessage = infoMessage
+        self.existingSettings = existingSettings
+    }
+}
+
 enum SmartFillTakeBridge {
     static func settings(from snapshot: SmartFillSettingsSnapshot) -> SmartFillSettings {
         SmartFillSettings(
@@ -77,22 +99,49 @@ enum SmartFillTakeBridge {
             finalEnabled = false
         }
 
+        let persistedDefaults = SmartFillSettings()
         let snapshot = take.smartFillSettings ?? SmartFillSettingsSnapshot(
             isEnabled: finalEnabled,
-            blurRadius: 24.0,
-            darkenAmount: 0.12,
-            backgroundScale: 10.0,
-            foregroundScale: 1.0,
-            renderWidth: 1920,
-            renderHeight: 1080,
-            processingPriority: "interactive",
-            presetName: "Medium"
+            blurRadius: Double(persistedDefaults.blurRadius),
+            darkenAmount: Double(persistedDefaults.darkenAmount),
+            backgroundScale: Double(persistedDefaults.backgroundScale),
+            foregroundScale: Double(persistedDefaults.foregroundScale),
+            renderWidth: Double(persistedDefaults.renderSize.width),
+            renderHeight: Double(persistedDefaults.renderSize.height),
+            processingPriority: persistedDefaults.processingPriority.rawValue,
+            presetName: persistedDefaults.presetName
         )
 
         return SmartFillWorkspaceDefaults(
             snapshot: snapshot,
             usesSessionOverride: override == .inherit,
             shouldOfferSmartFill: shouldOfferSmartFill(for: take, in: session)
+        )
+    }
+
+    static func editorLaunchSeed(
+        for take: ProjectTake,
+        in session: ProjectSession
+    ) -> SmartFillEditorLaunchSeed {
+        let sourceTake = TakeDisplayFormatter.canonicalTake(for: take, in: session)
+        let displayName = TakeDisplayFormatter.label(for: sourceTake, in: session)
+        let existingSettings = take.smartFillSettings ?? sourceTake.smartFillSettings
+        let isRefiningExistingSmartFill = take.isSmartFillVariant || take.hasSmartFilledVersion || existingSettings != nil
+
+        let infoTitle = isRefiningExistingSmartFill ? "Fine-Tune SmartFill" : "SmartFill Editor"
+        let infoMessage: String
+        if isRefiningExistingSmartFill {
+            infoMessage = "Adjust the SmartFill look for “\(displayName)”, then return to the editor with the updated landscape result."
+        } else {
+            infoMessage = "Create the first SmartFill version for “\(displayName)”, then return to the editor with the landscape result ready to review."
+        }
+
+        return SmartFillEditorLaunchSeed(
+            sourceTakeID: sourceTake.id,
+            displayName: displayName,
+            infoTitle: infoTitle,
+            infoMessage: infoMessage,
+            existingSettings: existingSettings
         )
     }
 

@@ -1,5 +1,69 @@
 # CODEX Thread Continuity
 
+## Ticket 004 Legacy SmartFill Entry Unification (2026-03-26)
+- Thread Status: editor-side SmartFill entry unification is implemented and locally gated; commit/push is the active next action.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-rebuild`
+- Working Head SHA: `47eb208e105fbc8ecdd6679df82a405b3560604a`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Unify the remaining editor-side SmartFill launch path so the rebuild workspace becomes the only active SmartFill entry surface:
+1. replace the legacy editor modal/controller launch path with the rebuild workspace bridge
+2. keep repository-backed result adoption intact across review/player and editor-origin launches
+3. preserve persistence seams that carry shipped SmartFill lineage
+4. update the standalone derivation ledger so the same launch seam remains portable to a future hidden static-session utility shell
+
+### Completed This Pass
+- `EditorCoordinator` now routes `.smartFillRequested` back through `modularSmartFillTapped()` instead of the legacy controller-owned path.
+- `LightweightEditorViewController+ModularWiring` now presents `SmartFillWorkspaceView` from the editor affordance instead of `SmartFillSettingsModal`.
+- `SmartFillTakeBridge` now resolves canonical/original take truth for editor launches and preserves variant SmartFill settings when refining an existing SmartFill take.
+- Focused rebuild bridge tests now cover:
+  - persisted default workspace settings fallback
+  - canonical original-take launch seeding for SmartFill variants
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase4_gateA build | tee /tmp/itfactor_smartfill_phase4_gateA.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase4_gateA.log`
+- Focused parity command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath /tmp/itfactor_smartfill_phase4_tests -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase4_tests.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase4_tests.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase4_tests/Logs/Test/Test-STSiPhone-2026.03.26_09-06-16--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Archaeology Snapshot
+- Review/player entry already launches `SmartFillWorkspaceView` from `ProjectDetailView`.
+- The editor stack now shares the same rebuild workspace entry seam through:
+  - `STSiPhone/STSiPhone/Features/Editing/LightweightEditorViewController+ModularWiring.swift`
+  - `STSiPhone/STSiPhone/Features/Editing/Coordinator/EditorCoordinator.swift`
+- Remaining delete-after-cutover editor legacy seams are now:
+  - `STSiPhone/STSiPhone/Features/Editing/Tools/SmartFillController.swift`
+  - `STSiPhone/STSiPhone/Features/Editing/SmartFillSettingsModal.swift`
+- Legacy settings/dashboard surfaces remain present for later cutover cleanup:
+  - `STSiPhone/STSiPhone/Features/Settings/SmartFillSettingsView.swift`
+  - `STSiPhone/STSiPhone/Features/Settings/SmartFillMigrationDashboard.swift`
+  - `STSiPhone/STSiPhone/Features/Settings/Views/SmartFillBatchProcessingView.swift`
+
+### Next Action
+1. Commit and push the editor-entry unification slice on `gm/smartfill-itfactor-rebuild`.
+2. Delete the remaining `DELETE_AFTER_CUTOVER` SmartFill seams now that review/player and editor-origin entry both share the rebuild workspace.
+3. Keep the standalone derivation ledger synchronized with the delete-after-cutover cleanup.
+
 ## Ticket 003 SmartFill Result Adoption Through Repository Truth (2026-03-25)
 - Thread Status: the third rebuild slice is implemented and locally gated in the writable integration repo.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

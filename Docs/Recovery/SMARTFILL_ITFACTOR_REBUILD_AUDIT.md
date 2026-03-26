@@ -17,8 +17,8 @@ The flagship intent is:
 | Area | Path | Classification | Reason | Next Action |
 | --- | --- | --- | --- | --- |
 | SmartFill processing core | `STSiPhone/STSiPhone/Core/VideoPipeline/SmartFill/*` | `REFERENCE_ONLY` | Contains useful compositor, preview, export, policy, and worker archaeology, but the rebuild will move toward a new workspace contract instead of continuing these UI-facing seams as-is. | Keep available for comparison; do not extend as product shell truth. |
-| Legacy SmartFill controller | `STSiPhone/STSiPhone/Features/Editing/Tools/SmartFillController.swift` | `KEEP` | This is the current launch/process seam from editor/review context and shows how SmartFill fits into the flagship shell. | Preserve while new workspace coordinator is introduced behind it. |
-| Legacy SmartFill settings modal | `STSiPhone/STSiPhone/Features/Editing/SmartFillSettingsModal.swift` | `REPLACE` | Old modal-level UI does not match the new bounded editor-workspace target. | `ProjectDetailView` now bypasses it through `SmartFillWorkspaceView`; remove after broader cutover. |
+| Legacy SmartFill controller | `STSiPhone/STSiPhone/Features/Editing/Tools/SmartFillController.swift` | `DELETE_AFTER_CUTOVER` | Review/player and editor-origin SmartFill entry now route through the rebuild workspace and repository adoption bridge instead of this controller-owned launch path. | Keep only until the remaining legacy editor affordances are deleted and no callers remain. |
+| Legacy SmartFill settings modal | `STSiPhone/STSiPhone/Features/Editing/SmartFillSettingsModal.swift` | `DELETE_AFTER_CUTOVER` | Old modal-level UI no longer matches the bounded rebuild workspace target and both live launch surfaces now bypass it. | Remove after final legacy editor affordances are deleted and the rebuild workspace is the only SmartFill editor surface. |
 | Legacy real preview handoff | `STSiPhone/STSiPhone/Features/Editing/SmartFillRealPreviewSectionHandoff.swift` | `REPLACE` | Preview orchestration is tied to the old settings/editor arrangement. | Replace with new preview-backed SmartFill workspace. |
 | Legacy still preview view model | `STSiPhone/STSiPhone/Features/Editing/SmartFillStillPreviewViewModel.swift` | `REFERENCE_ONLY` | Useful to understand earlier preview state handling, but not a durable flagship seam. | Read for behavior notes only. |
 | Global SmartFill settings screen | `STSiPhone/STSiPhone/Features/Settings/SmartFillSettingsView.swift` | `REPLACE` | Global settings remain necessary, but this screen should stop acting like the main editing surface. | Keep the role, replace the structure and vocabulary. |
@@ -41,12 +41,17 @@ These seams are the correct architectural anchors for the rebuild:
 - `STSiPhone/STSiPhone/Features/Projects/Views/ProjectDetailView.swift`
 - `STSiPhone/STSiPhone/Features/Projects/Views/SwipeableVideoPlayerView.swift`
 - `STSiPhone/STSiPhone/Shared/Flow/FlowHostView.swift`
-- `STSiPhone/STSiPhone/Features/Editing/Tools/SmartFillController.swift`
+- `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillSessionContext.swift`
+- `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillTakeBridge.swift`
+- `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillResultBridge.swift`
+- `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspaceCoordinator.swift`
+- `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspaceView.swift`
 
 ## Duplicate Or Obsolete UI Surfaces To Remove After Cutover
 - `STSiPhone/STSiPhone/Features/Settings/SmartFillMigrationDashboard.swift`
 - `STSiPhone/STSiPhone/Features/Editing/SmartFillSettingsModal.swift`
 - `STSiPhone/STSiPhone/Features/Editing/SmartFillRealPreviewSectionHandoff.swift`
+- `STSiPhone/STSiPhone/Features/Editing/Tools/SmartFillController.swift`
 
 These should not survive once the new SmartFill workspace is live and launched from project/session/take review.
 
@@ -73,3 +78,4 @@ These fields and APIs carry shipped SmartFill truth and must not be deleted duri
 2. `itFactor_1.23.26_git` is the writable flagship SmartFill rebuild repo.
 3. The current standalone SmartFill UI is not the product shell to preserve.
 4. SmartFill processing, settings, preview, export, and result adoption must converge into one bounded editor workspace launched from project/session/take review.
+5. Review/player and editor-origin SmartFill entry must share the same rebuild workspace seam before any delete-after-cutover legacy UI is removed.

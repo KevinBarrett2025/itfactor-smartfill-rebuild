@@ -47,18 +47,20 @@ This ledger records, at every flagship SmartFill integration stage, how the same
 6. App keeps lightweight local history, but never exposes project/session vocabulary.
 
 ## Current Phase Note
-The flagship rebuild now has a real SmartFill entry seam:
+The flagship rebuild now has one shared SmartFill entry seam across both launch origins:
 - `ProjectDetailView` bypasses the legacy `SmartFillSettingsModal` on the review/player sheet path.
-- `SmartFillWorkspaceView` owns the new grouped workspace entry experience.
-- `SmartFillTakeBridge` now round-trips settings between take snapshots and rebuild workspace settings.
+- `LightweightEditorViewController+ModularWiring` now launches the same rebuild workspace from the editor-side SmartFill affordance.
+- `EditorCoordinator` routes `.smartFillRequested` back through the shared rebuild workspace entry instead of the legacy controller-owned path.
+- `SmartFillTakeBridge` now resolves canonical/original take truth for both review and editor launches and preserves variant settings when refining an existing SmartFill take.
 - `SmartFillResultBridge` now adopts SmartFill output through repository truth and creates or refreshes one authoritative standalone SmartFill variant take.
 - `SmartFillProcessingManager` completion notifications now preserve the queued take ID for review listeners while also carrying the adopted SmartFill take ID for reopen routing.
 
-This means the future standalone utility already has a clear derivation path:
+This means the future standalone utility already has a clearer derivation path:
 1. import one clip
 2. create or reuse a hidden static `SmartFillSessionContext`
 3. open the same `SmartFillWorkspaceView`-style editor scene
-4. write result history/export data through a utility-local result bridge that mirrors repository adoption without project/session vocabulary
+4. re-enter the same workspace whether the user starts from import or a later refine/edit affordance
+5. write result history/export data through a utility-local result bridge that mirrors repository adoption without project/session vocabulary
 
 ## Current Next Step
-Replace the remaining legacy SmartFill settings/editor shells in flagship itFactor so the future standalone utility can extract the same workspace model with only a hidden static-session shell and lightweight persistence swap.
+Delete the remaining legacy SmartFill settings/editor shells and retire the duplicate controller-owned launch path so the future standalone utility can extract the same shared workspace model with only a hidden static-session shell and lightweight persistence swap.

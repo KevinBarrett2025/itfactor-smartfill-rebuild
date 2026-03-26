@@ -117,13 +117,7 @@ final class EditorCoordinator: EditorCoordinating {
             print("🎯 CROP OPERATIONS: \(editStack.operations.map { $0.displayName })")
 
         case .smartFillRequested:
-            // Pass the correct take, session, and project IDs
-            if let take = host.currentTake, 
-               let sessionID = host.currentSession?.id,
-               let projectID = host.currentProject?.id,
-               let repo = host.repository {
-                smartFillTool.start(for: take, sessionID: sessionID, projectID: projectID, repository: repo)
-            }
+            host.modularSmartFillTapped()
 
         case .smartFillFinished(let url):
             // CRITICAL: Swap asset to landscape and refresh everything
