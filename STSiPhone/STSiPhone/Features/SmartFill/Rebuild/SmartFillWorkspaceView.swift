@@ -90,15 +90,16 @@ struct SmartFillWorkspaceView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: .smartFillDidComplete)) { notification in
                 guard matchesCurrentTake(notification) else { return }
-                let outputPath = (notification.userInfo?["smartFillPath"] as? String)
-                    ?? VideoVariantResolver.smartFillURL(for: context.take)?.path
-                    ?? context.previewURL.path
-                let record = SmartFillResultBridge.makeAdoptionRecord(
-                    outputURL: URL(fileURLWithPath: outputPath),
-                    duration: context.take.durationSeconds,
-                    settingsSnapshot: SmartFillTakeBridge.snapshot(from: settings),
-                    take: context.take
-                )
+                guard let activeContext = coordinator.activeContext,
+                      let record = SmartFillResultBridge.makeAdoptionRecord(
+                        from: notification,
+                        matching: activeContext,
+                        settingsSnapshot: SmartFillTakeBridge.snapshot(from: settings)
+                      ) else {
+                    statusMessage = "SmartFill finished, but the rebuild workspace could not confirm repository adoption."
+                    queueAttempted = false
+                    return
+                }
                 coordinator.recordResult(record)
                 statusMessage = record.destinationSummary
                 queueAttempted = false

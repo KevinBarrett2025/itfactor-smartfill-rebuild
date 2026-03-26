@@ -11,7 +11,17 @@ public extension ProjectsRepository {
         duration: Double,
         settings: SmartFillSettingsSnapshot? = nil
     ) -> UUID? {
-        createStandaloneSmartFillTake(
+        if let project = project(by: projectID),
+           let session = project.sessions.first(where: { $0.id == sessionID }),
+           let existingVariant = session.takes.first(where: { candidate in
+               candidate.id != originalTakeID &&
+               candidate.isSmartFillVariant &&
+               candidate.smartFillOriginalID == originalTakeID
+           }) {
+            deleteTake(takeID: existingVariant.id, from: sessionID, in: projectID)
+        }
+
+        return createStandaloneSmartFillTake(
             originalTakeID: originalTakeID,
             smartFillPath: smartFillPath,
             duration: duration,

@@ -1,5 +1,67 @@
 # CODEX Thread Continuity
 
+## Ticket 003 SmartFill Result Adoption Through Repository Truth (2026-03-25)
+- Thread Status: the third rebuild slice is implemented and locally gated in the writable integration repo.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-rebuild`
+- Working Head SHA: `bcf41a32dc3bc23ac87a79003c94f756ff8053b8`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Route SmartFill completion out of the rebuild workspace and back into flagship repository truth:
+1. preserve original take lineage and SmartFill gating metadata
+2. create or refresh one standalone SmartFill variant take in repository/session truth
+3. publish completion notifications that reopen review/player against the adopted take ID
+4. keep standalone derivation truth updated so the future utility swaps persistence, not workspace behavior
+
+### Completed This Pass
+- Added repository-backed SmartFill take upsert behavior:
+  - `STSiPhone/STSiPhone/Shared/Repositories/SmartFillRepository+Upsert.swift`
+  - deletes any existing variant for the same original take and recreates one authoritative standalone SmartFill take
+- Expanded the rebuild result bridge:
+  - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillResultBridge.swift`
+  - adopts output through `ProjectsRepository`
+  - preserves `originalTakeID` for current review flow listeners
+  - publishes `lineageOriginalTakeID` and `smartFillTakeID` for variant-aware reopen paths
+- Rewired SmartFill completion handling:
+  - `STSiPhone/STSiPhone/Core/VideoPipeline/SmartFill/SmartFillProcessingManager.swift`
+  - result notifications now carry repository-adopted take/session/project truth instead of inline-only payloads
+- Updated rebuild workspace result capture:
+  - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspaceView.swift`
+  - converts completion notifications into repository-backed `SmartFillResultBridgeRecord`s
+- Expanded focused parity coverage:
+  - `STSiPhone/STSiPhoneTests/SmartFillRebuildBridgeTests.swift`
+  - validates standalone and inline notification-backed adoption records
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase3_gateA build | tee /tmp/itfactor_smartfill_phase3_gateA.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase3_gateA.log`
+- Focused parity command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath /tmp/itfactor_smartfill_phase3_tests_final -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase3_tests_final.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase3_tests_final.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase3_tests_final/Logs/Test/Test-STSiPhone-2026.03.25_22-46-56--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Next Action
+1. Commit and push this repository-adoption slice on `gm/smartfill-itfactor-rebuild`.
+2. Complete bounded workspace replacement so the rebuild workspace, not the legacy settings/editor stack, fully owns SmartFill entry and return.
+3. Start deleting `DELETE_AFTER_CUTOVER` legacy SmartFill UI surfaces once the replacement path is the only active path.
+
 ## Ticket 002 SmartFill Review Launch + Workspace Entry (2026-03-25)
 - Thread Status: the second rebuild slice is implemented and locally gated in the writable integration repo.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

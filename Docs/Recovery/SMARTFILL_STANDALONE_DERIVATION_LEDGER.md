@@ -51,12 +51,14 @@ The flagship rebuild now has a real SmartFill entry seam:
 - `ProjectDetailView` bypasses the legacy `SmartFillSettingsModal` on the review/player sheet path.
 - `SmartFillWorkspaceView` owns the new grouped workspace entry experience.
 - `SmartFillTakeBridge` now round-trips settings between take snapshots and rebuild workspace settings.
+- `SmartFillResultBridge` now adopts SmartFill output through repository truth and creates or refreshes one authoritative standalone SmartFill variant take.
+- `SmartFillProcessingManager` completion notifications now preserve the queued take ID for review listeners while also carrying the adopted SmartFill take ID for reopen routing.
 
 This means the future standalone utility already has a clear derivation path:
 1. import one clip
 2. create or reuse a hidden static `SmartFillSessionContext`
 3. open the same `SmartFillWorkspaceView`-style editor scene
-4. write result history/export data through a utility-local result bridge
+4. write result history/export data through a utility-local result bridge that mirrors repository adoption without project/session vocabulary
 
 ## Current Next Step
-Complete repository result adoption in the flagship repo so the standalone utility can later swap only the persistence layer, not the workspace model.
+Replace the remaining legacy SmartFill settings/editor shells in flagship itFactor so the future standalone utility can extract the same workspace model with only a hidden static-session shell and lightweight persistence swap.

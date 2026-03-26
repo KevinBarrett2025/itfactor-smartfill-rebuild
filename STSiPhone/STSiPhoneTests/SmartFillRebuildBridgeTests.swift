@@ -79,6 +79,82 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertEqual(result.adoptionMode, .createStandaloneVariantTake)
     }
 
+    func testNotificationBackedResultBridgeBuildsStandaloneRecord() {
+        let projectID = UUID()
+        let sessionID = UUID()
+        let takeID = UUID()
+        let adoptedTakeID = UUID()
+        let context = SmartFillSessionContext(
+            projectID: projectID,
+            sessionID: sessionID,
+            takeID: takeID,
+            launchSource: .takeReview,
+            returnTarget: .takeReview
+        )
+
+        let notification = Notification(
+            name: .smartFillDidComplete,
+            object: nil,
+            userInfo: [
+                "originalTakeID": takeID,
+                "lineageOriginalTakeID": takeID,
+                "smartFillTakeID": adoptedTakeID,
+                "sessionID": sessionID,
+                "projectID": projectID,
+                "smartFillPath": "/tmp/output_smartfill.mov",
+                "approach": "standalone"
+            ]
+        )
+
+        let record = SmartFillResultBridge.makeAdoptionRecord(
+            from: notification,
+            matching: context,
+            settingsSnapshot: nil
+        )
+
+        XCTAssertEqual(record?.adoptionMode, .createStandaloneVariantTake)
+        XCTAssertEqual(record?.adoptedTakeID, adoptedTakeID)
+        XCTAssertEqual(record?.originalTakeID, takeID)
+        XCTAssertEqual(record?.projectID, projectID)
+        XCTAssertEqual(record?.sessionID, sessionID)
+    }
+
+    func testNotificationBackedResultBridgeBuildsInlineRecord() {
+        let projectID = UUID()
+        let sessionID = UUID()
+        let takeID = UUID()
+        let context = SmartFillSessionContext(
+            projectID: projectID,
+            sessionID: sessionID,
+            takeID: takeID,
+            launchSource: .takeReview,
+            returnTarget: .takeReview
+        )
+
+        let notification = Notification(
+            name: .smartFillDidComplete,
+            object: nil,
+            userInfo: [
+                "originalTakeID": takeID,
+                "smartFillTakeID": takeID,
+                "sessionID": sessionID,
+                "projectID": projectID,
+                "smartFillPath": "/tmp/output_smartfill.mov",
+                "approach": "inline"
+            ]
+        )
+
+        let record = SmartFillResultBridge.makeAdoptionRecord(
+            from: notification,
+            matching: context,
+            settingsSnapshot: nil
+        )
+
+        XCTAssertEqual(record?.adoptionMode, .updateExistingTakePath)
+        XCTAssertEqual(record?.adoptedTakeID, takeID)
+        XCTAssertEqual(record?.originalTakeID, takeID)
+    }
+
     func testSettingsRoundTripPreservesSnapshotValues() {
         let settings = SmartFillSettings(
             isEnabled: true,
@@ -137,6 +213,10 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertEqual(coordinator.activeContext, context)
 
         let result = SmartFillResultBridgeRecord(
+            projectID: context.projectID,
+            sessionID: context.sessionID,
+            originalTakeID: context.takeID,
+            adoptedTakeID: context.takeID,
             outputURL: URL(fileURLWithPath: "/tmp/output_smartfill.mov"),
             duration: 5,
             settingsSnapshot: defaults.snapshot,

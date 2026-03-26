@@ -649,43 +649,29 @@ public final class SmartFillProcessingManager: ObservableObject {
         guard let repository = SessionManager.shared.repositoryInstance else {
             throw SmartFillProcessingError.processingFailed("No repository configured for SmartFill updates")
         }
-        
-        // Store SmartFill as a non-destructive variant on the original take
-        repository.updateTakeWithSmartFillPath(
-            takeID: job.takeID,
-            smartFilledPath: job.outputPath,
-            in: job.sessionID,
-            in: job.projectID
+
+        let adoption = try SmartFillResultBridge.adopt(job: job, repository: repository)
+
+        self.logger.info(
+            "smartfill_take_updated original=\(adoption.originalTakeID.uuidString, privacy: .public) adopted=\(adoption.adoptedTakeID.uuidString, privacy: .public) mode=\(adoption.approach, privacy: .public) path=\(job.outputPath, privacy: .private)"
         )
-        repository.updateTakeOrientation(
-            takeID: job.takeID,
-            sessionID: job.sessionID,
-            projectID: job.projectID,
-            newOrientation: .landscape
-        )
-        
-        self.logger.info("smartfill_take_updated original=\(job.takeID.uuidString, privacy: .public) path=\(job.outputPath, privacy: .private)")
-        
-        delegate?.smartFillDidFinish(takeID: job.takeID, outputURL: URL(fileURLWithPath: job.outputPath))
-        
+
+        delegate?.smartFillDidFinish(takeID: adoption.adoptedTakeID, outputURL: adoption.outputURL)
+
         NotificationCenter.default.post(
-            name: Notification.Name("STSSmartFillCompleted"),
+            name: .smartFillDidComplete,
             object: nil,
-            userInfo: [
-                "originalTakeID": job.takeID,
-                "smartFillTakeID": job.takeID,
-                "sessionID": job.sessionID,
-                "projectID": job.projectID,
-                "smartFillPath": job.outputPath,
-                "originalPath": job.originalPath,
-                "approach": "inline"
-            ]
+            userInfo: adoption.notificationUserInfo.merging(
+                [AnyHashable("originalPath"): job.originalPath]
+            ) { current, _ in current }
         )
         
         NotificationCenter.default.post(
             name: .smartFillProcessingComplete,
             object: nil,
-            userInfo: ["outputURL": URL(fileURLWithPath: job.outputPath)]
+            userInfo: adoption.notificationUserInfo.merging(
+                [AnyHashable("outputURL"): adoption.outputURL]
+            ) { current, _ in current }
         )
     }
     
