@@ -92,3 +92,4 @@ These fields and APIs carry shipped SmartFill truth and must not be deleted duri
 5. Review/player and editor-origin SmartFill entry must share the same rebuild workspace seam before any delete-after-cutover legacy UI is removed.
 6. Launch source and return target must stay explicit in flagship SmartFill context so workspace copy and completion behavior do not fall back to take-review-only assumptions.
 7. Common treatment tuning must live in the shared rebuild workspace itself; do not reintroduce separate SmartFill tuning shells for the flagship flow.
+8. Live SmartFill save progress must flow through shared engine notifications carrying take/session/project identity; do not push flagship save-state truth back into shell-specific banners or duplicate wrapper surfaces.

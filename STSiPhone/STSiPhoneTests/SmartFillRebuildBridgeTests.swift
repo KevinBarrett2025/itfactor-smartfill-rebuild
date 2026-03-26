@@ -378,6 +378,10 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
             SmartFillWorkspacePresentation.processingMessage(for: context),
             "Saving SmartFill for “S1T1” and preparing the return to editor…"
         )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.processingMessage(for: context, progress: 0.42),
+            "Saving SmartFill for “S1T1” (42%) before returning to editor…"
+        )
     }
 
     func testWorkspacePresentationSupportsStageAwareSaveCopyAndBackgroundModes() {
@@ -408,6 +412,10 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertEqual(
             SmartFillWorkspacePresentation.completionMessage(for: context, adoptionMode: .updateExistingTakePath),
             "Updated SmartFill. Returning to Editor…"
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.deferredReturnMessage(for: context, adoptionMode: .updateExistingTakePath),
+            "SmartFill is updated. Return to Editor when you're ready."
         )
     }
 

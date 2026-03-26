@@ -13,6 +13,7 @@ struct SmartFillWorkspaceView: View {
     @State private var previewErrorMessage: String?
     @State private var queueAttempted = false
     @State private var autoReturnWorkItem: DispatchWorkItem?
+    @State private var processingProgress: Double = 0
 
     private let workspaceDefaults: SmartFillWorkspaceDefaults
 
@@ -87,6 +88,16 @@ struct SmartFillWorkspaceView: View {
                 )
                 coordinator.begin(context: launchContext, defaults: workspaceDefaults)
                 previewErrorMessage = nil
+                processingProgress = 0
+                autoReturnWorkItem?.cancel()
+                autoReturnWorkItem = nil
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .smartFillProcessingProgress)) { notification in
+                guard coordinator.stage == .export else { return }
+                guard matchesCurrentProcessingNotification(notification) else { return }
+                let progress = min(max(notification.userInfo?["progress"] as? Double ?? 0, 0), 1)
+                processingProgress = progress
+                statusMessage = SmartFillWorkspacePresentation.processingMessage(for: context, progress: progress)
             }
             .onReceive(NotificationCenter.default.publisher(for: .smartFillDidComplete)) { notification in
                 guard matchesCurrentTake(notification) else { return }
@@ -101,6 +112,7 @@ struct SmartFillWorkspaceView: View {
                     return
                 }
                 coordinator.recordResult(record)
+                processingProgress = 1
                 statusMessage = SmartFillWorkspacePresentation.completionMessage(
                     for: context,
                     adoptionMode: record.adoptionMode
@@ -116,6 +128,7 @@ struct SmartFillWorkspaceView: View {
                 }
                 statusMessage = (notification.userInfo?["error"] as? String) ?? "SmartFill couldn't finish for this take."
                 coordinator.advance(to: workspaceDefaults.shouldOfferSmartFill ? .configure : .preview)
+                processingProgress = 0
                 queueAttempted = false
             }
             .onDisappear {
@@ -349,6 +362,12 @@ struct SmartFillWorkspaceView: View {
                 value: primaryActionTitle
             )
 
+            if coordinator.stage == .export {
+                exportProgressPanel
+            } else if hasPendingAutoReturn {
+                returnControlPanel
+            }
+
             if let statusMessage {
                 Label(statusMessage, systemImage: stageIcon)
                     .font(.caption)
@@ -365,8 +384,8 @@ struct SmartFillWorkspaceView: View {
 
     private var actionBar: some View {
         HStack(spacing: 12) {
-            Button("Cancel") {
-                handleClose()
+            Button(secondaryActionTitle) {
+                handleSecondaryAction()
             }
             .buttonStyle(.bordered)
             .disabled(isCloseDisabled)
@@ -382,6 +401,50 @@ struct SmartFillWorkspaceView: View {
         .padding(.top, 12)
         .padding(.bottom, 16)
         .background(.ultraThinMaterial)
+    }
+
+    private var exportProgressPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Save progress")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                Spacer()
+                Text("\(Int((processingProgress * 100).rounded()))%")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.primary)
+            }
+
+            ProgressView(value: processingProgress)
+                .tint(Theme.primary)
+
+            Text("SmartFill is rendering the landscape version and preparing the return to \(SmartFillWorkspacePresentation.returnTargetTitle(for: context).lowercased()).")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(14)
+        .background(Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private var returnControlPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("Saved and ready", systemImage: "checkmark.circle.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.green)
+                Spacer()
+                Button("Stay Here") {
+                    cancelAutoReturn()
+                }
+                .font(.caption.weight(.semibold))
+            }
+
+            Text("The rebuilt workspace is ready to return to \(SmartFillWorkspacePresentation.returnTargetTitle(for: context)). You can stay here to review the preview or use the primary action to return immediately.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(14)
+        .background(Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private var blurRadiusBinding: Binding<Double> {
@@ -444,12 +507,20 @@ struct SmartFillWorkspaceView: View {
         SmartFillWorkspacePresentation.actionTitle(for: context, stage: coordinator.stage)
     }
 
+    private var secondaryActionTitle: String {
+        hasPendingAutoReturn ? "Stay Here" : "Cancel"
+    }
+
     private var isPrimaryActionDisabled: Bool {
         coordinator.stage == .export
     }
 
     private var isCloseDisabled: Bool {
         coordinator.stage == .export
+    }
+
+    private var hasPendingAutoReturn: Bool {
+        coordinator.stage == .completed && autoReturnWorkItem != nil
     }
 
     private var fileNameLabel: String {
@@ -468,7 +539,8 @@ struct SmartFillWorkspaceView: View {
         case .intake: return "Ready"
         case .configure: return "Configure"
         case .preview: return "Preview"
-        case .export: return "Processing"
+        case .export:
+            return "Saving \(Int((processingProgress * 100).rounded()))%"
         case .completed: return "Complete"
         }
     }
@@ -609,7 +681,8 @@ struct SmartFillWorkspaceView: View {
         settings.saveToUserDefaults()
         coordinator.updateSettings(SmartFillTakeBridge.snapshot(from: clamped))
         coordinator.advance(to: .export)
-        statusMessage = SmartFillWorkspacePresentation.processingMessage(for: context)
+        processingProgress = 0
+        statusMessage = SmartFillWorkspacePresentation.processingMessage(for: context, progress: 0)
         queueAttempted = true
         onQueueSmartFill(clamped)
     }
@@ -688,9 +761,37 @@ struct SmartFillWorkspaceView: View {
         return false
     }
 
+    private func matchesCurrentProcessingNotification(_ notification: Notification) -> Bool {
+        if let takeID = notification.userInfo?["takeID"] as? UUID {
+            return takeID == context.take.id
+        }
+        if let takeID = notification.userInfo?["takeID"] as? String {
+            return UUID(uuidString: takeID) == context.take.id
+        }
+        return false
+    }
+
     private func markPreviewDirty() {
         settings.forceUpdateToken = UUID()
         previewErrorMessage = nil
+    }
+
+    private func handleSecondaryAction() {
+        if hasPendingAutoReturn {
+            cancelAutoReturn()
+            return
+        }
+
+        handleClose()
+    }
+
+    private func cancelAutoReturn() {
+        autoReturnWorkItem?.cancel()
+        autoReturnWorkItem = nil
+        statusMessage = SmartFillWorkspacePresentation.deferredReturnMessage(
+            for: context,
+            adoptionMode: coordinator.lastResult?.adoptionMode
+        )
     }
 
     private func handleClose() {
@@ -801,8 +902,13 @@ enum SmartFillWorkspacePresentation {
         "When processing completes, SmartFill returns to \(returnTargetTitle(for: context).lowercased()) with the landscape result still tied to “\(context.displayName)”."
     }
 
-    static func processingMessage(for context: SmartFillSettingsContext) -> String {
-        "Saving SmartFill for “\(context.displayName)” and preparing the return to \(returnTargetTitle(for: context).lowercased())…"
+    static func processingMessage(for context: SmartFillSettingsContext, progress: Double? = nil) -> String {
+        guard let progress else {
+            return "Saving SmartFill for “\(context.displayName)” and preparing the return to \(returnTargetTitle(for: context).lowercased())…"
+        }
+
+        let percent = Int((min(max(progress, 0), 1) * 100).rounded())
+        return "Saving SmartFill for “\(context.displayName)” (\(percent)%) before returning to \(returnTargetTitle(for: context).lowercased())…"
     }
 
     static func completionMessage(
@@ -814,6 +920,20 @@ enum SmartFillWorkspacePresentation {
             return "Updated SmartFill. Returning to \(returnTargetTitle(for: context))…"
         case .createStandaloneVariantTake:
             return "Saved the SmartFill take. Returning to \(returnTargetTitle(for: context))…"
+        }
+    }
+
+    static func deferredReturnMessage(
+        for context: SmartFillSettingsContext,
+        adoptionMode: SmartFillResultAdoptionMode?
+    ) -> String {
+        switch adoptionMode {
+        case .updateExistingTakePath:
+            return "SmartFill is updated. Return to \(returnTargetTitle(for: context)) when you're ready."
+        case .createStandaloneVariantTake:
+            return "SmartFill is saved. Return to \(returnTargetTitle(for: context)) when you're ready."
+        case nil:
+            return "SmartFill is ready. Return to \(returnTargetTitle(for: context)) when you're ready."
         }
     }
 

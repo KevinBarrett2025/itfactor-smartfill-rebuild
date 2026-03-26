@@ -1,5 +1,72 @@
 # CODEX Thread Continuity
 
+## Ticket 014 Workspace Save Progress And Return Control (2026-03-26)
+- Thread Status: live save-progress feedback plus explicit stay-vs-return control are implemented in the rebuild workspace, locally gated, and commit/push is the active next action.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-rebuild`
+- Working Head SHA: `d2ca4242b760db2d3e297604f0e2a27f0143d362`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Deepen the rebuild workspace now that inline treatment controls and explicit return actions are already anchored:
+1. surface live SmartFill save progress inside the rebuild workspace instead of relying on generic processing copy alone
+2. carry take/session/project identity through SmartFill progress notifications so the workspace can trust real progress updates
+3. replace forced post-save auto-dismiss with a clearer stay-vs-return moment while still preserving quick default return behavior
+4. keep standalone derivation aligned because the same progress/return seam later becomes the utility app’s save/share/history finish state
+
+### Completed This Pass
+- `SmartFillProcessingManager` progress notifications now carry:
+  - `takeID`
+  - `sessionID`
+  - `projectID`
+  so the rebuild workspace can listen for real progress without reviving any project-level wrapper UI.
+- `SmartFillWorkspaceView` now listens for `.smartFillProcessingProgress` and updates the save lane with:
+  - a live percentage
+  - a `ProgressView`
+  - stage-aware processing copy
+- The workspace save lane now exposes a real completed-state control surface:
+  - saved-and-ready status
+  - explicit `Stay Here` affordance
+  - primary `Return to ...` action remains available for immediate handoff
+- Auto-return is still the default completion path, but users can now cancel it intentionally and keep the workspace open after save.
+- Focused tests now cover:
+  - progress-aware processing copy
+  - deferred return messaging after canceling auto-return
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase14_gateA build | tee /tmp/itfactor_smartfill_phase14_gateA.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase14_gateA.log`
+- Focused parity command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath /tmp/itfactor_smartfill_phase14_tests -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase14_tests.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase14_tests.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase14_tests/Logs/Test/Test-STSiPhone-2026.03.26_12-32-18--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Archaeology Snapshot
+- `SF-REBUILD-013` made completion clearer, but the workspace still had no live processing progress and auto-return still behaved like a silent timer.
+- The SmartFill engine was already publishing progress, but those notifications were missing take/session/project identity, so the workspace could not safely consume them.
+- The correct next move was to enrich the existing shared notification seam and keep save-progress / return behavior inside the rebuild workspace instead of reintroducing banners, modal wrappers, or project-detail-only status chrome.
+
+### Next Action
+1. Commit and push the workspace save-progress and return-control slice on `gm/smartfill-itfactor-rebuild`.
+2. Choose the next flagship SmartFill workspace phase now that the rebuild owns launch truth, real preview, explicit product lanes, inline treatment controls, live save progress, and intentional return control.
+3. Keep the standalone derivation ledger synchronized so the later hidden-session utility can reuse the same progress and finish-state model.
+
 ## Ticket 013 Workspace Treatment Controls And Return Flow (2026-03-26)
 - Thread Status: richer inline treatment controls plus tighter save/return behavior are implemented in the rebuild workspace, locally gated, and commit/push is the active next action.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

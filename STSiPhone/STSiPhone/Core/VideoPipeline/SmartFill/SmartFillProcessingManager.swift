@@ -501,7 +501,10 @@ public final class SmartFillProcessingManager: ObservableObject {
             object: nil,
             userInfo: [
                 "jobID": self.jobs[index].id,
-                "progress": self.jobs[index].progress
+                "progress": self.jobs[index].progress,
+                "takeID": self.jobs[index].takeID,
+                "sessionID": self.jobs[index].sessionID,
+                "projectID": self.jobs[index].projectID
             ]
         )
     }
