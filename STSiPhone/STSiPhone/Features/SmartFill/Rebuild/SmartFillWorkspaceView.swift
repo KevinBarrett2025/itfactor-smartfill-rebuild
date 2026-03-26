@@ -62,7 +62,7 @@ struct SmartFillWorkspaceView: View {
                         queueSmartFill()
                     }
                     .fontWeight(.semibold)
-                    .disabled(coordinator.stage == .export)
+                    .disabled(isActionDisabled)
                 }
             }
             .safeAreaInset(edge: .bottom) {
@@ -80,8 +80,8 @@ struct SmartFillWorkspaceView: View {
                     project: context.project,
                     session: context.session,
                     take: context.take,
-                    launchSource: .takeReview,
-                    returnTarget: .takeReview
+                    launchSource: context.launchSource,
+                    returnTarget: context.returnTarget
                 )
                 coordinator.begin(context: launchContext, defaults: workspaceDefaults)
                 previewErrorMessage = nil
@@ -99,9 +99,12 @@ struct SmartFillWorkspaceView: View {
                     return
                 }
                 coordinator.recordResult(record)
-                statusMessage = record.destinationSummary
+                statusMessage = SmartFillWorkspacePresentation.completionMessage(
+                    for: context,
+                    adoptionMode: record.adoptionMode
+                )
                 queueAttempted = false
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     handleClose()
                 }
             }
@@ -184,28 +187,34 @@ struct SmartFillWorkspaceView: View {
                 .foregroundStyle(.secondary)
 
             HStack(spacing: 12) {
-                ForEach(SmartFillSettings.Preset.allCases, id: \.rawValue) { preset in
+                ForEach(SmartFillWorkspaceBackgroundMode.allCases, id: \.self) { mode in
                     Button {
-                        applyPreset(preset)
+                        applyBackgroundMode(mode)
                     } label: {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(presetTitle(for: preset))
+                            Text(mode.title)
                                 .font(.subheadline.weight(.semibold))
-                            Text(presetCaption(for: preset))
+                            Text(mode.caption)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(14)
-                        .background(presetBackground(for: preset), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .background(backgroundModeBackground(for: mode), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .stroke(presetStroke(for: preset), lineWidth: 1)
+                                .stroke(backgroundModeStroke(for: mode), lineWidth: 1)
                         )
                     }
                     .buttonStyle(.plain)
                 }
             }
+
+            summaryRow(
+                icon: "wand.and.rays",
+                title: "Current mode",
+                value: SmartFillWorkspacePresentation.backgroundModeTitle(for: settings)
+            )
 
             HStack(spacing: 10) {
                 summaryChip(
@@ -352,7 +361,7 @@ struct SmartFillWorkspaceView: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(Theme.primary)
-            .disabled(coordinator.stage == .export)
+            .disabled(isActionDisabled)
         }
         .padding(.horizontal, Theme.Layout.screenPadding)
         .padding(.top, 12)
@@ -417,7 +426,11 @@ struct SmartFillWorkspaceView: View {
     }
 
     private var primaryActionTitle: String {
-        SmartFillWorkspacePresentation.actionTitle(for: context)
+        SmartFillWorkspacePresentation.actionTitle(for: context, stage: coordinator.stage)
+    }
+
+    private var isActionDisabled: Bool {
+        coordinator.stage == .export || coordinator.stage == .completed
     }
 
     private var fileNameLabel: String {
@@ -459,18 +472,16 @@ struct SmartFillWorkspaceView: View {
         }
     }
 
-    private func presetBackground(for preset: SmartFillSettings.Preset) -> Color {
-        activePreset == preset ? Theme.primary.opacity(0.16) : Color.white.opacity(0.02)
+    private func backgroundModeBackground(for mode: SmartFillWorkspaceBackgroundMode) -> Color {
+        activeBackgroundMode == mode ? Theme.primary.opacity(0.16) : Color.white.opacity(0.02)
     }
 
-    private func presetStroke(for preset: SmartFillSettings.Preset) -> Color {
-        activePreset == preset ? Theme.primary.opacity(0.6) : Color.white.opacity(0.10)
+    private func backgroundModeStroke(for mode: SmartFillWorkspaceBackgroundMode) -> Color {
+        activeBackgroundMode == mode ? Theme.primary.opacity(0.6) : Color.white.opacity(0.10)
     }
 
-    private var activePreset: SmartFillSettings.Preset? {
-        SmartFillSettings.Preset.allCases.first { preset in
-            settings.presetName?.caseInsensitiveCompare(presetTitle(for: preset)) == .orderedSame
-        }
+    private var activeBackgroundMode: SmartFillWorkspaceBackgroundMode? {
+        SmartFillWorkspaceBackgroundMode.allCases.first { $0.matches(settings) }
     }
 
     private func presetTitle(for preset: SmartFillSettings.Preset) -> String {
@@ -544,7 +555,8 @@ struct SmartFillWorkspaceView: View {
         .buttonStyle(.plain)
     }
 
-    private func applyPreset(_ preset: SmartFillSettings.Preset) {
+    private func applyBackgroundMode(_ mode: SmartFillWorkspaceBackgroundMode) {
+        let preset = mode.preset
         settings.blurRadius = preset.blurRadius
         settings.darkenAmount = preset.darkenAmount
         settings.backgroundScale = preset.backgroundScale
@@ -559,7 +571,7 @@ struct SmartFillWorkspaceView: View {
         settings.saveToUserDefaults()
         coordinator.updateSettings(SmartFillTakeBridge.snapshot(from: clamped))
         coordinator.advance(to: .export)
-        statusMessage = "Processing SmartFill for \(context.displayName)…"
+        statusMessage = SmartFillWorkspacePresentation.processingMessage(for: context)
         queueAttempted = true
         onQueueSmartFill(clamped)
     }
@@ -585,6 +597,64 @@ struct SmartFillWorkspaceView: View {
     }
 }
 
+private enum SmartFillWorkspaceBackgroundMode: CaseIterable {
+    case natural
+    case balanced
+    case cinematic
+
+    var preset: SmartFillSettings.Preset {
+        switch self {
+        case .natural:
+            return .subtle
+        case .balanced:
+            return .medium
+        case .cinematic:
+            return .dramatic
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .natural:
+            return "Natural"
+        case .balanced:
+            return "Balanced"
+        case .cinematic:
+            return "Cinematic"
+        }
+    }
+
+    var caption: String {
+        switch self {
+        case .natural:
+            return "Keep more of the original room and texture."
+        case .balanced:
+            return "Most audition takes look right here."
+        case .cinematic:
+            return "Push the subject forward with stronger separation."
+        }
+    }
+
+    func matches(_ settings: SmartFillSettings) -> Bool {
+        if let presetName = settings.presetName?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !presetName.isEmpty {
+            switch self {
+            case .natural:
+                return presetName.caseInsensitiveCompare("Subtle") == .orderedSame
+            case .balanced:
+                return presetName.caseInsensitiveCompare("Medium") == .orderedSame
+            case .cinematic:
+                return presetName.caseInsensitiveCompare("Dramatic") == .orderedSame
+            }
+        }
+
+        let preset = preset
+        return abs(settings.blurRadius - preset.blurRadius) < 0.1 &&
+            abs(settings.darkenAmount - preset.darkenAmount) < 0.01 &&
+            abs(settings.backgroundScale - preset.backgroundScale) < 0.1
+    }
+}
+
 enum SmartFillWorkspacePresentation {
     static func headerTitle(for context: SmartFillSettingsContext) -> String {
         context.infoTitle ?? "SmartFill Editor"
@@ -595,7 +665,22 @@ enum SmartFillWorkspacePresentation {
     }
 
     static func actionTitle(for context: SmartFillSettingsContext) -> String {
-        context.take.isSmartFillVariant || context.existingSettings != nil ? "Update SmartFill" : "Create SmartFill"
+        actionTitle(for: context, stage: .configure)
+    }
+
+    static func actionTitle(
+        for context: SmartFillSettingsContext,
+        stage: SmartFillWorkspaceCoordinator.Stage
+    ) -> String {
+        switch stage {
+        case .export:
+            return "Saving SmartFill…"
+        case .completed:
+            return "Saved to \(shortReturnTargetTitle(for: context))"
+        default:
+            let leadingVerb = context.take.isSmartFillVariant || context.existingSettings != nil ? "Update" : "Save"
+            return "\(leadingVerb) and Return to \(shortReturnTargetTitle(for: context))"
+        }
     }
 
     static func destinationTitle(for context: SmartFillSettingsContext) -> String {
@@ -603,17 +688,35 @@ enum SmartFillWorkspacePresentation {
     }
 
     static func saveLaneMessage(for context: SmartFillSettingsContext) -> String {
-        context.take.isSmartFillVariant
-        ? "This keeps the existing SmartFill take in sync with your latest edits and returns you to the same review flow."
-        : "This creates or refreshes the SmartFill version of the selected take and keeps it tied to the original session context."
+        if context.take.isSmartFillVariant {
+            return "Updating SmartFill keeps the current landscape take in sync, then returns you to \(returnTargetTitle(for: context).lowercased())."
+        }
+
+        return "Saving SmartFill creates or refreshes the landscape take for this source clip, then returns you to \(returnTargetTitle(for: context).lowercased())."
     }
 
     static func saveFootnote(for context: SmartFillSettingsContext) -> String {
         "When processing completes, SmartFill returns to \(returnTargetTitle(for: context).lowercased()) with the landscape result still tied to “\(context.displayName)”."
     }
 
+    static func processingMessage(for context: SmartFillSettingsContext) -> String {
+        "Saving SmartFill for “\(context.displayName)” and preparing the return to \(returnTargetTitle(for: context).lowercased())…"
+    }
+
+    static func completionMessage(
+        for context: SmartFillSettingsContext,
+        adoptionMode: SmartFillResultAdoptionMode
+    ) -> String {
+        switch adoptionMode {
+        case .updateExistingTakePath:
+            return "Updated SmartFill and returned it to \(returnTargetTitle(for: context))."
+        case .createStandaloneVariantTake:
+            return "Saved the SmartFill take and returned it to \(returnTargetTitle(for: context))."
+        }
+    }
+
     static func returnTargetTitle(for context: SmartFillSettingsContext) -> String {
-        switch context.autoLaunchEditor ? SmartFillReturnTarget.editor : .takeReview {
+        switch context.returnTarget {
         case .projectDetail:
             return "Project detail"
         case .takeReview:
@@ -624,6 +727,21 @@ enum SmartFillWorkspacePresentation {
             return "Editor"
         case .standaloneWorkspace:
             return "Standalone workspace"
+        }
+    }
+
+    static func shortReturnTargetTitle(for context: SmartFillSettingsContext) -> String {
+        switch context.returnTarget {
+        case .projectDetail:
+            return "Project"
+        case .takeReview:
+            return "Review"
+        case .swipeablePlayer:
+            return "Player"
+        case .editor:
+            return "Editor"
+        case .standaloneWorkspace:
+            return "Workspace"
         }
     }
 
@@ -641,6 +759,13 @@ enum SmartFillWorkspacePresentation {
     static func outputCaption(for settings: SmartFillSettings) -> String {
         let size = "\(Int(settings.renderSize.width))×\(Int(settings.renderSize.height))"
         return "\(size) output with \(processingPriorityTitle(for: settings.processingPriority).lowercased()) processing."
+    }
+
+    static func backgroundModeTitle(for settings: SmartFillSettings) -> String {
+        if let mode = SmartFillWorkspaceBackgroundMode.allCases.first(where: { $0.matches(settings) }) {
+            return mode.title
+        }
+        return "Custom"
     }
 
     static func processingPriorityTitle(for priority: SmartFillSettings.ProcessingPriority) -> String {

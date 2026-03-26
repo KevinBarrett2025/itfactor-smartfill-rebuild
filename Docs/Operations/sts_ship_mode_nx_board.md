@@ -39,6 +39,7 @@ Rules:
   - reachable from `SettingsView` as `SmartFill Defaults`
 - The rebuild workspace now renders the actual SmartFill preview pipeline instead of a raw source player fallback, and preview refreshes are keyed on URL, settings, and an explicit refresh token.
 - The rebuild workspace now exposes explicit user-facing product lanes for background look, subject framing, output, and save-back behavior instead of relying on generic preset/export copy.
+- The rebuild workspace now also uses real launch/return context and stage-aware save copy instead of assuming every flow returns to take review.
 - `authority/main` now exists remotely and locally at the untouched Jan 23 baseline.
 
 ---
@@ -55,6 +56,7 @@ Rules:
 | 4A | SF-REBUILD-009 | Restore one intentional SmartFill defaults entry under rebuild namespace | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase7_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase7_tests.log`; `SettingsView` now opens `SmartFillDefaultsView` |
 | 4B | SF-REBUILD-010 | Restore real SmartFill preview in rebuild workspace | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase8_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase8_tests.log`; workspace now renders `SmartFillPreviewPlayer` with refresh-token reload coverage |
 | 4C | SF-REBUILD-011 | Expose explicit workspace controls and save flow | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase11_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase11_tests.log`; workspace now presents explicit look, framing, output, and save lanes backed by `SmartFillWorkspacePresentation` |
+| 4D | SF-REBUILD-012 | Tighten workspace return context and save states | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase12_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase12_tests.log`; workspace now reflects real return targets, stage-aware save copy, and explicit background-look modes |
 
 ---
 
@@ -75,6 +77,6 @@ Rules:
 ---
 
 ## Next Action
-1. Commit and push the explicit workspace controls and save-flow slice on `gm/smartfill-itfactor-rebuild`.
-2. Choose the next intentional flagship SmartFill workspace/product phase now that entry, defaults, result adoption, preview, and explicit control lanes all live under the rebuild namespace.
+1. Commit and push the workspace return-context and save-state slice on `gm/smartfill-itfactor-rebuild`.
+2. Choose the next intentional flagship SmartFill workspace/product phase now that entry, defaults, result adoption, preview, explicit control lanes, and real return-target messaging all live under the rebuild namespace.
 3. Keep the standalone derivation ledger in sync while future shared-workspace work lands.

@@ -49,6 +49,7 @@ These seams are the correct architectural anchors for the rebuild:
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspaceCoordinator.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspaceView.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspacePresentation` (declared in `SmartFillWorkspaceView.swift`)
+- `STSiPhone/STSiPhone/Features/Editing/LightweightEditorViewController+ModularWiring.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillDefaultsView.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillAdvancedSettingsView.swift`
 
@@ -89,3 +90,4 @@ These fields and APIs carry shipped SmartFill truth and must not be deleted duri
 3. The current standalone SmartFill UI is not the product shell to preserve.
 4. SmartFill processing, settings, preview, export, and result adoption must converge into one bounded editor workspace launched from project/session/take review.
 5. Review/player and editor-origin SmartFill entry must share the same rebuild workspace seam before any delete-after-cutover legacy UI is removed.
+6. Launch source and return target must stay explicit in flagship SmartFill context so workspace copy and completion behavior do not fall back to take-review-only assumptions.

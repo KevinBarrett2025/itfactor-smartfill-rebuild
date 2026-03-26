@@ -350,7 +350,7 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         )
         let context = makeWorkspaceContext(take: take, existingSettings: SmartFillSettings())
 
-        XCTAssertEqual(SmartFillWorkspacePresentation.actionTitle(for: context), "Update SmartFill")
+        XCTAssertEqual(SmartFillWorkspacePresentation.actionTitle(for: context), "Update and Return to Review")
         XCTAssertEqual(SmartFillWorkspacePresentation.destinationTitle(for: context), "Update current SmartFill take")
     }
 
@@ -362,6 +362,37 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertEqual(SmartFillWorkspacePresentation.framingCaption(for: tightFraming), "Push the subject forward for a tighter, more dramatic frame.")
         XCTAssertEqual(SmartFillWorkspacePresentation.processingPriorityTitle(for: .background), "Batch")
         XCTAssertEqual(SmartFillWorkspacePresentation.processingPriorityTitle(for: .high), "Fast")
+    }
+
+    func testWorkspacePresentationUsesExplicitReturnTargetForCopy() {
+        let context = makeWorkspaceContext(
+            take: ProjectTake(filePath: "/tmp/original.mov", durationSeconds: 12),
+            autoLaunchEditor: false,
+            launchSource: .editorBadge,
+            returnTarget: .editor
+        )
+
+        XCTAssertEqual(SmartFillWorkspacePresentation.returnTargetTitle(for: context), "Editor")
+        XCTAssertEqual(SmartFillWorkspacePresentation.actionTitle(for: context, stage: .configure), "Save and Return to Editor")
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.processingMessage(for: context),
+            "Saving SmartFill for “S1T1” and preparing the return to editor…"
+        )
+    }
+
+    func testWorkspacePresentationSupportsStageAwareSaveCopyAndBackgroundModes() {
+        let settings = SmartFillSettings(presetName: "Subtle", processingPriority: .userInitiated)
+        let context = makeWorkspaceContext(
+            take: ProjectTake(filePath: "/tmp/original.mov", durationSeconds: 12),
+            existingSettings: settings
+        )
+
+        XCTAssertEqual(SmartFillWorkspacePresentation.backgroundModeTitle(for: settings), "Natural")
+        XCTAssertEqual(SmartFillWorkspacePresentation.actionTitle(for: context, stage: .export), "Saving SmartFill…")
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.completionMessage(for: context, adoptionMode: .createStandaloneVariantTake),
+            "Saved the SmartFill take and returned it to Session review."
+        )
     }
 
     @MainActor
@@ -432,7 +463,10 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         take: ProjectTake,
         infoTitle: String? = nil,
         infoMessage: String? = nil,
-        existingSettings: SmartFillSettings? = nil
+        existingSettings: SmartFillSettings? = nil,
+        autoLaunchEditor: Bool = false,
+        launchSource: SmartFillLaunchSource = .takeReview,
+        returnTarget: SmartFillReturnTarget = .takeReview
     ) -> SmartFillSettingsContext {
         let session = ProjectSession(type: .selfTape, takes: [take], primaryOrientation: .landscape)
         let project = Project(title: "Project", sessions: [session])
@@ -441,7 +475,9 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
             take: take,
             session: session,
             project: project,
-            autoLaunchEditor: false,
+            launchSource: launchSource,
+            returnTarget: returnTarget,
+            autoLaunchEditor: autoLaunchEditor,
             displayName: "S1T1",
             infoTitle: infoTitle,
             infoMessage: infoMessage,

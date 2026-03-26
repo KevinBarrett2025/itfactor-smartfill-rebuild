@@ -1,5 +1,75 @@
 # CODEX Thread Continuity
 
+## Ticket 012 Workspace Return Context And Save States (2026-03-26)
+- Thread Status: real launch/return context, stage-aware save copy, and explicit background-look modes are implemented in the rebuild workspace, locally gated, and commit/push is the active next action.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-rebuild`
+- Working Head SHA: `83ce749bd1042b08bbec3640f7ea97f81e2bc320`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Tighten the rebuild workspace so the save/return story reflects real flagship context instead of heuristics:
+1. use the actual launch source and return target from project detail, take review/player, and editor entry points
+2. make save/export action text change with workspace stage instead of staying static
+3. replace raw preset language with clearer background-look modes while preserving the same shared `SmartFillSettings` engine state
+4. keep standalone derivation aligned because the same context/copy model later maps directly onto the hidden-session utility shell
+
+### Completed This Pass
+- `ProjectDetailView` now resolves real SmartFill launch and return truth before presenting the rebuild workspace:
+  - player launches return to player unless the flow is explicitly reopening the editor
+  - take-review launches return to review unless the flow is explicitly reopening the editor
+  - project-detail launches return to project detail unless the flow is explicitly reopening the editor
+- `LightweightEditorViewController+ModularWiring` now seeds editor-origin SmartFill sessions with explicit `.editorBadge` launch source and `.editor` return target.
+- `SmartFillWorkspaceView` now builds its coordinator context from the real `SmartFillSettingsContext` launch/return values instead of hardcoding take-review return assumptions.
+- Workspace save/export copy is now stage-aware:
+  - configure -> `Save and Return ...` or `Update and Return ...`
+  - export -> `Saving SmartFill...`
+  - completed -> `Saved to ...`
+- The look lane now exposes three explicit background modes:
+  - Natural
+  - Balanced
+  - Cinematic
+  while still mapping back onto the existing preset-backed `SmartFillSettings` state.
+- Completion, processing, and save-lane messaging now describe the actual return target and adoption mode instead of a generic destination summary.
+- Focused tests now cover:
+  - explicit return-target copy
+  - stage-aware action-title changes
+  - background-mode naming
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase12_gateA build | tee /tmp/itfactor_smartfill_phase12_gateA.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase12_gateA.log`
+- Focused parity command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath /tmp/itfactor_smartfill_phase12_tests -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase12_tests.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase12_tests.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase12_tests/Logs/Test/Test-STSiPhone-2026.03.26_11-27-31--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Archaeology Snapshot
+- `SF-REBUILD-011` exposed the main product lanes, but the workspace still described save/return behavior as if every flow returned to take review.
+- Review/player, project-detail, and editor entry all already carried enough context to resolve real return behavior, so the correct move was to push that truth into `SmartFillSettingsContext` and `SmartFillWorkspacePresentation` instead of inventing another wrapper layer.
+- The existing preset system already encoded usable look groupings; the new background modes rename those same settings for product clarity without changing the underlying shared engine contract.
+
+### Next Action
+1. Commit and push the workspace return-context and save-state slice on `gm/smartfill-itfactor-rebuild`.
+2. Choose the next intentional flagship SmartFill workspace/product phase now that launch truth, preview, product lanes, and save/return copy all live under the rebuild namespace.
+3. Keep the standalone derivation ledger synchronized so the later hidden-session utility can reuse the same context and copy model.
+
 ## Ticket 011 Explicit Workspace Controls And Save Flow (2026-03-26)
 - Thread Status: explicit background/look, framing, output, and save lanes are implemented in the rebuild workspace, locally gated, and commit/push is the active next action.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

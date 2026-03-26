@@ -562,6 +562,8 @@ extension LightweightEditorViewController {
             take: sourceTake,
             session: session,
             project: project,
+            launchSource: .editorBadge,
+            returnTarget: .editor,
             autoLaunchEditor: false,
             displayName: launchSeed.displayName,
             infoTitle: launchSeed.infoTitle,

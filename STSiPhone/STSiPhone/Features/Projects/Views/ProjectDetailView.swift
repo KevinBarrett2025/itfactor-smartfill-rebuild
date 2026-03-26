@@ -72,6 +72,8 @@ struct SmartFillSettingsContext: Identifiable {
     let take: ProjectTake
     let session: ProjectSession
     let project: Project
+    let launchSource: SmartFillLaunchSource
+    let returnTarget: SmartFillReturnTarget
     let autoLaunchEditor: Bool
     let displayName: String
     let infoTitle: String?
@@ -85,6 +87,25 @@ struct SmartFillSettingsContext: Identifiable {
     
     var pipSlateSession: SlatePIPSession? {
         session.pipSlateSession
+    }
+
+    func updating(
+        launchSource: SmartFillLaunchSource,
+        returnTarget: SmartFillReturnTarget
+    ) -> SmartFillSettingsContext {
+        SmartFillSettingsContext(
+            take: take,
+            session: session,
+            project: project,
+            launchSource: launchSource,
+            returnTarget: returnTarget,
+            autoLaunchEditor: autoLaunchEditor,
+            displayName: displayName,
+            infoTitle: infoTitle,
+            infoMessage: infoMessage,
+            existingSettings: existingSettings,
+            onUpdatePIPSession: onUpdatePIPSession
+        )
     }
 }
 
@@ -1555,6 +1576,8 @@ public struct ProjectDetailView: View {
             take: take,
             session: session,
             project: project,
+            launchSource: .projectDetail,
+            returnTarget: autoLaunchEditor ? .editor : .projectDetail,
             autoLaunchEditor: autoLaunchEditor,
             displayName: displayName,
             infoTitle: infoTitle,
@@ -1700,6 +1723,8 @@ public struct ProjectDetailView: View {
     }
     
     private func presentSmartFillSettingsContext(_ context: SmartFillSettingsContext) {
+        let resolvedContext: SmartFillSettingsContext
+
         if case .smartFillSettings = activeModal {
             pendingSmartFillSettingsContext = context
             return
@@ -1708,7 +1733,11 @@ public struct ProjectDetailView: View {
         let shouldForceSmartFillSlatesTab = (context.existingSettings == nil)
 
         if let playerData = activePlayerData {
-            pendingSmartFillSettingsContext = context
+            resolvedContext = context.updating(
+                launchSource: .swipeablePlayer,
+                returnTarget: context.autoLaunchEditor ? .editor : .swipeablePlayer
+            )
+            pendingSmartFillSettingsContext = resolvedContext
 
             let targetViewType: TakeReviewPage.ViewType =
                 shouldForceSmartFillSlatesTab ? .slates : playerData.contextViewType
@@ -1731,7 +1760,11 @@ public struct ProjectDetailView: View {
             return
 
         } else if let reviewData = takeReviewState {
-            pendingSmartFillSettingsContext = context
+            resolvedContext = context.updating(
+                launchSource: .takeReview,
+                returnTarget: context.autoLaunchEditor ? .editor : .takeReview
+            )
+            pendingSmartFillSettingsContext = resolvedContext
 
             if shouldForceSmartFillSlatesTab {
                 pendingTakeReviewAfterSmartFill = TakeReviewData(
@@ -1753,14 +1786,18 @@ public struct ProjectDetailView: View {
             return
 
         } else {
+            resolvedContext = context.updating(
+                launchSource: .projectDetail,
+                returnTarget: context.autoLaunchEditor ? .editor : .projectDetail
+            )
             pendingTakeReviewAfterSmartFill = nil
         }
 
         if case .none = activeModal {
             suppressTakeReviewReturn = false
-            activeModal = .smartFillSettings(context)
+            activeModal = .smartFillSettings(resolvedContext)
         } else {
-            pendingSmartFillSettingsContext = context
+            pendingSmartFillSettingsContext = resolvedContext
             suppressTakeReviewReturn = true
             activeModal = .none
         }
