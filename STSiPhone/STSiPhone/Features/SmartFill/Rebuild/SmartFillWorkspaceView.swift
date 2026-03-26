@@ -434,7 +434,13 @@ struct SmartFillWorkspaceView: View {
                 .font(.headline)
                 .foregroundStyle(Theme.textPrimary)
 
-            Text(SmartFillWorkspacePresentation.saveLaneMessage(for: context))
+            Text(
+                SmartFillWorkspacePresentation.saveLaneMessage(
+                    for: context,
+                    adoptionMode: currentAdoptionMode,
+                    completionBehavior: completionBehavior
+                )
+            )
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
@@ -487,6 +493,8 @@ struct SmartFillWorkspaceView: View {
                 exportProgressPanel
             } else if hasPendingAutoReturn {
                 returnControlPanel
+            } else if effectiveStage == .completed && completionBehavior == .stayHere && !hasUnsavedChangesSinceLastSave {
+                stayComparisonPanel
             }
 
             if hasUnsavedChangesSinceLastSave {
@@ -504,7 +512,12 @@ struct SmartFillWorkspaceView: View {
                     .font(.caption)
                     .foregroundStyle(stageColor)
             } else {
-                Text(SmartFillWorkspacePresentation.saveFootnote(for: context))
+                Text(
+                    SmartFillWorkspacePresentation.saveFootnote(
+                        for: context,
+                        completionBehavior: completionBehavior
+                    )
+                )
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -578,6 +591,25 @@ struct SmartFillWorkspaceView: View {
         .background(Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
+    private var stayComparisonPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Saved and staying here", systemImage: "eye.fill")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.primary)
+
+            Text(
+                SmartFillWorkspacePresentation.stayComparisonMessage(
+                    for: context,
+                    adoptionMode: currentAdoptionMode
+                )
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+        .padding(14)
+        .background(Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
     private var blurRadiusBinding: Binding<Double> {
         Binding(
             get: { Double(settings.blurRadius) },
@@ -641,6 +673,7 @@ struct SmartFillWorkspaceView: View {
         SmartFillWorkspacePresentation.actionTitle(
             for: context,
             stage: coordinator.stage,
+            completionBehavior: completionBehavior,
             hasUnsavedChanges: hasUnsavedChangesSinceLastSave
         )
     }
@@ -1336,6 +1369,7 @@ enum SmartFillWorkspacePresentation {
     static func actionTitle(
         for context: SmartFillSettingsContext,
         stage: SmartFillWorkspaceCoordinator.Stage,
+        completionBehavior: SmartFillWorkspaceCompletionBehavior = .returnAutomatically,
         hasUnsavedChanges: Bool = false
     ) -> String {
         switch stage {
@@ -1348,6 +1382,9 @@ enum SmartFillWorkspacePresentation {
             fallthrough
         default:
             let leadingVerb = context.take.isSmartFillVariant || context.existingSettings != nil ? "Update" : "Save"
+            if completionBehavior == .stayHere {
+                return "\(leadingVerb) and Stay Here"
+            }
             return "\(leadingVerb) and Return to \(shortReturnTargetTitle(for: context))"
         }
     }
@@ -1356,16 +1393,34 @@ enum SmartFillWorkspacePresentation {
         context.take.isSmartFillVariant ? "Update current SmartFill take" : "Create or refresh SmartFill take"
     }
 
-    static func saveLaneMessage(for context: SmartFillSettingsContext) -> String {
-        if context.take.isSmartFillVariant {
-            return "Updating SmartFill keeps the current landscape take in sync, then returns you to \(returnTargetTitle(for: context).lowercased())."
+    static func saveLaneMessage(
+        for context: SmartFillSettingsContext,
+        adoptionMode: SmartFillResultAdoptionMode,
+        completionBehavior: SmartFillWorkspaceCompletionBehavior = .returnAutomatically
+    ) -> String {
+        let outcome: String
+        switch adoptionMode {
+        case .updateExistingTakePath:
+            outcome = "Updating SmartFill keeps the current landscape take in sync"
+        case .createStandaloneVariantTake:
+            outcome = "Saving SmartFill creates or refreshes the landscape take for this source clip"
         }
 
-        return "Saving SmartFill creates or refreshes the landscape take for this source clip, then returns you to \(returnTargetTitle(for: context).lowercased())."
+        if completionBehavior == .stayHere {
+            return "\(outcome) and keeps SmartFill open so you can compare the preview before returning to \(returnTargetTitle(for: context).lowercased())."
+        }
+
+        return "\(outcome), then returns you to \(returnTargetTitle(for: context).lowercased())."
     }
 
-    static func saveFootnote(for context: SmartFillSettingsContext) -> String {
-        "When processing completes, SmartFill returns to \(returnTargetTitle(for: context).lowercased()) with the landscape result still tied to “\(context.displayName)”."
+    static func saveFootnote(
+        for context: SmartFillSettingsContext,
+        completionBehavior: SmartFillWorkspaceCompletionBehavior = .returnAutomatically
+    ) -> String {
+        if completionBehavior == .stayHere {
+            return "After save, SmartFill stays in the workspace so you can compare the landscape result before returning to \(returnTargetTitle(for: context).lowercased())."
+        }
+        return "When processing completes, SmartFill returns to \(returnTargetTitle(for: context).lowercased()) with the landscape result still tied to “\(context.displayName)”."
     }
 
     static func processingMessage(
@@ -1430,6 +1485,18 @@ enum SmartFillWorkspacePresentation {
             return "SmartFill is saved. Return to \(returnTargetTitle(for: context)) when you're ready."
         case nil:
             return "SmartFill is ready. Return to \(returnTargetTitle(for: context)) when you're ready."
+        }
+    }
+
+    static func stayComparisonMessage(
+        for context: SmartFillSettingsContext,
+        adoptionMode: SmartFillResultAdoptionMode
+    ) -> String {
+        switch adoptionMode {
+        case .updateExistingTakePath:
+            return "The current SmartFill take is updated. Compare the preview here, then return to \(returnTargetTitle(for: context)) when you are ready."
+        case .createStandaloneVariantTake:
+            return "The SmartFill take is saved into the session. Compare the preview here, then return to \(returnTargetTitle(for: context)) when you are ready."
         }
     }
 

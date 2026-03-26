@@ -352,6 +352,14 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
 
         XCTAssertEqual(SmartFillWorkspacePresentation.actionTitle(for: context), "Update and Return to Review")
         XCTAssertEqual(SmartFillWorkspacePresentation.destinationTitle(for: context), "Update current SmartFill take")
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.saveLaneMessage(
+                for: context,
+                adoptionMode: .updateExistingTakePath,
+                completionBehavior: .returnAutomatically
+            ),
+            "Updating SmartFill keeps the current landscape take in sync, then returns you to session review."
+        )
     }
 
     func testWorkspacePresentationDescribesFramingAndPriority() {
@@ -375,12 +383,35 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertEqual(SmartFillWorkspacePresentation.returnTargetTitle(for: context), "Editor")
         XCTAssertEqual(SmartFillWorkspacePresentation.actionTitle(for: context, stage: .configure), "Save and Return to Editor")
         XCTAssertEqual(
+            SmartFillWorkspacePresentation.actionTitle(
+                for: context,
+                stage: .configure,
+                completionBehavior: .stayHere
+            ),
+            "Save and Stay Here"
+        )
+        XCTAssertEqual(
             SmartFillWorkspacePresentation.processingMessage(for: context),
             "Saving SmartFill for “S1T1” and preparing the return to editor…"
         )
         XCTAssertEqual(
             SmartFillWorkspacePresentation.processingMessage(for: context, progress: 0.42),
             "Saving SmartFill for “S1T1” (42%) before returning to editor…"
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.saveLaneMessage(
+                for: context,
+                adoptionMode: .createStandaloneVariantTake,
+                completionBehavior: .stayHere
+            ),
+            "Saving SmartFill creates or refreshes the landscape take for this source clip and keeps SmartFill open so you can compare the preview before returning to editor."
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.saveFootnote(
+                for: context,
+                completionBehavior: .stayHere
+            ),
+            "After save, SmartFill stays in the workspace so you can compare the landscape result before returning to editor."
         )
     }
 
@@ -586,6 +617,13 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
                 completionBehavior: .stayHere
             ),
             "SmartFill is saved. Stay here to compare the preview, then return to Session review when you're ready."
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.stayComparisonMessage(
+                for: context,
+                adoptionMode: .createStandaloneVariantTake
+            ),
+            "The SmartFill take is saved into the session. Compare the preview here, then return to Session review when you are ready."
         )
     }
 

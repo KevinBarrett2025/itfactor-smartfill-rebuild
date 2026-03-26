@@ -1,5 +1,74 @@
 # CODEX Thread Continuity
 
+## Ticket 018 Save Affordances Match Chosen Finish Behavior (2026-03-26)
+- Thread Status: save/update actions, save-lane messaging, and completed-state comparison guidance now honor the user's chosen `Return` versus `Stay` behavior in the rebuild workspace, locally gated, and commit/push is the active next action.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-rebuild`
+- Working Head SHA: `e6e900e14297dd3be51004b75e3bed62ba07c571`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Tighten the save lane so the rebuilt SmartFill workspace tells one consistent finish-state story:
+1. stop showing `Save and Return ...` or `Update and Return ...` when the user explicitly chose `Stay`
+2. make the save-lane message and footnote reflect whether SmartFill will return automatically or remain open for comparison
+3. show a clean completed-state comparison panel when the user saves and stays in the workspace
+4. keep standalone derivation aligned because the same seam later becomes the hidden-session utility app's `Stay in editor` versus `Share/History` finish-state guidance
+
+### Completed This Pass
+- `SmartFillWorkspacePresentation.actionTitle` now honors `completionBehavior` during save/update stages:
+  - `Save and Stay Here`
+  - `Update and Stay Here`
+  instead of implying an automatic return when the user chose to remain in the workspace.
+- `SmartFillWorkspacePresentation.saveLaneMessage` and `saveFootnote` now differentiate:
+  - update-in-place versus variant-take adoption
+  - return automatically versus stay and compare
+  so the save lane no longer tells users to expect a return path they did not choose.
+- `SmartFillWorkspaceView` now shows a completed-state `Saved and staying here` comparison panel whenever:
+  - the session is complete
+  - the chosen after-save behavior is `Stay`
+  - no new unsaved changes exist
+- Focused tests now cover:
+  - stay-here action titles
+  - stay-here save-lane and footnote messaging
+  - the completed-state stay-here comparison guidance
+  - update-in-place save-lane wording for return-mode sessions
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase18_gateA_rerun build | tee /tmp/itfactor_smartfill_phase18_gateA_rerun.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase18_gateA_rerun.log`
+- Focused parity command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase18_tests_rerun -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase18_tests_rerun.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase18_tests_rerun.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase18_tests_rerun/Logs/Test/Test-STSiPhone-2026.03.26_15-00-06--0400.xcresult`
+- Retry note:
+  - the initial Gate A/parity attempt failed at compile time because `SmartFillWorkspacePresentation.saveFootnote` was missing a fallback `return`; the rerun after that fix is the authoritative gate proof.
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Archaeology Snapshot
+- `SF-REBUILD-017` correctly introduced `Return` versus `Stay`, but save/update action text still defaulted to return-oriented wording even when the user had chosen to stay in the workspace.
+- The rebuild already centralized finish-state copy inside `SmartFillWorkspacePresentation`, so the correct fix was to deepen that shared presentation seam instead of reviving any separate completion banners, save modals, or wrapper UI.
+- The future standalone utility needs the same seam because its hidden-session finish state also depends on whether the user stays in the editor or moves into share/history immediately after save.
+
+### Next Action
+1. Choose the next flagship SmartFill workspace phase now that the rebuild owns entry, defaults, real preview, explicit product lanes, quick fill, treatment-finish presets, explicit stay/return choice, and save/update copy that now fully matches the chosen finish behavior.
+2. Implement that next slice on `gm/smartfill-itfactor-rebuild`, then rerun Gate A plus focused SmartFill parity before any promotion decision.
+3. Keep the standalone derivation ledger synchronized so the later hidden-session utility can reuse the same finish-state truth without project/session wording.
+
 ## Ticket 017 Treatment Finish Presets And Post-Save Stay Mode (2026-03-26)
 - Thread Status: one-tap treatment finish presets plus an explicit after-save stay/return mode are implemented in the rebuild workspace, locally gated, and commit/push is the active next action.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

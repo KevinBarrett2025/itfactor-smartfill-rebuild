@@ -65,6 +65,7 @@ Rules:
 | 4G | SF-REBUILD-015 | Restore dirty-save truth in rebuild workspace | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase15_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase15_tests_rerun.log`; workspace now shows the latest saved result and restores save-needed state when settings change after save |
 | 4H | SF-REBUILD-016 | Strengthen background fill and save outcome affordances | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase16_gateA_rerun.log`; focused parity PASS `/tmp/itfactor_smartfill_phase16_tests_rerun2.log`; workspace now offers shipped-style quick fill presets and explains source-clip/result/return outcomes before save |
 | 4I | SF-REBUILD-017 | Add treatment finish presets and explicit post-save stay mode | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase17_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase17_tests.log`; workspace now offers one-tap `Soft`/`Balanced`/`Bold` treatment presets and lets the user choose `Return` versus `Stay` before save |
+| 4J | SF-REBUILD-018 | Align save affordances with chosen finish behavior | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase18_gateA_rerun.log`; focused parity PASS `/tmp/itfactor_smartfill_phase18_tests_rerun.log`; save/update actions, save-lane copy, and completed-state comparison guidance now match whether the user chose `Return` or `Stay` |
 
 ---
 
@@ -85,6 +86,6 @@ Rules:
 ---
 
 ## Next Action
-1. Choose the next intentional flagship SmartFill workspace/product phase now that entry, defaults, result adoption, preview, quick fill choices, explicit save-outcome messaging, live save progress, and honest dirty-after-save state all live under the rebuild namespace.
+1. Choose the next intentional flagship SmartFill workspace/product phase now that entry, defaults, result adoption, preview, quick fill choices, treatment-finish presets, explicit stay/return choice, honest save-outcome messaging, and save/update affordances that fully match the chosen finish behavior all live under the rebuild namespace.
 2. Implement that slice on `gm/smartfill-itfactor-rebuild`, then rerun Gate A plus focused SmartFill parity before any promotion discussion.
 3. Keep the standalone derivation ledger in sync while future shared-workspace work lands.

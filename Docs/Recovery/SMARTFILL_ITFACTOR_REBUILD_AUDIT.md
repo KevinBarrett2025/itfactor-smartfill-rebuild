@@ -96,3 +96,4 @@ These fields and APIs carry shipped SmartFill truth and must not be deleted duri
 9. Workspace completion truth must be anchored to the latest saved SmartFill result snapshot; if settings change after save, the rebuild workspace must return to a save-needed state instead of pretending the session is still complete.
 10. Quick background fill choices and save-outcome explanation must stay inside `SmartFillWorkspaceView` / `SmartFillWorkspacePresentation`; do not reintroduce separate treatment or save-explanation shells.
 11. Treatment-finish presets and pre-save stay-versus-return choice must stay inside the shared rebuild workspace so flagship and future standalone flows use the same finish-state model instead of spawning new wrapper screens.
+12. Save/update action titles, save-lane explanation, and completed-state guidance must obey the chosen finish behavior; never tell the user `Return` when the active SmartFill session is configured to `Stay`.
