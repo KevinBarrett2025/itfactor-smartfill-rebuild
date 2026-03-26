@@ -389,9 +389,25 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
 
         XCTAssertEqual(SmartFillWorkspacePresentation.backgroundModeTitle(for: settings), "Natural")
         XCTAssertEqual(SmartFillWorkspacePresentation.actionTitle(for: context, stage: .export), "Saving SmartFill…")
+        XCTAssertEqual(SmartFillWorkspacePresentation.actionTitle(for: context, stage: .completed), "Return to Review")
         XCTAssertEqual(
             SmartFillWorkspacePresentation.completionMessage(for: context, adoptionMode: .createStandaloneVariantTake),
-            "Saved the SmartFill take and returned it to Session review."
+            "Saved the SmartFill take. Returning to Session review…"
+        )
+    }
+
+    func testWorkspacePresentationUsesReturnActionForEditorCompletion() {
+        let context = makeWorkspaceContext(
+            take: ProjectTake(filePath: "/tmp/original.mov", durationSeconds: 12),
+            autoLaunchEditor: false,
+            launchSource: .editorBadge,
+            returnTarget: .editor
+        )
+
+        XCTAssertEqual(SmartFillWorkspacePresentation.actionTitle(for: context, stage: .completed), "Return to Editor")
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.completionMessage(for: context, adoptionMode: .updateExistingTakePath),
+            "Updated SmartFill. Returning to Editor…"
         )
     }
 

@@ -34,6 +34,7 @@ _Current rebuild working baseline:_ `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 - Real SmartFill preview in rebuild workspace: COMPLETE (LOCAL-GATED)
 - Explicit workspace controls and save flow: COMPLETE (LOCAL-GATED)
 - Workspace return context and save states: COMPLETE (LOCAL-GATED)
+- Workspace treatment controls and return flow: COMPLETE (LOCAL-GATED)
 - Standalone derivation ledger: ACTIVE
 
 If anything above is not true, it must be reflected here.
@@ -97,6 +98,12 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase12_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase12_tests.log`
   - xcresult: `/tmp/itfactor_smartfill_phase12_tests/Logs/Test/Test-STSiPhone-2026.03.26_11-27-31--0400.xcresult`
+- `SF-REBUILD-013` — workspace treatment controls and return-flow tightening — `COMPLETE (LOCAL-GATED 2026-03-26)`
+  - `SmartFillWorkspaceView` now exposes inline blur, darken, and background-fill controls plus clearer completed-stage return actions without leaving the rebuild workspace.
+  - Completed-state copy now describes the active return path while the workspace schedules a more visible auto-return back into review/player/editor flow.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase13_gateA.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase13_tests.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase13_tests/Logs/Test/Test-STSiPhone-2026.03.26_11-57-39--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -120,6 +127,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Commit and push the workspace return-context and save-state slice on `gm/smartfill-itfactor-rebuild`.
-2. Decide the next intentional flagship SmartFill workspace evolution now that the rebuild owns entry, real launch/return truth, preview, defaults, and explicit product controls.
+1. Commit and push the workspace treatment-controls and return-flow slice on `gm/smartfill-itfactor-rebuild`.
+2. Decide the next intentional flagship SmartFill workspace evolution now that the rebuild owns entry, real launch/return truth, preview, defaults, inline treatment controls, and explicit product controls.
 3. Keep the standalone derivation ledger updated in every phase.

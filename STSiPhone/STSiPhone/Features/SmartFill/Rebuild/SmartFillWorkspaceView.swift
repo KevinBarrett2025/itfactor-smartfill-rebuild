@@ -12,6 +12,7 @@ struct SmartFillWorkspaceView: View {
     @State private var statusMessage: String?
     @State private var previewErrorMessage: String?
     @State private var queueAttempted = false
+    @State private var autoReturnWorkItem: DispatchWorkItem?
 
     private let workspaceDefaults: SmartFillWorkspaceDefaults
 
@@ -56,13 +57,14 @@ struct SmartFillWorkspaceView: View {
                     Button("Close") {
                         handleClose()
                     }
+                    .disabled(isCloseDisabled)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(primaryActionTitle) {
-                        queueSmartFill()
+                        handlePrimaryAction()
                     }
                     .fontWeight(.semibold)
-                    .disabled(isActionDisabled)
+                    .disabled(isPrimaryActionDisabled)
                 }
             }
             .safeAreaInset(edge: .bottom) {
@@ -104,9 +106,7 @@ struct SmartFillWorkspaceView: View {
                     adoptionMode: record.adoptionMode
                 )
                 queueAttempted = false
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    handleClose()
-                }
+                scheduleAutoReturn()
             }
             .onReceive(NotificationCenter.default.publisher(for: .smartFillProcessingFailed)) { notification in
                 guard queueAttempted else { return }
@@ -117,6 +117,10 @@ struct SmartFillWorkspaceView: View {
                 statusMessage = (notification.userInfo?["error"] as? String) ?? "SmartFill couldn't finish for this take."
                 coordinator.advance(to: workspaceDefaults.shouldOfferSmartFill ? .configure : .preview)
                 queueAttempted = false
+            }
+            .onDisappear {
+                autoReturnWorkItem?.cancel()
+                autoReturnWorkItem = nil
             }
         }
     }
@@ -216,28 +220,38 @@ struct SmartFillWorkspaceView: View {
                 value: SmartFillWorkspacePresentation.backgroundModeTitle(for: settings)
             )
 
-            HStack(spacing: 10) {
-                summaryChip(
-                    icon: "circle.dotted",
-                    title: "Blur",
-                    value: "\(Int(settings.blurRadius)) px"
-                )
-                summaryChip(
-                    icon: "moon.fill",
-                    title: "Darken",
-                    value: "\(Int(settings.darkenAmount * 100))%"
-                )
-                summaryChip(
-                    icon: "arrow.up.left.and.arrow.down.right",
-                    title: "Background scale",
-                    value: String(format: "%.1f×", settings.backgroundScale)
-                )
-            }
+            treatmentSlider(
+                icon: "circle.dotted",
+                title: "Blur radius",
+                valueLabel: "\(Int(settings.blurRadius)) px",
+                caption: blurCaption(for: settings.blurRadius),
+                value: blurRadiusBinding,
+                range: 8...50,
+                step: 2
+            )
+            treatmentSlider(
+                icon: "moon.fill",
+                title: "Darken amount",
+                valueLabel: "\(Int(settings.darkenAmount * 100))%",
+                caption: darkenCaption(for: settings.darkenAmount),
+                value: darkenAmountBinding,
+                range: 0...0.3,
+                step: 0.02
+            )
+            treatmentSlider(
+                icon: "arrow.up.left.and.arrow.down.right",
+                title: "Background fill",
+                valueLabel: String(format: "%.1f×", settings.backgroundScale),
+                caption: backgroundScaleCaption(for: settings.backgroundScale),
+                value: backgroundScaleBinding,
+                range: 1.0...15.0,
+                step: 0.5
+            )
 
             Button {
                 showAdvancedSettings = true
             } label: {
-                Label("Fine-tune background blur, darkening, and spread", systemImage: "slider.horizontal.3")
+                Label("Open detailed tuning sheet", systemImage: "slider.horizontal.3")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(.bordered)
@@ -355,13 +369,14 @@ struct SmartFillWorkspaceView: View {
                 handleClose()
             }
             .buttonStyle(.bordered)
+            .disabled(isCloseDisabled)
 
             Button(primaryActionTitle) {
-                queueSmartFill()
+                handlePrimaryAction()
             }
             .buttonStyle(.borderedProminent)
             .tint(Theme.primary)
-            .disabled(isActionDisabled)
+            .disabled(isPrimaryActionDisabled)
         }
         .padding(.horizontal, Theme.Layout.screenPadding)
         .padding(.top, 12)
@@ -429,8 +444,12 @@ struct SmartFillWorkspaceView: View {
         SmartFillWorkspacePresentation.actionTitle(for: context, stage: coordinator.stage)
     }
 
-    private var isActionDisabled: Bool {
-        coordinator.stage == .export || coordinator.stage == .completed
+    private var isPrimaryActionDisabled: Bool {
+        coordinator.stage == .export
+    }
+
+    private var isCloseDisabled: Bool {
+        coordinator.stage == .export
     }
 
     private var fileNameLabel: String {
@@ -515,16 +534,35 @@ struct SmartFillWorkspaceView: View {
     }
 
     @ViewBuilder
-    private func summaryChip(icon: String, title: String, value: String) -> some View {
+    private func treatmentSlider(
+        icon: String,
+        title: String,
+        valueLabel: String,
+        caption: String,
+        value: Binding<Double>,
+        range: ClosedRange<Double>,
+        step: Double
+    ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label(title, systemImage: icon)
-                .font(.caption.weight(.semibold))
+            HStack(spacing: 10) {
+                Label(title, systemImage: icon)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(valueLabel)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.textPrimary)
+            }
+
+            Slider(value: value, in: range, step: step) {
+                Text(title)
+            }
+            .tint(Theme.primary)
+
+            Text(caption)
+                .font(.caption)
                 .foregroundStyle(.secondary)
-            Text(value)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.textPrimary)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
         .background(Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
@@ -574,6 +612,70 @@ struct SmartFillWorkspaceView: View {
         statusMessage = SmartFillWorkspacePresentation.processingMessage(for: context)
         queueAttempted = true
         onQueueSmartFill(clamped)
+    }
+
+    private func handlePrimaryAction() {
+        if coordinator.stage == .completed {
+            handleClose()
+            return
+        }
+
+        queueSmartFill()
+    }
+
+    private func scheduleAutoReturn() {
+        autoReturnWorkItem?.cancel()
+        let workItem = DispatchWorkItem {
+            handleClose()
+        }
+        autoReturnWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + autoReturnDelay, execute: workItem)
+    }
+
+    private var autoReturnDelay: TimeInterval {
+        switch context.returnTarget {
+        case .editor:
+            return 0.8
+        case .swipeablePlayer, .takeReview:
+            return 1.0
+        case .projectDetail, .standaloneWorkspace:
+            return 0.9
+        }
+    }
+
+    private func blurCaption(for blurRadius: CGFloat) -> String {
+        switch blurRadius {
+        case ..<18:
+            return "Keeps more of the room detail visible."
+        case 18..<34:
+            return "Balanced separation for most SmartFill passes."
+        default:
+            return "Pushes the room further back when the background needs to disappear."
+        }
+    }
+
+    private func darkenCaption(for darkenAmount: CGFloat) -> String {
+        switch darkenAmount {
+        case ..<0.08:
+            return "Very light darkening keeps the background natural."
+        case 0.08..<0.18:
+            return "Balanced darkening helps the subject hold focus."
+        default:
+            return "Heavy darkening creates a more stylized, dramatic contrast."
+        }
+    }
+
+    private func backgroundScaleCaption(for backgroundScale: CGFloat) -> String {
+        switch backgroundScale {
+        case ..<2.0:
+            return "Minimal fill keeps more of the original room in frame."
+        case 2.0..<5.0:
+            return "Balanced fill for most portrait-to-landscape conversions."
+        case 5.0..<8.0:
+            return "Stronger fill removes more empty edges around the subject."
+        default:
+            return "Maximum fill aggressively hides background gaps."
+        }
     }
 
     private func matchesCurrentTake(_ notification: Notification) -> Bool {
@@ -676,7 +778,7 @@ enum SmartFillWorkspacePresentation {
         case .export:
             return "Saving SmartFill…"
         case .completed:
-            return "Saved to \(shortReturnTargetTitle(for: context))"
+            return "Return to \(shortReturnTargetTitle(for: context))"
         default:
             let leadingVerb = context.take.isSmartFillVariant || context.existingSettings != nil ? "Update" : "Save"
             return "\(leadingVerb) and Return to \(shortReturnTargetTitle(for: context))"
@@ -709,9 +811,9 @@ enum SmartFillWorkspacePresentation {
     ) -> String {
         switch adoptionMode {
         case .updateExistingTakePath:
-            return "Updated SmartFill and returned it to \(returnTargetTitle(for: context))."
+            return "Updated SmartFill. Returning to \(returnTargetTitle(for: context))…"
         case .createStandaloneVariantTake:
-            return "Saved the SmartFill take and returned it to \(returnTargetTitle(for: context))."
+            return "Saved the SmartFill take. Returning to \(returnTargetTitle(for: context))…"
         }
     }
 

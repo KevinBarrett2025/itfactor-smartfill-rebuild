@@ -1,5 +1,69 @@
 # CODEX Thread Continuity
 
+## Ticket 013 Workspace Treatment Controls And Return Flow (2026-03-26)
+- Thread Status: richer inline treatment controls plus tighter save/return behavior are implemented in the rebuild workspace, locally gated, and commit/push is the active next action.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-rebuild`
+- Working Head SHA: `c23f2cbfcd2101933f1ab1e679d790852ca3f6ee`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Deepen the rebuild workspace now that launch truth and explicit product lanes are anchored:
+1. move more background treatment controls directly into the main workspace instead of hiding them behind generic advanced-sheet flow
+2. make save/export action states clearer while processing and after completion
+3. tighten post-save return behavior so review/player/editor re-entry feels intentional instead of generic auto-dismiss
+4. keep standalone derivation aligned because the same treatment controls and return model should later map onto the hidden-session utility editor
+
+### Completed This Pass
+- `SmartFillWorkspaceView` now exposes inline background-treatment sliders for:
+  - blur radius
+  - darken amount
+  - background fill
+  so the main workspace can handle the common tuning path without forcing a separate advanced-sheet detour.
+- Each inline treatment control now explains its effect in plain language so the user can understand whether they are preserving room detail, balancing separation, or aggressively hiding background gaps.
+- The main workspace action path is now tighter after save:
+  - export stage disables both close and primary actions
+  - completed stage changes the primary action into an explicit `Return to ...` affordance instead of leaving a passive saved-state label
+  - completion now schedules a slightly slower auto-return so the user can see the saved state before the workspace dismisses
+- Completion copy now describes the active return target as an in-progress return instead of describing the save as already finished and gone.
+- Focused tests now cover:
+  - completed-stage `Return to ...` action titles
+  - completed-stage return copy for editor and review contexts
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase13_gateA build | tee /tmp/itfactor_smartfill_phase13_gateA.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase13_gateA.log`
+- Focused parity command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,name=iPhone 17' -derivedDataPath /tmp/itfactor_smartfill_phase13_tests -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase13_tests.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase13_tests.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase13_tests/Logs/Test/Test-STSiPhone-2026.03.26_11-57-39--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Archaeology Snapshot
+- `SF-REBUILD-012` made the return target truthful in copy, but the workspace still hid day-to-day treatment adjustments behind a separate sheet and left the completed state as a passive label.
+- The underlying settings model already exposed blur, darkening, and background fill directly, so the right next move was to bring those controls into the main workspace instead of inventing another modal or rebuilding the settings engine.
+- The rebuild workspace already owned return-target truth, so the completed-state improvement stays inside the shared workspace seam instead of reopening any deleted SmartFill wrapper path.
+
+### Next Action
+1. Commit and push the workspace treatment-controls and return-flow slice on `gm/smartfill-itfactor-rebuild`.
+2. Choose the next intentional flagship SmartFill workspace phase now that the rebuild owns launch truth, real preview, inline treatment controls, and explicit return actions.
+3. Keep the standalone derivation ledger synchronized so the later hidden-session utility can reuse the same inline control and return model.
+
 ## Ticket 012 Workspace Return Context And Save States (2026-03-26)
 - Thread Status: real launch/return context, stage-aware save copy, and explicit background-look modes are implemented in the rebuild workspace, locally gated, and commit/push is the active next action.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
