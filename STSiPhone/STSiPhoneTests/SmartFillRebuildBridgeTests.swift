@@ -514,6 +514,36 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         )
     }
 
+    func testWorkspacePresentationExplainsOriginalSourcePreviewBeforeAndAfterSave() {
+        let context = makeWorkspaceContext(
+            take: ProjectTake(filePath: "/tmp/original.mov", durationSeconds: 12)
+        )
+
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.sourcePreviewTitle(for: context),
+            "S1T1"
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.previewResultTitle(adoptedTakeDisplayName: nil),
+            "Live SmartFill"
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.sourcePreviewMessage(for: context),
+            "Scrub the untouched source clip for “S1T1” here while the main editor keeps showing Live SmartFill."
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.previewResultTitle(adoptedTakeDisplayName: "S1T1 SmartFill"),
+            "S1T1 SmartFill"
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.sourcePreviewMessage(
+                for: context,
+                adoptedTakeDisplayName: "S1T1 SmartFill"
+            ),
+            "Scrub the untouched source clip for “S1T1” here while the main editor keeps showing S1T1 SmartFill."
+        )
+    }
+
     func testWorkspacePresentationUsesReturnActionForEditorCompletion() {
         let context = makeWorkspaceContext(
             take: ProjectTake(filePath: "/tmp/original.mov", durationSeconds: 12),

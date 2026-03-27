@@ -1,5 +1,46 @@
 # CODEX Thread Continuity
 
+## Ticket 032 SmartFill Workspace Source Compare Preview (2026-03-27)
+- Thread Status: preview-adjacent original/source comparison landed on the clean GM branch, passed Gate A plus focused SmartFill parity, and is ready to anchor as `SF-REBUILD-032`.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase32`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase32`
+- Working Head SHA: `d4215ced8901742625362bb8c85aaf20eed4ad85`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Tighten the editor feel around the pinned preview without adding more tray chrome:
+1. keep the live SmartFill preview as the dominant surface
+2. add a preview-adjacent original/source compare affordance instead of forcing comparison to wait until reopen flow
+3. keep the tray-and-rail shell intact while moving original-source inspection into one dedicated secondary sheet
+4. preserve save/reopen routing so this stays one bounded preview-comparison slice
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase32`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase32`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase32`
+  - `git rev-parse HEAD` -> `d4215ced8901742625362bb8c85aaf20eed4ad85`
+  - `git status --porcelain` -> clean
+  - `git log -1 --oneline` -> `d4215ce SF-REBUILD-031: restore live preview transport in workspace surface`
+- Truth-sync confirmed:
+  - `git -C /tmp/itfactor_smartfill_phase31 fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Next Action
+1. `SmartFillWorkspaceView` now adds an `Original` compare affordance beside the live preview and surfaces source/result reference chips directly under the preview.
+2. The new `sourcePreview` sheet uses live scrubbable transport for the untouched source clip, so users can compare the original take without leaving the workspace or reopening review/player first.
+3. Gate A PASS: `/tmp/itfactor_smartfill_phase32_gateA.log`
+4. Focused parity PASS: `/tmp/itfactor_smartfill_phase32_tests.log`
+5. xcresult: `/tmp/itfactor_smartfill_phase32_tests/Logs/Test/Test-STSiPhone-2026.03.27_10-35-16--0400.xcresult`
+6. Next best slice after this compare pass: decide whether the next preview-centered upgrade should be inline result-vs-source state switching or a tighter tool-specific live overlay, without re-expanding the tray chrome.
+
 ## Ticket 031 SmartFill Workspace Live Preview Transport (2026-03-27)
 - Thread Status: live preview transport landed on the clean GM branch, passed Gate A plus focused SmartFill parity, and is ready to anchor as `SF-REBUILD-031`.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

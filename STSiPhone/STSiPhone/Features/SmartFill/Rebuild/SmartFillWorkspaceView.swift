@@ -1,3 +1,4 @@
+import AVKit
 import SwiftUI
 
 struct SmartFillWorkspaceView: View {
@@ -180,6 +181,18 @@ struct SmartFillWorkspaceView: View {
 
                 Spacer()
 
+                Button {
+                    activeSheet = .sourcePreview
+                } label: {
+                    Label("Original", systemImage: "rectangle.on.rectangle")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(Theme.textPrimary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color.white.opacity(0.05), in: Capsule())
+                }
+                .buttonStyle(.plain)
+
                 Label("Live", systemImage: "play.rectangle.fill")
                     .font(.caption.weight(.medium))
                     .foregroundStyle(Theme.primary)
@@ -260,6 +273,10 @@ struct SmartFillWorkspaceView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
+                    ForEach(previewReferenceItems) { item in
+                        previewFocusChip(item)
+                    }
+
                     ForEach(activeToolFocusItems) { item in
                         previewFocusChip(item)
                     }
@@ -647,6 +664,38 @@ struct SmartFillWorkspaceView: View {
                     stayComparisonPanel(for: record)
                 }
             }
+        case .sourcePreview:
+            workspaceSheetContainer(
+                title: "Original source",
+                subtitle: SmartFillWorkspacePresentation.sourcePreviewMessage(
+                    for: context,
+                    adoptedTakeDisplayName: coordinator.lastResult?.adoptedTakeDisplayName
+                )
+            ) {
+                toolSectionCard {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            statusPill(
+                                icon: "film",
+                                title: "Source",
+                                value: SmartFillWorkspacePresentation.sourcePreviewTitle(for: context)
+                            )
+                            statusPill(
+                                icon: "sparkles.tv",
+                                title: "Current",
+                                value: SmartFillWorkspacePresentation.previewResultTitle(
+                                    adoptedTakeDisplayName: coordinator.lastResult?.adoptedTakeDisplayName
+                                )
+                            )
+                        }
+                        .padding(.horizontal, 2)
+                    }
+
+                    SmartFillSourcePreviewView(videoURL: context.previewURL)
+                        .frame(maxWidth: .infinity)
+                        .frame(maxHeight: 360)
+                }
+            }
         }
     }
 
@@ -911,6 +960,23 @@ struct SmartFillWorkspaceView: View {
             completionBehavior: completionBehavior,
             savedTakeName: coordinator.lastResult?.adoptedTakeDisplayName
         )
+    }
+
+    private var previewReferenceItems: [SmartFillWorkspaceFocusItem] {
+        [
+            SmartFillWorkspaceFocusItem(
+                title: "Source",
+                value: SmartFillWorkspacePresentation.sourcePreviewTitle(for: context),
+                symbolName: "film"
+            ),
+            SmartFillWorkspaceFocusItem(
+                title: "Current",
+                value: SmartFillWorkspacePresentation.previewResultTitle(
+                    adoptedTakeDisplayName: coordinator.lastResult?.adoptedTakeDisplayName
+                ),
+                symbolName: "sparkles.tv"
+            )
+        ]
     }
 
     private var activeToolDrillIn: SmartFillWorkspaceDrillInDescriptor? {
@@ -1753,6 +1819,7 @@ enum SmartFillWorkspaceSheet: String, Identifiable {
     case subjectScale
     case outputOptions
     case savePlan
+    case sourcePreview
 
     var id: String { rawValue }
 }
@@ -2178,6 +2245,22 @@ enum SmartFillWorkspacePresentation {
         "Stays unchanged"
     }
 
+    static func sourcePreviewTitle(for context: SmartFillSettingsContext) -> String {
+        context.displayName
+    }
+
+    static func previewResultTitle(adoptedTakeDisplayName: String?) -> String {
+        adoptedTakeDisplayName ?? "Live SmartFill"
+    }
+
+    static func sourcePreviewMessage(
+        for context: SmartFillSettingsContext,
+        adoptedTakeDisplayName: String? = nil
+    ) -> String {
+        let resultTitle = previewResultTitle(adoptedTakeDisplayName: adoptedTakeDisplayName)
+        return "Scrub the untouched source clip for “\(context.displayName)” here while the main editor keeps showing \(resultTitle)."
+    }
+
     static func afterSaveOutcomeTitle(
         for context: SmartFillSettingsContext,
         stage: SmartFillWorkspaceCoordinator.Stage,
@@ -2339,6 +2422,43 @@ enum SmartFillWorkspacePresentation {
             return "Balanced processing for most SmartFill passes."
         case .high:
             return "Prioritize this pass when you need the result quickly."
+        }
+    }
+}
+
+private struct SmartFillSourcePreviewView: View {
+    let videoURL: URL
+
+    @State private var player = AVPlayer()
+    @State private var loadedURL: URL?
+
+    var body: some View {
+        VideoPlayer(player: player)
+            .aspectRatio(16 / 9, contentMode: .fit)
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .background(Color.black, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .onAppear {
+                preparePlayer(resetPlayback: true)
+            }
+            .onDisappear {
+                player.pause()
+            }
+            .onChange(of: videoURL) { _, _ in
+                preparePlayer(resetPlayback: true)
+            }
+    }
+
+    private func preparePlayer(resetPlayback: Bool) {
+        if loadedURL != videoURL {
+            loadedURL = videoURL
+            let item = AVPlayerItem(url: videoURL)
+            player.replaceCurrentItem(with: item)
+            player.actionAtItemEnd = .pause
+        }
+
+        if resetPlayback {
+            player.pause()
+            player.seek(to: .zero)
         }
     }
 }

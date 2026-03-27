@@ -52,6 +52,7 @@ Rules:
 - The rebuild workspace chrome now uses a fixed preview, contextual controls tray, and persistent bottom mode rail instead of one long SmartFill settings document.
 - The rebuild workspace preview now owns the active tool focus deck, so the current tool’s key values and primary drill-in action live adjacent to the preview instead of in a separate generic status row.
 - The rebuild workspace preview now also uses the live SmartFill transport seam, so play/pause and scrubbing live in the pinned preview instead of requiring a separate player screen.
+- The rebuild workspace preview now also exposes an `Original` compare affordance and a dedicated scrubbable source-preview sheet, so original-state inspection happens beside the live preview instead of waiting for reopen flow.
 - `authority/main` now exists remotely and locally at the untouched Jan 23 baseline.
 
 ---
@@ -87,6 +88,7 @@ Rules:
 | 4T | SF-REBUILD-029 | Clarify inline control ownership in workspace chrome | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase29_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase29_tests.log`; only the highest-frequency SmartFill choices stay inline while background fill, fine tuning, precision scale, output speed, and save-plan detail stay behind consistent drill-in sheets |
 | 4U | SF-REBUILD-030 | Attach active tool focus to the preview surface | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase30_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase30_tests.log`; preview now carries the active tool’s key values and one context-aware drill-in action instead of relying on a generic status strip |
 | 4V | SF-REBUILD-031 | Restore live preview transport in workspace surface | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase31_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase31_tests.log`; pinned preview now uses `SmartFillPreviewView` so play/pause and scrubbing live inside the workspace surface while the preview-focus deck remains attached |
+| 4W | SF-REBUILD-032 | Add preview-adjacent original/source comparison | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase32_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase32_tests.log`; pinned preview now offers an `Original` compare affordance, source/result reference chips, and a dedicated scrubbable source-preview sheet |
 
 ---
 
@@ -107,6 +109,6 @@ Rules:
 ---
 
 ## Next Action
-1. Choose the next intentional workspace slice now that `SF-REBUILD-031` makes the preview both the active-tool surface and the live playback surface.
+1. Choose the next intentional workspace slice now that `SF-REBUILD-032` makes the preview both the live playback surface and the source-compare entry point.
 2. Implement that slice on GM, then rerun Gate A plus focused SmartFill parity before any promotion discussion.
-3. Keep the standalone derivation ledger in sync while future shared-workspace chrome, preview transport, and tool-density work lands.
+3. Keep the standalone derivation ledger in sync while future shared-workspace chrome, preview transport, source comparison, and tool-density work lands.
