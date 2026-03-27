@@ -16,7 +16,7 @@ The flagship intent is:
 ## Classification Matrix
 | Area | Path | Classification | Reason | Next Action |
 | --- | --- | --- | --- | --- |
-| SmartFill processing core | `STSiPhone/STSiPhone/Core/VideoPipeline/SmartFill/*` | `KEEP` | The rebuild workspace now depends on the real SmartFill preview/render/export engine, including `SmartFillPreviewPlayer`, so these seams are active shared engine truth even though they do not define product shell structure. | Keep and evolve only as shared SmartFill engine seams; do not treat them as standalone product-shell authority. |
+| SmartFill processing core | `STSiPhone/STSiPhone/Core/VideoPipeline/SmartFill/*` | `KEEP` | The rebuild workspace now depends on the real SmartFill preview/render/export engine, including `SmartFillPreviewPlayer` and `SmartFillPreviewView`, so these seams are active shared engine truth even though they do not define product shell structure. | Keep and evolve only as shared SmartFill engine seams; do not treat them as standalone product-shell authority. |
 | Legacy SmartFill controller | `STSiPhone/STSiPhone/Features/Editing/Tools/SmartFillController.swift` | `DELETE_AFTER_CUTOVER` | Review/player and editor-origin SmartFill entry now route through the rebuild workspace and repository adoption bridge instead of this controller-owned launch path. | Deleted in the Phase 5 GM slice; keep absent unless shipped archaeology proves a missing dependency. |
 | Legacy SmartFill settings modal | `STSiPhone/STSiPhone/Features/Editing/SmartFillSettingsModal.swift` | `DELETE_AFTER_CUTOVER` | Old modal-level UI no longer matches the bounded rebuild workspace target and both live launch surfaces now bypass it. | Deleted in the Phase 5 GM slice; rebuild workspace is now the only live editor-entry surface. |
 | Legacy real preview handoff | `STSiPhone/STSiPhone/Features/Editing/SmartFillRealPreviewSectionHandoff.swift` | `DELETE_AFTER_CUTOVER` | Preview orchestration was tied only to the removed modal-level editor path. | Deleted in the Phase 5 GM slice; later preview work should stay inside the rebuild workspace only. |
@@ -42,6 +42,7 @@ These seams are the correct architectural anchors for the rebuild:
 - `STSiPhone/STSiPhone/Features/Projects/Views/SwipeableVideoPlayerView.swift`
 - `STSiPhone/STSiPhone/Shared/Flow/FlowHostView.swift`
 - `STSiPhone/STSiPhone/Core/VideoPipeline/SmartFill/SmartFillPreviewPlayer.swift`
+- `STSiPhone/STSiPhone/Core/VideoPipeline/SmartFill/SmartFillPreviewView.swift`
 - `STSiPhone/STSiPhone/Core/VideoPipeline/SmartFill/SmartFillProcessingManager.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillSessionContext.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillTakeBridge.swift`
@@ -109,3 +110,4 @@ These fields and APIs carry shipped SmartFill truth and must not be deleted duri
 20. When the tray starts carrying too many advanced controls, the flagship workspace must split them into dedicated secondary sheets instead of expanding the tray back into a tall settings surface. Quick choices stay inline; deeper tuning belongs behind explicit per-tool drill-ins.
 21. Inline control ownership must stay intentional. Only the highest-frequency editing decisions should persist in the tray; lower-frequency controls such as detailed fill tuning, precision scale, output speed, and verbose save outcome review must remain sheet-only unless product evidence proves they deserve inline promotion.
 22. Preview-adjacent chrome must stay tool-specific. The preview should show the active tool’s current values and one relevant drill-in path instead of a generic status row that repeats unrelated editor state.
+23. The pinned preview must behave like a real editor surface. When the shared SmartFill preview engine already supports play/pause and scrubbing, the rebuild workspace should surface that live transport in-place instead of regressing to a passive preview wrapper or a separate player screen.

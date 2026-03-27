@@ -170,27 +170,33 @@ struct SmartFillWorkspaceView: View {
                     .background(stageColor.opacity(0.14), in: Capsule())
             }
 
-            Group {
-                SmartFillPreviewPlayer(
-                    videoURL: context.previewURL,
-                    settings: settings,
-                    refreshID: settings.forceUpdateToken
-                ) { error in
-                    previewErrorMessage = error.localizedDescription
-                }
-                .frame(maxWidth: .infinity)
-                .aspectRatio(verticalSizeClass == .compact ? 1.35 : 16.0 / 9.0, contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            }
-            .overlay(alignment: .bottomLeading) {
+            HStack(spacing: 8) {
                 Label(fileNameLabel, systemImage: "video.fill")
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(.white.opacity(0.92))
+                    .foregroundStyle(.secondary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(.black.opacity(0.45), in: Capsule())
-                    .padding(14)
+                    .background(Color.white.opacity(0.04), in: Capsule())
+
+                Spacer()
+
+                Label("Live", systemImage: "play.rectangle.fill")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(Theme.primary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Theme.primary.opacity(0.12), in: Capsule())
             }
+
+            SmartFillPreviewView(
+                videoURL: context.previewURL,
+                settings: settings
+            ) { error in
+                previewErrorMessage = error.localizedDescription
+            }
+            .id(previewRefreshIdentity)
+            .frame(maxWidth: .infinity)
+            .frame(maxHeight: previewSurfaceMaxHeight)
 
             if let previewErrorMessage {
                 Label(previewErrorMessage, systemImage: "exclamationmark.triangle.fill")
@@ -872,6 +878,14 @@ struct SmartFillWorkspaceView: View {
 
     private var fileNameLabel: String {
         context.previewURL.lastPathComponent
+    }
+
+    private var previewRefreshIdentity: String {
+        "\(context.previewURL.path)|\(settings.forceUpdateToken.uuidString)"
+    }
+
+    private var previewSurfaceMaxHeight: CGFloat {
+        verticalSizeClass == .compact ? 250 : 360
     }
 
     private var toolTrayHeight: CGFloat {

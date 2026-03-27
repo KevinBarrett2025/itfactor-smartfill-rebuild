@@ -1,5 +1,46 @@
 # CODEX Thread Continuity
 
+## Ticket 031 SmartFill Workspace Live Preview Transport (2026-03-27)
+- Thread Status: live preview transport landed on the clean GM branch, passed Gate A plus focused SmartFill parity, and is ready to anchor as `SF-REBUILD-031`.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase31`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase31`
+- Working Head SHA: `f63db889e7f4c0af6861bf759dc65a5ea0c0aa86`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Tighten the editor feel around the pinned preview without adding more chrome:
+1. keep the preview as the dominant editor surface
+2. replace the passive preview wrapper with the existing live SmartFill preview transport that supports play/pause and scrubbing
+3. preserve the preview-focus deck and tray architecture from `SF-REBUILD-030`
+4. leave save/reopen routing unchanged so this remains one bounded playback-focused slice
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase31`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase31`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase31`
+  - `git rev-parse HEAD` -> `f63db889e7f4c0af6861bf759dc65a5ea0c0aa86`
+  - `git status --porcelain` -> clean
+  - `git log -1 --oneline` -> `f63db88 SF-REBUILD-030: attach active tool focus to the preview surface`
+- Truth-sync already confirmed before the fork:
+  - `git -C /tmp/itfactor_smartfill_phase30 fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Next Action
+1. `SmartFillWorkspaceView` now swaps the passive preview wrapper for `SmartFillPreviewView`, so the pinned workspace preview carries real play/pause and scrub transport without reopening the bottom tray.
+2. The preview-focus deck stays attached to that live player, and the file/live indicators now sit above the player instead of overlaying transport controls.
+3. Gate A PASS: `/tmp/itfactor_smartfill_phase31_gateA.log`
+4. Focused parity PASS: `/tmp/itfactor_smartfill_phase31_tests.log`
+5. xcresult: `/tmp/itfactor_smartfill_phase31_tests/Logs/Test/Test-STSiPhone-2026.03.27_10-09-37--0400.xcresult`
+6. Next best slice after this transport pass: decide whether the next editor-feel upgrade should be inline compare/original-state treatment near the preview or a deeper live-state tool seam, without letting the workspace slide back into generic chrome.
+
 ## Ticket 030 SmartFill Workspace Preview-Focus Deck (2026-03-27)
 - Thread Status: preview-attached tool focus landed on the clean GM branch, passed Gate A plus focused SmartFill parity, and is ready to anchor as `SF-REBUILD-030`.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
