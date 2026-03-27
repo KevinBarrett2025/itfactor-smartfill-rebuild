@@ -1,6 +1,6 @@
 # STS · SmartFill Rebuild Full Catalog
 
-_Last updated:_ 2026-03-26
+_Last updated:_ 2026-03-27
 
 ## Purpose
 This file is the canonical detailed catalog for the SmartFill rebuild inside `itFactor_1.23.26_git`.
@@ -44,6 +44,7 @@ Rules:
 | SF-REBUILD-022 | Route auto-return through saved-result reopen seam | COMPLETE | `SmartFillWorkspaceCompletionFollowUpAction` now centralizes completed-state follow-up behavior; `SmartFillWorkspaceView` now routes automatic `Return` through the same saved-result reopen seam as manual primary actions instead of dismissing generically; Gate A PASS `/tmp/itfactor_smartfill_phase22_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase22_tests.log`; xcresult `/tmp/itfactor_smartfill_phase22_tests/Logs/Test/Test-STSiPhone-2026.03.26_18-55-45--0400.xcresult` |
 | SF-REBUILD-023 | Surface saved-result context in reopened destinations | COMPLETE | `SmartFillReopenDestinationContext` now centralizes saved-result reopen presentation; `ProjectDetailView` + `SwipeableVideoPlayerView` now explicitly identify reopened SmartFill results in player/review flow; `LightweightEditorViewController+ModularWiring` now surfaces the same saved-result context after editor reopen; Gate A PASS `/tmp/itfactor_smartfill_phase23_gateA_rerun3.log`; focused parity PASS `/tmp/itfactor_smartfill_phase23_tests_rerun3.log`; xcresult `/tmp/itfactor_smartfill_phase23_tests_rerun3/Logs/Test/Test-STSiPhone-2026.03.26_19-56-52--0400.xcresult` |
 | SF-REBUILD-024 | Add source-take compare actions to reopened destinations | COMPLETE | `SmartFillReopenDestinationContext` now carries original/source take identity alongside saved-result context; `ProjectDetailView` + `SwipeableVideoPlayerView` now expose direct compare-back-to-source behavior in the reopened player/review destination; `LightweightEditorViewController+ModularWiring` now offers direct `Open <source take>` comparison from the reopened editor destination; Gate A PASS `/tmp/itfactor_smartfill_phase24_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase24_tests.log`; xcresult `/tmp/itfactor_smartfill_phase24_tests/Logs/Test/Test-STSiPhone-2026.03.26_20-21-40--0400.xcresult` |
+| SF-REBUILD-026 | Replace long-scroll workspace chrome with fixed preview + tray/rail editor shell | COMPLETE | `SmartFillWorkspaceView` now uses a pinned preview, compact status strip, contextual controls tray, and persistent bottom mode rail instead of a long `ScrollView` document; background/subject/output/save controls render contextually, and user-facing copy is reduced to short labels plus current values; Gate A PASS `/tmp/itfactor_smartfill_phase26_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase26_tests.log`; xcresult `/tmp/itfactor_smartfill_phase26_tests/Logs/Test/Test-STSiPhone-2026.03.27_08-13-12--0400.xcresult` |
 | SF-REBUILD-007 | Standalone utility extraction package from flagship architecture | OPEN | Same engine/workspace, hidden static session, reduced shell |
 
 ## Protected Persistence / Data Seams
@@ -82,6 +83,7 @@ None currently open under `SF-REBUILD-006`.
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspaceFollowUpRoute.swift` — authoritative follow-up routing seam for saved-result reopen behavior and completed-state manual/automatic follow-up policy across project review/player, editor, and later standalone hidden-session flows
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillReopenDestinationContext.swift` — authoritative saved-result plus source-take comparison destination-context seam for reopened player/review, editor, and later standalone hidden-session result views
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspacePresentation` — authoritative user-facing copy seam for workspace launch, look, framing, inline treatment messaging, stage-aware save/update wording, live progress messaging, deferred return messaging, dirty-after-save messaging, stay-here completion guidance, real return-target language, and saved-take-aware post-save actions
+- `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspaceTool` / `editorChrome` / `activeToolSurface` (declared in `SmartFillWorkspaceView.swift`) — authoritative workspace chrome seam for fixed preview plus contextual bottom-tray editing
 - `STSiPhone/STSiPhone/Core/VideoPipeline/SmartFill/SmartFillProcessingManager.swift` — authoritative SmartFill progress notification seam now carrying take/session/project identity for rebuild workspace progress handling
 
 ## Shared-vs-Flagship-vs-Standalone Rule
@@ -100,6 +102,6 @@ None currently open under `SF-REBUILD-006`.
   - simplified history/export shell over the same engine
 
 ## Next Action
-1. Choose the next intentional flagship SmartFill workspace/product phase now that `SF-REBUILD-009`, `SF-REBUILD-010`, `SF-REBUILD-011`, `SF-REBUILD-012`, `SF-REBUILD-013`, `SF-REBUILD-014`, `SF-REBUILD-015`, `SF-REBUILD-016`, `SF-REBUILD-017`, `SF-REBUILD-018`, `SF-REBUILD-019`, `SF-REBUILD-020`, `SF-REBUILD-021`, `SF-REBUILD-022`, `SF-REBUILD-023`, and `SF-REBUILD-024` give the rebuild defaults, real preview, explicit product lanes, real launch/return messaging, inline treatment control, live save-state feedback, honest dirty-after-save truth, shipped-style quick fill choices, one-tap treatment-finish presets, explicit stay-versus-return save behavior, finish-state-aware save affordances, concrete saved-take outcome messaging, saved-take-aware post-save actions, real reopen handoff for the adopted SmartFill take across both manual and automatic finish paths, explicit saved-result context in the reopened destinations themselves, and direct source-take comparison actions once those reopened destinations appear.
-2. Implement that next slice on `gm/smartfill-itfactor-rebuild` with Gate A plus focused SmartFill parity before any promotion decision.
-3. Keep standalone derivation synchronized in every phase.
+1. Choose the next intentional flagship SmartFill workspace density phase now that `SF-REBUILD-026` has replaced the long-scroll document chrome with a fixed preview plus contextual tray/rail shell.
+2. Implement that next slice on GM with Gate A plus focused SmartFill parity before any promotion decision.
+3. Keep standalone derivation synchronized in every phase so the utility app inherits the same fixed preview + tray/rail chrome.

@@ -1,6 +1,6 @@
 # SmartFill itFactor Rebuild Audit
 
-Date: 2026-03-26
+Date: 2026-03-27
 Repo: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
 Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only)
 
@@ -104,3 +104,4 @@ These fields and APIs carry shipped SmartFill truth and must not be deleted duri
 15. Completed-state primary actions and automatic return behavior must reopen the adopted SmartFill take through an explicit follow-up route for project review/player, editor, or standalone fallback flows; never collapse a concrete saved-result handoff back into a generic close action.
 16. Reopened review/player and editor destinations must explicitly identify that reopened take as the just-saved SmartFill result through `SmartFillReopenDestinationContext`; never silently land on the adopted take with no saved-result context.
 17. Reopened review/player and editor destinations must surface a direct compare/open-source action whenever original-take lineage exists; never make the user hunt manually for the source take after SmartFill save completion when repository truth already knows the relationship.
+18. The primary SmartFill editor surface must not be a long vertical settings document. `SmartFillWorkspaceView` should keep the preview pinned and expose tools through a contextual tray plus a persistent bottom mode rail so the same chrome can scale to more tools without reintroducing overlapping panels or explanatory paragraphs.

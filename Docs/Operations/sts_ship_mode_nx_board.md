@@ -13,7 +13,7 @@ Rules:
 
 ---
 
-## Board State (2026-03-26)
+## Board State (2026-03-27)
 - Shipped shell truth comes from `/Users/kevinbarrett/Dev/SelfTapeStudio` and is read-only.
 - Writable flagship integration truth lives in `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`.
 - Remote rebuild truth lives at `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`.
@@ -49,6 +49,7 @@ Rules:
 - The rebuild workspace now also routes automatic `Return` through that same saved-result reopen seam instead of dismissing generically after save.
 - Reopened project-review/player and editor destinations now explicitly identify that reopened take as the just-saved SmartFill result instead of silently landing on it.
 - Reopened project-review/player and editor destinations now also expose direct comparison/open-source actions back to the original source take when SmartFill lineage exists.
+- The rebuild workspace chrome now uses a fixed preview, compact status strip, contextual controls tray, and persistent bottom mode rail instead of one long SmartFill settings document.
 - `authority/main` now exists remotely and locally at the untouched Jan 23 baseline.
 
 ---
@@ -78,6 +79,7 @@ Rules:
 | 4N | SF-REBUILD-022 | Route auto-return through saved-result reopen seam | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase22_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase22_tests.log`; queued automatic `Return` now uses the same saved-result follow-up seam as manual `Open <saved take>` actions instead of dismissing generically |
 | 4O | SF-REBUILD-023 | Surface saved-result context in reopened destinations | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase23_gateA_rerun3.log`; focused parity PASS `/tmp/itfactor_smartfill_phase23_tests_rerun3.log`; player/review and editor reopen destinations now explicitly identify the just-saved SmartFill result instead of silently landing on it |
 | 4P | SF-REBUILD-024 | Add source-take compare actions to reopened destinations | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase24_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase24_tests.log`; reopened player/review now offers one-tap compare-back-to-source and editor reopen now offers `Open <source take>` when original-take lineage exists |
+| 4Q | SF-REBUILD-026 | Replace long-scroll workspace chrome with fixed preview + tray/rail editor shell | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase26_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase26_tests.log`; workspace now keeps the preview pinned and moves background/subject/output/save controls into one contextual tray plus one persistent bottom mode rail |
 
 ---
 
@@ -98,6 +100,6 @@ Rules:
 ---
 
 ## Next Action
-1. Choose the next intentional flagship SmartFill workspace/product phase now that entry, defaults, result adoption, preview, quick fill choices, treatment-finish presets, explicit stay/return choice, honest save-outcome messaging, finish-state-aware save/update affordances, concrete saved-take outcome messaging, saved-take-aware post-save actions, real reopen handoff for both manual and automatic finish paths, explicit saved-result context in reopened destinations, and direct source-take comparison actions all live under the rebuild namespace.
-2. Implement that slice on `gm/smartfill-itfactor-rebuild`, then rerun Gate A plus focused SmartFill parity before any promotion discussion.
-3. Keep the standalone derivation ledger in sync while future shared-workspace work lands.
+1. Choose the next intentional workspace density slice now that the SmartFill editor no longer depends on a long vertical `ScrollView` document.
+2. Implement that slice on GM, then rerun Gate A plus focused SmartFill parity before any promotion discussion.
+3. Keep the standalone derivation ledger in sync while future shared-workspace chrome and tool-density work lands.

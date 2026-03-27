@@ -1,6 +1,6 @@
 # STS Status — SmartFill Rebuild Source of Truth
 
-_Last updated:_ 2026-03-26  
+_Last updated:_ 2026-03-27  
 _Authority branch:_ `authority/main`  
 _Current rebuild working baseline:_ `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 
@@ -43,6 +43,7 @@ _Current rebuild working baseline:_ `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 - Workspace auto-return now reopens the saved take too: COMPLETE (LOCAL-GATED)
 - Reopened destinations now surface explicit saved-result context: COMPLETE (LOCAL-GATED)
 - Reopened destinations now offer direct source-take comparison actions: COMPLETE (LOCAL-GATED)
+- Workspace chrome now uses a fixed preview, contextual tray, and bottom mode rail: COMPLETE (LOCAL-GATED)
 - Standalone derivation ledger: ACTIVE
 
 If anything above is not true, it must be reflected here.
@@ -178,6 +179,12 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase24_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase24_tests.log`
   - xcresult: `/tmp/itfactor_smartfill_phase24_tests/Logs/Test/Test-STSiPhone-2026.03.26_20-21-40--0400.xcresult`
+- `SF-REBUILD-026` — replace long-scroll workspace chrome with fixed preview + tray/rail editor shell — `COMPLETE (LOCAL-GATED 2026-03-27)`
+  - `SmartFillWorkspaceView` now keeps the preview pinned, adds a compact workspace status strip, and moves editing controls into one contextual tray plus one persistent bottom mode rail.
+  - Background, subject, output, and save controls now render as contextual tool surfaces instead of stacked `ScrollView` panels, and the workspace copy is reduced to short labels plus current values.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase26_gateA.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase26_tests.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase26_tests/Logs/Test/Test-STSiPhone-2026.03.27_08-13-12--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -201,6 +208,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Decide the next intentional flagship SmartFill workspace evolution now that the rebuild owns entry, preview, defaults, quick fill choices, treatment-finish presets, explicit after-save stay/return control, save/update wording that matches the chosen finish behavior, explicit save-outcome truth, live save-state feedback, honest post-save dirty-state handling, concrete saved take identity in completion messaging, completed-state actions that name the real saved take, real reopen handoff for both manual and automatic finish paths, explicit saved-result context in reopened review/player and editor destinations, and direct source-take comparison actions once those reopened destinations appear.
-2. Implement that next slice on `gm/smartfill-itfactor-rebuild` with Gate A and focused SmartFill parity before any promotion discussion.
-3. Keep the standalone derivation ledger updated in every phase.
+1. Use `SF-REBUILD-026` as the new SmartFill workspace baseline and decide the next density pass for which tools belong in the contextual tray versus secondary sheets.
+2. Implement that next slice on GM with Gate A and focused SmartFill parity before any promotion discussion.
+3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell.
