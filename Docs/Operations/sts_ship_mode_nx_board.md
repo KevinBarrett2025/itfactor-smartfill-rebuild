@@ -49,7 +49,8 @@ Rules:
 - The rebuild workspace now also routes automatic `Return` through that same saved-result reopen seam instead of dismissing generically after save.
 - Reopened project-review/player and editor destinations now explicitly identify that reopened take as the just-saved SmartFill result instead of silently landing on it.
 - Reopened project-review/player and editor destinations now also expose direct comparison/open-source actions back to the original source take when SmartFill lineage exists.
-- The rebuild workspace chrome now uses a fixed preview, compact status strip, contextual controls tray, and persistent bottom mode rail instead of one long SmartFill settings document.
+- The rebuild workspace chrome now uses a fixed preview, contextual controls tray, and persistent bottom mode rail instead of one long SmartFill settings document.
+- The rebuild workspace preview now owns the active tool focus deck, so the current tool’s key values and primary drill-in action live adjacent to the preview instead of in a separate generic status row.
 - `authority/main` now exists remotely and locally at the untouched Jan 23 baseline.
 
 ---
@@ -83,6 +84,7 @@ Rules:
 | 4R | SF-REBUILD-027 | Densify workspace trays with progressive tool groups | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase27_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase27_tests.log`; active tool trays now use compact chips, status pills, and one-at-a-time fine tuning so more SmartFill controls fit on-screen without reintroducing wordy scrolling panels |
 | 4S | SF-REBUILD-028 | Move deeper workspace controls into secondary sheets | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase28_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase28_tests.log`; fine tuning, precision subject scale, output speed, and save-plan details now live in dedicated sheets while the main tray keeps only quick choices and current values |
 | 4T | SF-REBUILD-029 | Clarify inline control ownership in workspace chrome | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase29_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase29_tests.log`; only the highest-frequency SmartFill choices stay inline while background fill, fine tuning, precision scale, output speed, and save-plan detail stay behind consistent drill-in sheets |
+| 4U | SF-REBUILD-030 | Attach active tool focus to the preview surface | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase30_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase30_tests.log`; preview now carries the active tool’s key values and one context-aware drill-in action instead of relying on a generic status strip |
 
 ---
 
@@ -103,6 +105,6 @@ Rules:
 ---
 
 ## Next Action
-1. Choose the next intentional workspace density slice now that the SmartFill editor no longer depends on a long vertical `ScrollView` document.
+1. Choose the next intentional workspace slice now that `SF-REBUILD-030` makes the preview and active tool read as one surface instead of separate chrome layers.
 2. Implement that slice on GM, then rerun Gate A plus focused SmartFill parity before any promotion discussion.
 3. Keep the standalone derivation ledger in sync while future shared-workspace chrome and tool-density work lands.

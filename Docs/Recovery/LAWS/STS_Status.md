@@ -44,6 +44,7 @@ _Current rebuild working baseline:_ `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 - Reopened destinations now surface explicit saved-result context: COMPLETE (LOCAL-GATED)
 - Reopened destinations now offer direct source-take comparison actions: COMPLETE (LOCAL-GATED)
 - Workspace chrome now uses a fixed preview, contextual tray, and bottom mode rail: COMPLETE (LOCAL-GATED)
+- Workspace preview now owns the active tool focus deck: COMPLETE (LOCAL-GATED)
 - Standalone derivation ledger: ACTIVE
 
 If anything above is not true, it must be reflected here.
@@ -203,6 +204,12 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase29_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase29_tests.log`
   - xcresult: `/tmp/itfactor_smartfill_phase29_tests/Logs/Test/Test-STSiPhone-2026.03.27_09-22-43--0400.xcresult`
+- `SF-REBUILD-030` — attach active tool focus to the preview surface — `COMPLETE (LOCAL-GATED 2026-03-27)`
+  - `SmartFillWorkspaceView` now replaces the generic status strip with a preview-attached focus deck that reflects the active tool, its current key values, and one context-aware drill-in action.
+  - `SmartFillWorkspaceTool` now owns a small focus/drill-in descriptor seam so the preview-adjacent tool summary stays intentional and testable as more SmartFill tools land.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase30_gateA.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase30_tests.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase30_tests/Logs/Test/Test-STSiPhone-2026.03.27_09-47-12--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -226,6 +233,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Use `SF-REBUILD-029` as the new SmartFill workspace baseline and decide the next real editor-quality upgrade now that inline control ownership is clearer.
+1. Use `SF-REBUILD-030` as the new SmartFill workspace baseline and decide the next real editor-quality upgrade now that the preview and active tool read as one surface.
 2. Implement that next slice on GM with Gate A and focused SmartFill parity before any promotion discussion.
-3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, inline ownership model, and tray-to-sheet split for deeper tools.
+3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, inline ownership model, preview-focus deck, and tray-to-sheet split for deeper tools.

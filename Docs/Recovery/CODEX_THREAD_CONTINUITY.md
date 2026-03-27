@@ -1,12 +1,12 @@
 # CODEX Thread Continuity
 
-## Ticket 029 SmartFill Workspace Inline Control Ownership (2026-03-27)
-- Thread Status: inline-vs-sheet ownership landed on the clean GM branch, passed Gate A plus focused SmartFill parity, and is ready to anchor as `SF-REBUILD-029`.
+## Ticket 030 SmartFill Workspace Preview-Focus Deck (2026-03-27)
+- Thread Status: preview-attached tool focus landed on the clean GM branch, passed Gate A plus focused SmartFill parity, and is ready to anchor as `SF-REBUILD-030`.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
-- Active Worktree Truth: `/tmp/itfactor_smartfill_phase29`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase30`
 - Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
-- Working Branch: `gm/smartfill-itfactor-phase29`
-- Working Head SHA: `90331b944e3b26b3ce367ea545d0520f3f069439`
+- Working Branch: `gm/smartfill-itfactor-phase30`
+- Working Head SHA: `257ed2100e995d01aeceb7a24e310f49fd48f46f`
 - Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 - Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
 - Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
@@ -15,28 +15,31 @@
   - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 
 ### Objective
-Turn the tray-plus-sheet shell into a clearer tool hierarchy:
-1. keep only the highest-value editing decisions inline in the tray
-2. keep deeper or more verbose controls in dedicated sheets so the main editor stays fast
-3. preserve preview prominence and all existing SmartFill save/reopen truth while making the inline controls feel intentional
-4. keep the resulting inline-vs-sheet ownership reusable for the later standalone utility derivation
+Tighten the editor feel around the preview and active tool:
+1. remove the generic status strip that still reads like dashboard chrome
+2. attach the active tool summary directly to the preview so the user sees the current look/output/save state where they are actually looking
+3. keep one context-aware drill-in action near the preview instead of expanding the bottom tray again
+4. preserve all existing save/reopen truth while making the preview and tool chrome feel like one editor surface
 
 ### Preflight
 - Truth-sync confirmed:
-  - `git -C /tmp/itfactor_smartfill_phase29 fetch origin --prune`
-  - `HEAD`: `90331b944e3b26b3ce367ea545d0520f3f069439`
+  - `git -C /tmp/itfactor_smartfill_phase30 fetch origin --prune`
+  - `HEAD`: `257ed2100e995d01aeceb7a24e310f49fd48f46f`
   - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
   - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
-- `SF-REBUILD-028` is the clean local baseline for this inline-vs-sheet ownership phase.
-- Work continues in `/tmp/itfactor_smartfill_phase29` so the prior worktree with an out-of-scope scheme-file change stays untouched.
+- `SF-REBUILD-029` is the clean local baseline for this preview-focus phase.
+- Work continues in `/tmp/itfactor_smartfill_phase30` so the already-anchored phase-29 worktree stays untouched.
 
 ### Next Action
-1. `SmartFillWorkspaceView` now keeps only the highest-frequency controls inline: background mode, treatment finish, subject presets, output resolution, and after-save behavior.
-2. Lower-frequency controls now route through consistent drill-in chips and sheets: background fill, fine tuning, precision subject scale, output speed, and save-plan detail.
-3. Gate A PASS: `/tmp/itfactor_smartfill_phase29_gateA.log`
-4. Focused parity PASS: `/tmp/itfactor_smartfill_phase29_tests.log`
-5. xcresult: `/tmp/itfactor_smartfill_phase29_tests/Logs/Test/Test-STSiPhone-2026.03.27_09-22-43--0400.xcresult`
+1. `SmartFillWorkspaceView` now replaces the generic horizontal status strip with a preview-attached focus deck that shows the active tool’s key values and one relevant drill-in action.
+2. `SmartFillWorkspaceTool` now owns a small tested focus/drill-in seam so preview-adjacent inline ownership stays intentional as SmartFill adds more tools.
+3. Gate A PASS: `/tmp/itfactor_smartfill_phase30_gateA.log`
+4. Focused parity PASS: `/tmp/itfactor_smartfill_phase30_tests.log`
+5. xcresult: `/tmp/itfactor_smartfill_phase30_tests/Logs/Test/Test-STSiPhone-2026.03.27_09-47-12--0400.xcresult`
 6. Future candidate after chrome architecture stabilizes: evaluate a more professional live SmartFill preview with scrubbing/playhead control instead of only passive preview treatment.
+
+## Ticket 029 SmartFill Workspace Inline Control Ownership (2026-03-27)
+- Thread Status: inline-vs-sheet ownership landed on the clean GM branch, passed Gate A plus focused SmartFill parity, and is anchored as `SF-REBUILD-029`.
 
 ## Ticket 028 SmartFill Workspace Secondary Sheet Split (2026-03-27)
 - Thread Status: tray-to-sheet split landed on the clean GM branch, passed Gate A plus focused SmartFill parity, and is anchored as `SF-REBUILD-028`.

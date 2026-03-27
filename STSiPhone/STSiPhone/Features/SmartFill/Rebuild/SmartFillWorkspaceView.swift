@@ -48,7 +48,6 @@ struct SmartFillWorkspaceView: View {
 
                 VStack(spacing: 14) {
                     previewSurface
-                    workspaceStatusStrip
                     Spacer(minLength: 0)
                 }
                 .padding(.horizontal, Theme.Layout.screenPadding)
@@ -198,39 +197,11 @@ struct SmartFillWorkspaceView: View {
                     .font(.caption)
                     .foregroundStyle(.orange)
             }
+
+            previewToolFocusDeck
         }
         .padding(18)
         .background(panelBackground)
-    }
-
-    private var workspaceStatusStrip: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                statusPill(
-                    icon: activeTool.symbolName,
-                    title: activeTool.shortTitle,
-                    value: activeTool.summaryValue(for: settings, behavior: completionBehavior)
-                )
-                statusPill(
-                    icon: "circle.lefthalf.filled",
-                    title: "Look",
-                    value: SmartFillWorkspacePresentation.backgroundModeTitle(for: settings)
-                )
-                statusPill(
-                    icon: "rectangle.compress.vertical",
-                    title: "Output",
-                    value: "\(Int(settings.renderSize.width))×\(Int(settings.renderSize.height))"
-                )
-                if let record = coordinator.lastResult {
-                    statusPill(
-                        icon: "sparkles.rectangle.stack",
-                        title: "Saved",
-                        value: record.adoptedTakeDisplayName
-                    )
-                }
-            }
-            .padding(.horizontal, 2)
-        }
     }
 
     private var editorChrome: some View {
@@ -247,6 +218,59 @@ struct SmartFillWorkspaceView: View {
         .padding(.top, 12)
         .padding(.bottom, 16)
         .background(.ultraThinMaterial)
+    }
+
+    private var previewToolFocusDeck: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Label(activeTool.shortTitle, systemImage: activeTool.symbolName)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.textPrimary)
+
+                Spacer()
+
+                if let drillIn = activeToolDrillIn {
+                    Button {
+                        activeSheet = drillIn.sheet
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: drillIn.symbolName)
+                                .font(.caption.weight(.semibold))
+                            Text(drillIn.title)
+                                .font(.caption.weight(.semibold))
+                            Text(drillIn.value)
+                                .font(.caption2.weight(.medium))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                        .foregroundStyle(Theme.textPrimary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
+                        .background(Color.white.opacity(0.05), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(activeToolFocusItems) { item in
+                        previewFocusChip(item)
+                    }
+
+                    if let record = coordinator.lastResult, activeTool != .save {
+                        previewFocusChip(
+                            SmartFillWorkspaceFocusItem(
+                                title: "Saved",
+                                value: record.adoptedTakeDisplayName,
+                                symbolName: "sparkles.rectangle.stack"
+                            )
+                        )
+                    }
+                }
+                .padding(.horizontal, 2)
+            }
+        }
     }
 
     @ViewBuilder
@@ -867,6 +891,23 @@ struct SmartFillWorkspaceView: View {
         }
     }
 
+    private var activeToolFocusItems: [SmartFillWorkspaceFocusItem] {
+        activeTool.focusItems(
+            settings: settings,
+            completionBehavior: completionBehavior,
+            savedTakeName: coordinator.lastResult?.adoptedTakeDisplayName
+        )
+    }
+
+    private var activeToolDrillIn: SmartFillWorkspaceDrillInDescriptor? {
+        activeTool.drillInDescriptor(
+            settings: settings,
+            completionBehavior: completionBehavior,
+            savedTakeName: coordinator.lastResult?.adoptedTakeDisplayName,
+            activeLookAdjustment: activeLookAdjustment
+        )
+    }
+
     private var stageLabel: String {
         switch effectiveStage {
         case .intake: return "Ready"
@@ -1138,6 +1179,27 @@ struct SmartFillWorkspaceView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .background(Color.white.opacity(0.05), in: Capsule())
+    }
+
+    private func previewFocusChip(_ item: SmartFillWorkspaceFocusItem) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: item.symbolName)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.primary)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Text(item.value)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(Color.white.opacity(0.04), in: Capsule())
     }
 
     private func toolLinkChip(
@@ -1537,7 +1599,22 @@ private enum SmartFillWorkspaceBackgroundMode: CaseIterable {
     }
 }
 
-private enum SmartFillWorkspaceTool: CaseIterable {
+struct SmartFillWorkspaceFocusItem: Equatable, Identifiable {
+    let title: String
+    let value: String
+    let symbolName: String
+
+    var id: String { "\(title)|\(value)|\(symbolName)" }
+}
+
+struct SmartFillWorkspaceDrillInDescriptor: Equatable {
+    let title: String
+    let value: String
+    let symbolName: String
+    let sheet: SmartFillWorkspaceSheet
+}
+
+enum SmartFillWorkspaceTool: CaseIterable {
     case background
     case subject
     case output
@@ -1582,9 +1659,80 @@ private enum SmartFillWorkspaceTool: CaseIterable {
             return behavior.pickerTitle
         }
     }
+
+    func focusItems(
+        settings: SmartFillSettings,
+        completionBehavior: SmartFillWorkspaceCompletionBehavior,
+        savedTakeName: String?
+    ) -> [SmartFillWorkspaceFocusItem] {
+        switch self {
+        case .background:
+            let finishTitle = SmartFillWorkspaceTreatmentPreset.allCases.first(where: { $0.matches(settings) })?.title ?? "Custom"
+            let fillTitle = SmartFillWorkspaceBackgroundFillPreset.allCases.first(where: { $0.matches(settings.backgroundScale) })?.title ?? String(format: "%.1f×", settings.backgroundScale)
+            return [
+                SmartFillWorkspaceFocusItem(title: "Mode", value: SmartFillWorkspacePresentation.backgroundModeTitle(for: settings), symbolName: "camera.filters"),
+                SmartFillWorkspaceFocusItem(title: "Finish", value: finishTitle, symbolName: "sparkles"),
+                SmartFillWorkspaceFocusItem(title: "Fill", value: fillTitle, symbolName: "arrow.up.left.and.arrow.down.right")
+            ]
+        case .subject:
+            let presetTitle = SmartFillWorkspaceSubjectPreset.allCases.first(where: { $0.matches(settings.foregroundScale) })?.title ?? "Custom"
+            return [
+                SmartFillWorkspaceFocusItem(title: "Preset", value: presetTitle, symbolName: "person.crop.rectangle"),
+                SmartFillWorkspaceFocusItem(title: "Scale", value: String(format: "%.2f×", settings.foregroundScale), symbolName: "arrow.up.left.and.arrow.down.right.circle")
+            ]
+        case .output:
+            return [
+                SmartFillWorkspaceFocusItem(title: "Resolution", value: "\(Int(settings.renderSize.width))×\(Int(settings.renderSize.height))", symbolName: "rectangle.compress.vertical"),
+                SmartFillWorkspaceFocusItem(title: "Speed", value: SmartFillWorkspacePresentation.processingPriorityTitle(for: settings.processingPriority), symbolName: "bolt.fill")
+            ]
+        case .save:
+            return [
+                SmartFillWorkspaceFocusItem(title: "After save", value: completionBehavior.summaryTitle, symbolName: "arrowshape.turn.up.forward"),
+                SmartFillWorkspaceFocusItem(title: "Destination", value: savedTakeName ?? "Session SmartFill take", symbolName: "sparkles.rectangle.stack")
+            ]
+        }
+    }
+
+    func drillInDescriptor(
+        settings: SmartFillSettings,
+        completionBehavior: SmartFillWorkspaceCompletionBehavior,
+        savedTakeName: String?,
+        activeLookAdjustment: SmartFillWorkspaceLookAdjustment
+    ) -> SmartFillWorkspaceDrillInDescriptor? {
+        switch self {
+        case .background:
+            return SmartFillWorkspaceDrillInDescriptor(
+                title: "Fine tune",
+                value: activeLookAdjustment.valueLabel(for: settings),
+                symbolName: "slider.horizontal.3",
+                sheet: .lookAdjustments
+            )
+        case .subject:
+            return SmartFillWorkspaceDrillInDescriptor(
+                title: "Precision",
+                value: String(format: "%.2f×", settings.foregroundScale),
+                symbolName: "slider.horizontal.below.rectangle",
+                sheet: .subjectScale
+            )
+        case .output:
+            return SmartFillWorkspaceDrillInDescriptor(
+                title: "Processing",
+                value: SmartFillWorkspacePresentation.processingPriorityTitle(for: settings.processingPriority),
+                symbolName: "bolt.fill",
+                sheet: .outputOptions
+            )
+        case .save:
+            return SmartFillWorkspaceDrillInDescriptor(
+                title: "Details",
+                value: savedTakeName ?? completionBehavior.summaryTitle,
+                symbolName: "square.and.arrow.down.on.square",
+                sheet: .savePlan
+            )
+        }
+    }
 }
 
-private enum SmartFillWorkspaceSheet: String, Identifiable {
+enum SmartFillWorkspaceSheet: String, Identifiable {
     case backgroundFill
     case lookAdjustments
     case advancedLook
@@ -1595,7 +1743,7 @@ private enum SmartFillWorkspaceSheet: String, Identifiable {
     var id: String { rawValue }
 }
 
-private enum SmartFillWorkspaceLookAdjustment: CaseIterable {
+enum SmartFillWorkspaceLookAdjustment: CaseIterable {
     case blur
     case darken
     case fill

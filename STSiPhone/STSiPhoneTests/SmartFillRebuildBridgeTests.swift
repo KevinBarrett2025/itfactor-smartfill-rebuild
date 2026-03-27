@@ -346,6 +346,68 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertEqual(SmartFillWorkspacePresentation.headerMessage(for: context), "Use the rebuild workspace to shape the look.")
     }
 
+    func testWorkspaceToolFocusKeepsHighestFrequencyBackgroundValuesNearPreview() {
+        let settings = SmartFillSettings(
+            blurRadius: 24,
+            darkenAmount: 0.14,
+            backgroundScale: 10,
+            presetName: "Medium"
+        )
+
+        let items = SmartFillWorkspaceTool.background.focusItems(
+            settings: settings,
+            completionBehavior: .returnAutomatically,
+            savedTakeName: nil
+        )
+
+        XCTAssertEqual(
+            items,
+            [
+                SmartFillWorkspaceFocusItem(title: "Mode", value: "Balanced", symbolName: "camera.filters"),
+                SmartFillWorkspaceFocusItem(title: "Finish", value: "Balanced", symbolName: "sparkles"),
+                SmartFillWorkspaceFocusItem(title: "Fill", value: "Default", symbolName: "arrow.up.left.and.arrow.down.right")
+            ]
+        )
+    }
+
+    func testWorkspaceToolFocusUsesDrillInDescriptorsForSecondaryControls() {
+        let settings = SmartFillSettings(
+            foregroundScale: 1.1,
+            renderSize: CGSize(width: 1920, height: 1080),
+            processingPriority: .high
+        )
+
+        XCTAssertEqual(
+            SmartFillWorkspaceTool.subject.drillInDescriptor(
+                settings: settings,
+                completionBehavior: .returnAutomatically,
+                savedTakeName: nil,
+                activeLookAdjustment: .blur
+            ),
+            SmartFillWorkspaceDrillInDescriptor(
+                title: "Precision",
+                value: "1.10×",
+                symbolName: "slider.horizontal.below.rectangle",
+                sheet: .subjectScale
+            )
+        )
+
+        XCTAssertEqual(
+            SmartFillWorkspaceTool.output.drillInDescriptor(
+                settings: settings,
+                completionBehavior: .returnAutomatically,
+                savedTakeName: nil,
+                activeLookAdjustment: .blur
+            ),
+            SmartFillWorkspaceDrillInDescriptor(
+                title: "Processing",
+                value: "Fast",
+                symbolName: "bolt.fill",
+                sheet: .outputOptions
+            )
+        )
+    }
+
     func testWorkspacePresentationUsesVariantSaveCopyForSmartFillTake() {
         let originalID = UUID()
         let take = ProjectTake(
