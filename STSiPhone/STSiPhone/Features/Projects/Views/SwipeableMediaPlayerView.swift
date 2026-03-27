@@ -886,7 +886,8 @@ struct UnifiedMediaContentView: View {
                         takeNumber: mediaData.takeNumber,
                         totalTakes: mediaData.totalTakes,
                         displayLabel: mediaData.displayLabel,
-                        isSmartFillVariant: mediaData.isSmartFillVariant
+                        isSmartFillVariant: mediaData.isSmartFillVariant,
+                        reopenContext: nil
                     ),
                     index: index,
                     onDismiss: onDismiss,

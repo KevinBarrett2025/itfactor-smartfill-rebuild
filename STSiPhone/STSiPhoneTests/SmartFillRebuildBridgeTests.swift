@@ -723,6 +723,32 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         )
     }
 
+    func testReopenDestinationContextNamesSavedTakeForPlayerReview() {
+        let context = SmartFillReopenDestinationContext.player(
+            adoptedTakeDisplayName: "S1T1 SmartFill"
+        )
+
+        XCTAssertEqual(context.badgeTitle, "Saved SmartFill Result")
+        XCTAssertEqual(context.title, "S1T1 SmartFill")
+        XCTAssertEqual(
+            context.message,
+            "This is the SmartFill take you just saved. Review it here or open editing again if you want another pass."
+        )
+    }
+
+    func testReopenDestinationContextNamesSavedTakeForEditor() {
+        let context = SmartFillReopenDestinationContext.editor(
+            adoptedTakeDisplayName: "S1T1 SmartFill"
+        )
+
+        XCTAssertEqual(context.badgeTitle, "Saved SmartFill Result")
+        XCTAssertEqual(context.title, "Opened S1T1 SmartFill")
+        XCTAssertEqual(
+            context.message,
+            "You are now editing the saved SmartFill take. Keep trimming, cropping, or exporting from this updated result."
+        )
+    }
+
     func testWorkspaceCompletionFollowUpPrimaryActionOpensSavedTakeWhenAvailable() {
         XCTAssertEqual(
             SmartFillWorkspaceCompletionFollowUpAction.primaryAction(

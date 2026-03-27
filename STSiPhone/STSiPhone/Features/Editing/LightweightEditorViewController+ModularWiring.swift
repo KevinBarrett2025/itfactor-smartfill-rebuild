@@ -675,6 +675,17 @@ extension LightweightEditorViewController {
             self.updateToolbar(for: .playback, kind: newKind)
         }
 
+        let reopenContext = SmartFillReopenDestinationContext.editor(
+            adoptedTakeDisplayName: record.adoptedTakeDisplayName
+        )
+        let alert = UIAlertController(
+            title: reopenContext.title,
+            message: reopenContext.message,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
+
         print("✅ SMARTFILL WORKSPACE: Reopened saved take \(record.adoptedTakeDisplayName) in editor")
     }
     

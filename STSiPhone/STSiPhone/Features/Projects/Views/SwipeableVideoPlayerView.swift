@@ -13,6 +13,7 @@ struct VideoPlayerDisplayData {
     let totalTakes: Int
     let displayLabel: String
     let isSmartFillVariant: Bool
+    let reopenContext: SmartFillReopenDestinationContext?
 }
 
 // MARK: - Shared Utilities
@@ -142,6 +143,8 @@ struct SwipeableVideoPlayerView: View {
     let onEditorRequest: ((ProjectTake) -> Void)?
     let onSmartFillRequest: ((ProjectTake) -> Void)?
     let onSmartFillEditRequest: ((ProjectTake) -> Void)?
+    let savedResultTakeID: UUID?
+    let savedResultContext: SmartFillReopenDestinationContext?
     
     @State private var currentIndex: Int
     @State private var videoPlayerData: [VideoPlayerDisplayData] = []
@@ -179,7 +182,9 @@ struct SwipeableVideoPlayerView: View {
         repository: ProjectsRepository,
         onEditorRequest: ((ProjectTake) -> Void)? = nil,  // PHASE 1: NEW - Optional editor callback
         onSmartFillRequest: ((ProjectTake) -> Void)? = nil,
-        onSmartFillEditRequest: ((ProjectTake) -> Void)? = nil
+        onSmartFillEditRequest: ((ProjectTake) -> Void)? = nil,
+        savedResultTakeID: UUID? = nil,
+        savedResultContext: SmartFillReopenDestinationContext? = nil
     ) {
         self.takes = takes
         self.currentSession = session
@@ -191,6 +196,8 @@ struct SwipeableVideoPlayerView: View {
         self.onEditorRequest = onEditorRequest  // PHASE 1: NEW - Store editor callback
         self.onSmartFillRequest = onSmartFillRequest
         self.onSmartFillEditRequest = onSmartFillEditRequest
+        self.savedResultTakeID = savedResultTakeID
+        self.savedResultContext = savedResultContext
         self._currentIndex = State(initialValue: initialIndex)
         self._previousIndex = State(initialValue: initialIndex)
     }
@@ -508,7 +515,8 @@ struct SwipeableVideoPlayerView: View {
                     takeNumber: stableTakeNumber,
                     totalTakes: updatedTakes.count,
                     displayLabel: TakeDisplayFormatter.label(for: updatedTake, in: updatedSession),
-                    isSmartFillVariant: updatedTake.isSmartFillVariant
+                    isSmartFillVariant: updatedTake.isSmartFillVariant,
+                    reopenContext: updatedTake.id == savedResultTakeID ? savedResultContext : nil
                 )
                 
                 newPlayerDataArray.append(displayData)
@@ -675,7 +683,8 @@ struct SwipeableVideoPlayerView: View {
                     takeNumber: stableTakeNumber,
                     totalTakes: takes.count, // Total takes in current context
                     displayLabel: TakeDisplayFormatter.label(for: take, in: currentSession),
-                    isSmartFillVariant: take.isSmartFillVariant
+                    isSmartFillVariant: take.isSmartFillVariant,
+                    reopenContext: take.id == savedResultTakeID ? savedResultContext : nil
                 )
                 
                 playerDataArray.append(displayData)
@@ -2077,19 +2086,38 @@ struct CustomAVPlayerViewController: UIViewControllerRepresentable {
         stackView.spacing = 4
         
         let titleLabel = UILabel()
-        titleLabel.text = formatVideoTitle()
+        titleLabel.text = videoData.reopenContext?.title ?? formatVideoTitle()
         titleLabel.textColor = .white
         titleLabel.font = UIFont.boldSystemFont(ofSize: 18)
         titleLabel.textAlignment = .center
-        
+
+        if let reopenContext = videoData.reopenContext {
+            let badgeLabel = UILabel()
+            badgeLabel.text = reopenContext.badgeTitle.uppercased()
+            badgeLabel.textColor = UIColor.systemTeal
+            badgeLabel.font = UIFont.systemFont(ofSize: 11, weight: .semibold)
+            badgeLabel.textAlignment = .center
+            stackView.addArrangedSubview(badgeLabel)
+        }
+
         let subtitleLabel = UILabel()
         subtitleLabel.text = formatVideoSubtitle()
         subtitleLabel.textColor = UIColor.white.withAlphaComponent(0.9)
         subtitleLabel.font = UIFont.systemFont(ofSize: 14)
         subtitleLabel.textAlignment = .center
-        
+
         stackView.addArrangedSubview(titleLabel)
         stackView.addArrangedSubview(subtitleLabel)
+
+        if let reopenContext = videoData.reopenContext {
+            let contextLabel = UILabel()
+            contextLabel.text = reopenContext.message
+            contextLabel.textColor = UIColor.white.withAlphaComponent(0.82)
+            contextLabel.font = UIFont.systemFont(ofSize: 12)
+            contextLabel.textAlignment = .center
+            contextLabel.numberOfLines = 0
+            stackView.addArrangedSubview(contextLabel)
+        }
         
         containerView.addSubview(stackView)
         stackView.translatesAutoresizingMaskIntoConstraints = false

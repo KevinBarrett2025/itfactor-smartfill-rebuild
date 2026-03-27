@@ -1,5 +1,77 @@
 # CODEX Thread Continuity
 
+## Ticket 023 Saved Result Context In Reopened Destinations (2026-03-26)
+- Thread Status: reopened project-review/player and editor destinations now explicitly surface saved SmartFill result identity/context after completion, local gating is green, and commit/push is the active next action.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-rebuild`
+- Working Head SHA: `694bd29d0440a0cb8b980fafbdfc5e5cfa0ce254`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Make reopened destinations explicitly identify the saved SmartFill result:
+1. make project-review/player reopen destinations clearly identify the just-saved SmartFill result instead of silently landing on the adopted take
+2. make editor reopen destinations clearly identify the just-saved SmartFill result instead of only swapping takes with no explicit context
+3. keep saved-result identity consistent for both manual and automatic reopen paths
+4. keep standalone derivation aligned because the later hidden-session utility will need the same `you are viewing the result you just saved` seam
+
+### Completed This Pass
+- Truth-sync preflight confirmed:
+  - `HEAD`: `694bd29d0440a0cb8b980fafbdfc5e5cfa0ce254`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Archaeology confirmed the remaining product gap after `SF-REBUILD-022`:
+  - both manual reopen and automatic `Return` now reached the correct saved take
+  - neither player/review nor editor destinations explicitly told the user that the reopened take was the SmartFill result they had just saved
+  - the saved-result label already existed in `SmartFillResultBridgeRecord`, but there was no shared presentation seam carrying that identity into reopened destinations
+- Added `SmartFillReopenDestinationContext` as the authoritative shared seam for saved-result reopen presentation across:
+  - project-review/player reopen flows
+  - editor reopen flows
+  - later standalone hidden-session reopen flows
+- `ProjectDetailView` now passes saved-result identity into `SwipeableVideoPlayerData`, and `SwipeableVideoPlayerView` now surfaces that identity in its title overlay instead of silently reopening the adopted take.
+- `LightweightEditorViewController+ModularWiring` now shows explicit saved-result context after swapping the editor onto the adopted SmartFill take.
+- Focused parity now covers:
+  - player/review reopen context naming the saved take
+  - editor reopen context naming the saved take
+
+### Validation
+- Preflight fetch:
+  - `git -C /Users/kevinbarrett/Dev/itFactor_1.23.26_git fetch origin --prune`
+- Storage recovery:
+  - deleted stale `/tmp/itfactor_smartfill_*` and `/tmp/sts_*` artifacts after build/test failures hit `No space left on device`
+  - recovered roughly `70 GiB` on the data volume before rerunning the authoritative gates
+- Gate A command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase23_gateA_rerun3 build | tee /tmp/itfactor_smartfill_phase23_gateA_rerun3.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase23_gateA_rerun3.log`
+- Focused parity command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase23_tests_rerun3 -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase23_tests_rerun3.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase23_tests_rerun3.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase23_tests_rerun3/Logs/Test/Test-STSiPhone-2026.03.26_19-56-52--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Archaeology Snapshot
+- `SF-REBUILD-021` and `SF-REBUILD-022` fixed the actual reopen routing for both manual and automatic finish paths, but they still reopened into destinations that looked the same as any normal take open.
+- The rebuild already had the correct saved-result identity source in `SmartFillResultBridgeRecord.adoptedTakeDisplayName`, so the right next move was to add a shared presentation seam rather than invent another shell banner or duplicate completed-state summary.
+- `SwipeableVideoPlayerView` and editor reopen were the correct flagship seams because they are where users actually land after save, and the future standalone utility will need the same destination-context seam once hidden-session reopen becomes the utility's post-save finish path.
+
+### Next Action
+1. Commit and push Ticket 023 on `gm/smartfill-itfactor-rebuild` with Gate A and focused parity evidence attached.
+2. Choose the next flagship SmartFill workspace phase now that both reopened destinations explicitly identify the just-saved SmartFill result instead of silently landing on the adopted take.
+3. Keep the standalone derivation ledger synchronized because the future hidden-session utility will need the same saved-result context seam.
+
 ## Ticket 022 Auto-Return Uses Real Saved Take Reopen Path (2026-03-26)
 - Thread Status: the rebuild workspace now routes both manual completed-state actions and automatic `Return` through the same saved-result reopen seam for project-review and editor launches, local gating is green, and commit/push is the active next action.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

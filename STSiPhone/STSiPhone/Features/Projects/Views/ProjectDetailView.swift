@@ -56,6 +56,8 @@ struct SwipeableVideoPlayerData: Identifiable {
     let project: Project
     let contextViewType: TakeReviewPage.ViewType // NEW: Remember which context we came from
     let contextSceneNumber: Int? // NEW: Remember which scene we came from (if applicable)
+    let savedResultTakeID: UUID?
+    let savedResultContext: SmartFillReopenDestinationContext?
 }
 
 // NEW: Centralized modal management to fix iOS sheet stacking issue
@@ -763,7 +765,9 @@ public struct ProjectDetailView: View {
                                     session: session,
                                     project: project,
                                     contextViewType: .deliverables,
-                                    contextSceneNumber: take.sceneNumber
+                                    contextSceneNumber: take.sceneNumber,
+                                    savedResultTakeID: nil,
+                                    savedResultContext: nil
                                 ),
                                 transitionFromCurrentFlow: false,
                                 returnToTakeReviewOnDismiss: false
@@ -805,7 +809,9 @@ public struct ProjectDetailView: View {
                         session: data.session,
                         project: data.project,
                         contextViewType: viewType,
-                        contextSceneNumber: sceneNumber
+                        contextSceneNumber: sceneNumber,
+                        savedResultTakeID: nil,
+                        savedResultContext: nil
                     )
                     if prefersMediaPlayer {
                         presentMediaPlayer(playerData, transitionFromCurrentFlow: true)
@@ -1332,7 +1338,9 @@ public struct ProjectDetailView: View {
                         session: data.session,
                         project: data.project
                     )
-                }
+                },
+                savedResultTakeID: data.savedResultTakeID,
+                savedResultContext: data.savedResultContext
             )
         }
         
@@ -1878,7 +1886,8 @@ public struct ProjectDetailView: View {
                 for: resolved.take,
                 session: resolved.session,
                 project: resolved.project,
-                preferredReviewData: reviewData
+                preferredReviewData: reviewData,
+                savedResultDisplayName: pending.result.adoptedTakeDisplayName
             ) else {
                 return false
             }
@@ -1908,7 +1917,8 @@ public struct ProjectDetailView: View {
         for take: ProjectTake,
         session: ProjectSession,
         project: Project,
-        preferredReviewData: TakeReviewData?
+        preferredReviewData: TakeReviewData?,
+        savedResultDisplayName: String? = nil
     ) -> SwipeableVideoPlayerData? {
         guard let initialIndex = session.takes.firstIndex(where: { $0.id == take.id }) else {
             return nil
@@ -1921,7 +1931,11 @@ public struct ProjectDetailView: View {
             session: session,
             project: project,
             contextViewType: preferredReviewData?.selectedViewType ?? fallbackViewType,
-            contextSceneNumber: preferredReviewData?.selectedSceneNumber ?? take.sceneNumber
+            contextSceneNumber: preferredReviewData?.selectedSceneNumber ?? take.sceneNumber,
+            savedResultTakeID: take.id,
+            savedResultContext: savedResultDisplayName.map {
+                SmartFillReopenDestinationContext.player(adoptedTakeDisplayName: $0)
+            }
         )
     }
     
