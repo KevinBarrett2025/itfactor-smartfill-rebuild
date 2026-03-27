@@ -45,6 +45,213 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertFalse(SmartFillTakeBridge.shouldOfferSmartFill(for: take, in: session))
     }
 
+    func testPlayerEntryResolverRequestsSmartFillForPortraitTakeWithoutCompanion() {
+        let original = ProjectTake(
+            id: UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE")!,
+            filePath: "/tmp/original.mov",
+            durationSeconds: 12,
+            capturedOrientation: .portrait
+        )
+        let session = ProjectSession(
+            type: .selfTape,
+            takes: [original],
+            primaryOrientation: .landscape
+        )
+
+        XCTAssertEqual(
+            SmartFillPlayerEntryResolver.resolve(for: original, in: session),
+            .request(targetTake: original)
+        )
+    }
+
+    func testPlayerEntryResolverEditsExistingCompanionForOriginalPortraitTake() {
+        let originalID = UUID(uuidString: "11111111-2222-3333-4444-555555555555")!
+        let original = ProjectTake(
+            id: originalID,
+            filePath: "/tmp/original.mov",
+            durationSeconds: 12,
+            capturedOrientation: .portrait
+        )
+        let companion = ProjectTake(
+            id: UUID(uuidString: "66666666-7777-8888-9999-AAAAAAAAAAAA")!,
+            filePath: "/tmp/original_smartfill.mov",
+            durationSeconds: 12,
+            takeNotes: "[SMARTFILL_ORIGINAL:\(originalID.uuidString)]",
+            capturedOrientation: .portrait
+        )
+        let session = ProjectSession(
+            type: .selfTape,
+            takes: [original, companion],
+            primaryOrientation: .landscape
+        )
+
+        XCTAssertEqual(
+            SmartFillPlayerEntryResolver.resolve(for: original, in: session),
+            .edit(targetTake: companion)
+        )
+    }
+
+    func testPlayerEntryResolverEditsCurrentTakeWhenAlreadyOnSmartFillVariant() {
+        let originalID = UUID(uuidString: "BBBBBBBB-CCCC-DDDD-EEEE-FFFFFFFFFFFF")!
+        let variant = ProjectTake(
+            id: UUID(uuidString: "12345678-1234-1234-1234-1234567890AB")!,
+            filePath: "/tmp/original_smartfill.mov",
+            durationSeconds: 12,
+            takeNotes: "[SMARTFILL_ORIGINAL:\(originalID.uuidString)]",
+            capturedOrientation: .portrait
+        )
+        let session = ProjectSession(
+            type: .selfTape,
+            takes: [variant],
+            primaryOrientation: .landscape
+        )
+
+        XCTAssertEqual(
+            SmartFillPlayerEntryResolver.resolve(for: variant, in: session),
+            .edit(targetTake: variant)
+        )
+    }
+
+    func testPlayerEntryResolverHidesForExportDeliverableWithoutSmartFillPath() {
+        let exported = ProjectTake(
+            filePath: "/tmp/exported.mov",
+            durationSeconds: 12,
+            capturedOrientation: .landscape,
+            takeType: .exported
+        )
+        let session = ProjectSession(
+            type: .selfTape,
+            takes: [exported],
+            primaryOrientation: .landscape
+        )
+
+        XCTAssertNil(SmartFillPlayerEntryResolver.resolve(for: exported, in: session))
+    }
+
+    func testHomeScreenSmartFillRouteBuildsPlayerRequestContext() {
+        let take = ProjectTake(
+            filePath: "/tmp/original.mov",
+            durationSeconds: 12,
+            sceneNumber: 1,
+            takeNumber: 2,
+            capturedOrientation: .portrait
+        )
+        let session = ProjectSession(
+            type: .selfTape,
+            takes: [take],
+            primaryOrientation: .landscape
+        )
+        let project = Project(title: "Project", sessions: [session])
+
+        let context = HomeScreenSmartFillRoute.requestContext(
+            for: take,
+            session: session,
+            project: project
+        )
+
+        XCTAssertEqual(context.take.id, take.id)
+        XCTAssertEqual(context.launchSource, .swipeablePlayer)
+        XCTAssertEqual(context.returnTarget, .swipeablePlayer)
+        XCTAssertEqual(context.displayName, "Take 2")
+        XCTAssertEqual(context.infoTitle, "SmartFill Required Before Editing")
+        XCTAssertNil(context.existingSettings)
+    }
+
+    func testHomeScreenSmartFillRouteBuildsEditContextFromVariantTake() {
+        let originalID = UUID(uuidString: "ABCDEFAB-CDEF-ABCD-EFAB-CDEFABCDEFAB")!
+        let snapshot = SmartFillSettingsSnapshot(
+            isEnabled: true,
+            blurRadius: 20,
+            darkenAmount: 0.18,
+            backgroundScale: 5,
+            foregroundScale: 1.1,
+            renderWidth: 1920,
+            renderHeight: 1080,
+            processingPriority: "interactive",
+            presetName: "Medium"
+        )
+        let original = ProjectTake(
+            id: originalID,
+            filePath: "/tmp/original.mov",
+            durationSeconds: 12,
+            sceneNumber: 2,
+            takeNumber: 4,
+            capturedOrientation: .portrait
+        )
+        let variant = ProjectTake(
+            filePath: "/tmp/original_smartfill.mov",
+            durationSeconds: 12,
+            takeNotes: "[SMARTFILL_ORIGINAL:\(originalID.uuidString)]",
+            sceneNumber: 2,
+            takeNumber: 4,
+            capturedOrientation: .portrait,
+            smartFillSettings: snapshot
+        )
+        let session = ProjectSession(
+            type: .selfTape,
+            takes: [original, variant],
+            primaryOrientation: .landscape
+        )
+        let project = Project(title: "Project", sessions: [session])
+
+        let context = HomeScreenSmartFillRoute.editContext(
+            for: variant,
+            session: session,
+            project: project
+        )
+
+        XCTAssertEqual(context?.take.id, original.id)
+        XCTAssertEqual(context?.displayName, "S2T4")
+        XCTAssertEqual(context?.infoTitle, "Fine-Tune SmartFill")
+        XCTAssertEqual(context?.existingSettings?.blurRadius, 20)
+        XCTAssertEqual(context?.existingSettings?.renderSize, CGSize(width: 1920, height: 1080))
+    }
+
+    func testHomeScreenSmartFillRouteBuildsPlayerReopenContext() {
+        let originalID = UUID(uuidString: "11111111-2222-3333-4444-555555555555")!
+        let adoptedID = UUID(uuidString: "66666666-7777-8888-9999-AAAAAAAAAAAA")!
+        let original = ProjectTake(
+            id: originalID,
+            filePath: "/tmp/original.mov",
+            durationSeconds: 12,
+            sceneNumber: 3,
+            takeNumber: 1,
+            capturedOrientation: .portrait
+        )
+        let adopted = ProjectTake(
+            id: adoptedID,
+            filePath: "/tmp/original_smartfill.mov",
+            durationSeconds: 12,
+            sceneNumber: 3,
+            takeNumber: 1,
+            capturedOrientation: .portrait
+        )
+        let session = ProjectSession(
+            type: .selfTape,
+            takes: [original, adopted],
+            primaryOrientation: .landscape
+        )
+        let record = SmartFillResultBridgeRecord(
+            projectID: UUID(),
+            sessionID: session.id,
+            originalTakeID: originalID,
+            adoptedTakeID: adoptedID,
+            adoptedTakeDisplayName: "S3T1 SmartFill",
+            outputURL: URL(fileURLWithPath: "/tmp/output.mov"),
+            duration: 12,
+            settingsSnapshot: nil,
+            adoptionMode: .createStandaloneVariantTake,
+            destinationSummary: "Create or refresh S3T1 SmartFill in this session."
+        )
+
+        let context = HomeScreenSmartFillRoute.reopenContext(for: record, in: session)
+
+        XCTAssertEqual(context.title, "S3T1 SmartFill")
+        XCTAssertEqual(context.sourceTakeID, originalID)
+        XCTAssertEqual(context.sourceTakeDisplayName, "S3T1")
+        XCTAssertEqual(context.playerComparisonActionTitle, "Compare with S3T1")
+    }
+
     func testDefaultWorkspaceSettingsPreferTakeSnapshotWhenAvailable() {
         let snapshot = SmartFillSettingsSnapshot(
             isEnabled: true,

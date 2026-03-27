@@ -430,6 +430,7 @@ struct SwipeableMediaPlayerView: View {
                                     // UNIFIED: Media content that handles both photos and videos
                                     UnifiedMediaContentView(
                                         mediaData: mediaData,
+                                        currentSession: currentSession,
                                         index: index,
                                         onDismiss: {
                                             shouldDismiss = true
@@ -855,6 +856,7 @@ struct SwipeableMediaPlayerView: View {
 
 struct UnifiedMediaContentView: View {
     let mediaData: MediaPlayerDisplayData
+    let currentSession: ProjectSession
     let index: Int
     let onDismiss: () -> Void
     let onRatingChange: (TakeRating) -> Void
@@ -889,6 +891,7 @@ struct UnifiedMediaContentView: View {
                         isSmartFillVariant: mediaData.isSmartFillVariant,
                         reopenContext: nil
                     ),
+                    currentSession: currentSession,
                     index: index,
                     onDismiss: onDismiss,
                     onRatingChange: onRatingChange,

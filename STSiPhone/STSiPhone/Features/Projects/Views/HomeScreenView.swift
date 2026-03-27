@@ -1,6 +1,92 @@
 import SwiftUI
 import UIKit
 
+struct HomeScreenPendingSmartFillOpenRequest {
+    let result: SmartFillResultBridgeRecord
+    let context: SmartFillSettingsContext
+}
+
+enum HomeScreenSmartFillRoute {
+    static func requestContext(
+        for take: ProjectTake,
+        session: ProjectSession,
+        project: Project,
+        launchSource: SmartFillLaunchSource = .swipeablePlayer,
+        returnTarget: SmartFillReturnTarget = .swipeablePlayer,
+        onUpdatePIPSession: ((SlatePIPSession?) -> Void)? = nil
+    ) -> SmartFillSettingsContext {
+        let displayName = TakeDisplayFormatter.label(for: take, in: session)
+        return SmartFillSettingsContext(
+            take: take,
+            session: session,
+            project: project,
+            launchSource: launchSource,
+            returnTarget: returnTarget,
+            autoLaunchEditor: false,
+            displayName: displayName,
+            infoTitle: "SmartFill Required Before Editing",
+            infoMessage: "“\(displayName)” was captured vertically. SmartFill converts it into a cinematic widescreen take that blends seamlessly with your other footage so trimming, cropping, and exports stay precise.",
+            existingSettings: nil,
+            onUpdatePIPSession: onUpdatePIPSession
+        )
+    }
+
+    static func editContext(
+        for smartFillTake: ProjectTake,
+        session: ProjectSession,
+        project: Project,
+        launchSource: SmartFillLaunchSource = .swipeablePlayer,
+        returnTarget: SmartFillReturnTarget = .swipeablePlayer,
+        onUpdatePIPSession: ((SlatePIPSession?) -> Void)? = nil
+    ) -> SmartFillSettingsContext? {
+        guard let original = resolveOriginalTake(for: smartFillTake, in: session) else {
+            return nil
+        }
+
+        let displayName = TakeDisplayFormatter.label(for: original, in: session)
+        return SmartFillSettingsContext(
+            take: original,
+            session: session,
+            project: project,
+            launchSource: launchSource,
+            returnTarget: returnTarget,
+            autoLaunchEditor: false,
+            displayName: displayName,
+            infoTitle: "Fine-Tune SmartFill",
+            infoMessage: "Adjust the SmartFill look for “\(displayName)”.",
+            existingSettings: smartFillTake.smartFillSettings.map { SmartFillTakeBridge.settings(from: $0) },
+            onUpdatePIPSession: onUpdatePIPSession
+        )
+    }
+
+    static func resolveOriginalTake(for smartFillTake: ProjectTake, in session: ProjectSession) -> ProjectTake? {
+        if let originalID = smartFillTake.smartFillOriginalID,
+           let original = session.takes.first(where: { $0.id == originalID }) {
+            return original
+        }
+
+        guard smartFillTake.isSmartFillVariant else {
+            return smartFillTake
+        }
+
+        return nil
+    }
+
+    static func reopenContext(
+        for record: SmartFillResultBridgeRecord,
+        in session: ProjectSession
+    ) -> SmartFillReopenDestinationContext {
+        let sourceTake = session.takes.first(where: {
+            $0.id == record.originalTakeID && $0.id != record.adoptedTakeID
+        })
+        return .player(
+            adoptedTakeDisplayName: record.adoptedTakeDisplayName,
+            sourceTakeID: sourceTake?.id,
+            sourceTakeDisplayName: sourceTake.map { TakeDisplayFormatter.label(for: $0, in: session) }
+        )
+    }
+}
+
 public struct HomeScreenView: View {
     let repo: ProjectsRepository
     @EnvironmentObject private var themeManager: ThemeManager
@@ -263,6 +349,11 @@ public struct HomeScreenView: View {
     @State private var handoffSession: ProjectSession?
     @State private var handoffProject: Project?
     @State private var playerRequest: PlayerRequest?
+    @State private var activeSmartFillContext: SmartFillSettingsContext?
+    @State private var pendingSmartFillSettingsContext: SmartFillSettingsContext?
+    @State private var pendingSmartFillOpenRequest: HomeScreenPendingSmartFillOpenRequest?
+    @State private var smartFillError: SmartFillErrorMessage?
+    @State private var isSmartFillPresentationScheduled = false
 
     private var takeReviewHandoffBinding: Binding<Bool> {
         Binding(
@@ -282,7 +373,9 @@ public struct HomeScreenView: View {
             NavigationStack {
                 takeReviewHandoffContent(project: project, session: session)
             }
-            .sheet(item: $playerRequest) { request in
+            .sheet(item: $playerRequest, onDismiss: {
+                presentPendingSmartFillSheetIfPossible()
+            }) { request in
                 if request.prefersMediaPlayer {
                     SwipeableMediaPlayerView(
                         takes: request.takes,
@@ -308,9 +401,44 @@ public struct HomeScreenView: View {
                         onTakeAction: { action, take in
                             handleTakeActionFromHome(action, take: take, session: request.session, project: request.project)
                         },
-                        repository: repo
+                        repository: repo,
+                        onSmartFillRequest: { take in
+                            handleSmartFillRequestFromHome(take: take, session: request.session, project: request.project)
+                        },
+                        onSmartFillEditRequest: { take in
+                            handleSmartFillEditFromHome(take: take, session: request.session, project: request.project)
+                        },
+                        savedResultTakeID: request.savedResultTakeID,
+                        savedResultContext: request.savedResultContext
                     )
                 }
+            }
+            .sheet(item: $activeSmartFillContext, onDismiss: {
+                handleSmartFillWorkspaceDismissed()
+            }) { context in
+                SmartFillWorkspaceView(
+                    context: context,
+                    onQueueSmartFill: { settings in
+                        enqueueSmartFill(using: settings, context: context)
+                    },
+                    onOpenSavedTake: { record in
+                        pendingSmartFillOpenRequest = HomeScreenPendingSmartFillOpenRequest(
+                            result: record,
+                            context: context
+                        )
+                        activeSmartFillContext = nil
+                    },
+                    onCancel: {
+                        activeSmartFillContext = nil
+                    }
+                )
+            }
+            .alert(item: $smartFillError) { error in
+                Alert(
+                    title: Text("SmartFill"),
+                    message: Text(error.message),
+                    dismissButton: .default(Text("OK"))
+                )
             }
         } else {
             EmptyView()
@@ -339,7 +467,9 @@ public struct HomeScreenView: View {
                     initialIndex: initialIndex,
                     viewType: viewType,
                     sceneNumber: sceneNumber,
-                    prefersMediaPlayer: prefersMediaPlayer
+                    prefersMediaPlayer: prefersMediaPlayer,
+                    savedResultTakeID: nil,
+                    savedResultContext: nil
                 )
             },
             onClose: {
@@ -356,6 +486,175 @@ public struct HomeScreenView: View {
         print("🎯 HomeScreen: presenting TakeReview for project=\(project.id) session=\(session.id)")
         handoffProject = project
         handoffSession = session
+    }
+
+    private func handleSmartFillRequestFromHome(
+        take: ProjectTake,
+        session: ProjectSession,
+        project: Project
+    ) {
+        let context = HomeScreenSmartFillRoute.requestContext(
+            for: take,
+            session: session,
+            project: project,
+            onUpdatePIPSession: makePIPSessionUpdater(for: session, project: project)
+        )
+        queueSmartFillPresentation(context)
+    }
+
+    private func handleSmartFillEditFromHome(
+        take: ProjectTake,
+        session: ProjectSession,
+        project: Project
+    ) {
+        guard let context = HomeScreenSmartFillRoute.editContext(
+            for: take,
+            session: session,
+            project: project,
+            onUpdatePIPSession: makePIPSessionUpdater(for: session, project: project)
+        ) else {
+            smartFillError = SmartFillErrorMessage(
+                message: "We couldn't find the original portrait take for this SmartFill. Please restore the original take to edit it again."
+            )
+            return
+        }
+
+        queueSmartFillPresentation(context)
+    }
+
+    private func queueSmartFillPresentation(_ context: SmartFillSettingsContext) {
+        pendingSmartFillSettingsContext = context
+        if playerRequest != nil {
+            playerRequest = nil
+        } else {
+            presentPendingSmartFillSheetIfPossible()
+        }
+    }
+
+    private func presentPendingSmartFillSheetIfPossible() {
+        guard activeSmartFillContext == nil,
+              playerRequest == nil,
+              pendingSmartFillSettingsContext != nil,
+              isSmartFillPresentationScheduled == false else {
+            return
+        }
+
+        isSmartFillPresentationScheduled = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            isSmartFillPresentationScheduled = false
+            guard activeSmartFillContext == nil,
+                  playerRequest == nil,
+                  let pending = pendingSmartFillSettingsContext else {
+                return
+            }
+            pendingSmartFillSettingsContext = nil
+            activeSmartFillContext = pending
+        }
+    }
+
+    private func handleSmartFillWorkspaceDismissed() {
+        activeSmartFillContext = nil
+        vm.reload()
+        refreshHandoffSessionContext()
+        _ = openPendingSmartFillResultIfPossible()
+    }
+
+    private func enqueueSmartFill(
+        using settings: SmartFillSettings,
+        context: SmartFillSettingsContext
+    ) {
+        let sourceURL = VideoVariantResolver.originalURL(for: context.take)
+        let baseName = sourceURL.deletingPathExtension().lastPathComponent
+        let outputURL = sourceURL
+            .deletingLastPathComponent()
+            .appendingPathComponent("\(baseName)_smartfill.mov")
+
+        Task {
+            let queued = await SmartFillProcessingManager.shared.enqueueJob(
+                originalPath: sourceURL.path,
+                outputPath: outputURL.path,
+                fileName: sourceURL.lastPathComponent,
+                takeID: context.take.id,
+                sessionID: context.session.id,
+                projectID: context.project.id,
+                capturedOrientation: context.take.capturedOrientation,
+                settings: settings
+            )
+
+            if queued == false {
+                await MainActor.run {
+                    NotificationCenter.default.post(
+                        name: .smartFillProcessingFailed,
+                        object: nil,
+                        userInfo: [
+                            "takeID": context.take.id,
+                            "error": "This take is already landscape, so SmartFill isn’t needed."
+                        ]
+                    )
+                }
+            }
+        }
+    }
+
+    private func openPendingSmartFillResultIfPossible() -> Bool {
+        guard let pending = pendingSmartFillOpenRequest else {
+            return false
+        }
+
+        pendingSmartFillOpenRequest = nil
+
+        guard let project = repo.project(by: pending.result.projectID),
+              let session = project.sessions.first(where: { $0.id == pending.result.sessionID }),
+              let take = session.takes.first(where: { $0.id == pending.result.adoptedTakeID }),
+              let initialIndex = session.takes.firstIndex(where: { $0.id == take.id }) else {
+            return false
+        }
+
+        handoffProject = project
+        handoffSession = session
+
+        switch SmartFillWorkspaceFollowUpRoute.resolve(for: pending.context.returnTarget) {
+        case .player, .editor:
+            playerRequest = PlayerRequest(
+                takes: session.takes,
+                session: session,
+                project: project,
+                initialIndex: initialIndex,
+                viewType: take.takeType.isSlateLike ? .slates : .scenes,
+                sceneNumber: take.sceneNumber,
+                prefersMediaPlayer: false,
+                savedResultTakeID: take.id,
+                savedResultContext: HomeScreenSmartFillRoute.reopenContext(for: pending.result, in: session)
+            )
+            return true
+        case .closeOnly:
+            return false
+        }
+    }
+
+    private func refreshHandoffSessionContext() {
+        guard let projectID = handoffProject?.id,
+              let refreshedProject = repo.project(by: projectID) else {
+            return
+        }
+
+        handoffProject = refreshedProject
+        if let sessionID = handoffSession?.id {
+            handoffSession = refreshedProject.sessions.first(where: { $0.id == sessionID })
+        }
+    }
+
+    private func makePIPSessionUpdater(
+        for session: ProjectSession,
+        project: Project
+    ) -> (SlatePIPSession?) -> Void {
+        { newValue in
+            var updatedSession = session
+            updatedSession.pipSlateSession = newValue
+            repo.updateSession(updatedSession, in: project.id)
+            vm.reload()
+            refreshHandoffSessionContext()
+        }
     }
     
     private func handleTakeActionFromHome(_ action: TakeAction,
@@ -384,7 +683,10 @@ public struct HomeScreenView: View {
             repo.deleteTake(takeID: take.id, from: session.id, in: project.id)
         case .export:
             repo.exportTake(takeID: take.id, from: session.id, in: project.id)
-        case .addNote, .editSmartFill:
+        case .editSmartFill:
+            handleSmartFillEditFromHome(take: take, session: session, project: project)
+            return
+        case .addNote:
             print("ℹ️ HomeScreen: action \(action.debugName) not implemented in lobby flow")
         default:
             break
@@ -401,6 +703,8 @@ public struct HomeScreenView: View {
         let viewType: TakeReviewPage.ViewType
         let sceneNumber: Int?
         let prefersMediaPlayer: Bool
+        let savedResultTakeID: UUID?
+        let savedResultContext: SmartFillReopenDestinationContext?
     }
 
     private var topChrome: some View {

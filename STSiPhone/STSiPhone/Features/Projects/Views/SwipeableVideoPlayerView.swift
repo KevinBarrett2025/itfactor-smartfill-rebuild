@@ -16,6 +16,66 @@ struct VideoPlayerDisplayData {
     let reopenContext: SmartFillReopenDestinationContext?
 }
 
+enum SmartFillPlayerEntryIntent: Equatable, CustomStringConvertible {
+    case request(targetTake: ProjectTake)
+    case edit(targetTake: ProjectTake)
+
+    var targetTake: ProjectTake {
+        switch self {
+        case .request(let targetTake), .edit(let targetTake):
+            return targetTake
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .request:
+            return "request"
+        case .edit:
+            return "edit"
+        }
+    }
+}
+
+enum SmartFillPlayerEntryResolver {
+    static func resolve(for take: ProjectTake, in session: ProjectSession) -> SmartFillPlayerEntryIntent? {
+        if take.isSmartFillVariant {
+            return .edit(targetTake: take)
+        }
+
+        if let companion = companion(for: take, in: session) {
+            return .edit(targetTake: companion)
+        }
+
+        guard shouldRequestSmartFill(for: take) else {
+            return nil
+        }
+
+        return .request(targetTake: take)
+    }
+
+    static func companion(for originalTake: ProjectTake, in session: ProjectSession) -> ProjectTake? {
+        session.takes.first { candidate in
+            guard candidate.id != originalTake.id else { return false }
+            guard candidate.isSmartFillVariant else { return false }
+            return candidate.smartFillOriginalID == originalTake.id
+        }
+    }
+
+    static func shouldRequestSmartFill(for take: ProjectTake) -> Bool {
+        guard !take.isSmartFillVariant else { return false }
+        guard !isExportDeliverable(take) else { return false }
+        if let orientation = take.capturedOrientation {
+            return orientation == .portrait
+        }
+        return true
+    }
+
+    static func isExportDeliverable(_ take: ProjectTake) -> Bool {
+        take.takeType == .merged || take.takeType == .exported
+    }
+}
+
 // MARK: - Shared Utilities
 extension Array {
     subscript(safe index: Int) -> Element? {
@@ -223,6 +283,7 @@ struct SwipeableVideoPlayerView: View {
                                 ForEach(Array(videoPlayerData.enumerated()), id: \.offset) { index, videoData in
                                     CustomAVPlayerViewContent(
                                         videoData: videoData,
+                                        currentSession: currentSession,
                                         index: index,
                                         onDismiss: {
                                             shouldDismiss = true
@@ -355,19 +416,30 @@ struct SwipeableVideoPlayerView: View {
     }
     
     private func handleSmartFillButtonTap(for take: ProjectTake) {
-        guard let smartFillHandler = isSmartFillTake(take) ? onSmartFillEditRequest : onSmartFillRequest,
-              shouldRequestSmartFill(for: take) || isSmartFillTake(take) else {
-            print("⚠️ SmartFill button tapped but no handler available")
+        guard let intent = resolvedSmartFillButtonIntent(for: take) else {
+            print("⚠️ SmartFill button tapped but no actionable target was resolved")
             return
         }
-        
-        if isSmartFillTake(take) {
-            print("✨ SwipeableVideoPlayer: SmartFill edit requested for \(friendlyDisplayName(for: take, in: currentSession))")
+
+        let smartFillHandler: ((ProjectTake) -> Void)?
+        switch intent {
+        case .request:
+            smartFillHandler = onSmartFillRequest
+        case .edit:
+            smartFillHandler = onSmartFillEditRequest
         }
-        
-        // Pause players before presenting settings/editor
+
+        guard let smartFillHandler else {
+            print("⚠️ SmartFill button tapped but no handler is wired for intent \(intent)")
+            return
+        }
+
+        if case .edit(let targetTake) = intent {
+            print("✨ SwipeableVideoPlayer: SmartFill edit requested for \(friendlyDisplayName(for: targetTake, in: currentSession))")
+        }
+
         prepareForEditorTransition()
-        smartFillHandler(take)
+        smartFillHandler(intent.targetTake)
     }
     private func handleStandardEditTap(for take: ProjectTake) {
         handleEditorRequestWithRefresh(take)
@@ -386,15 +458,19 @@ struct SwipeableVideoPlayerView: View {
     }
     
     private func shouldRequestSmartFill(for take: ProjectTake) -> Bool {
-        if isSmartFillTake(take) { return false }
-        if let orientation = take.capturedOrientation {
-            return orientation == .portrait
-        }
-        return true
+        SmartFillPlayerEntryResolver.shouldRequestSmartFill(for: take)
+    }
+
+    private func resolvedSmartFillButtonIntent(for take: ProjectTake) -> SmartFillPlayerEntryIntent? {
+        SmartFillPlayerEntryResolver.resolve(for: take, in: currentSession)
+    }
+
+    private func existingSmartFillCompanion(for originalTake: ProjectTake) -> ProjectTake? {
+        SmartFillPlayerEntryResolver.companion(for: originalTake, in: currentSession)
     }
     
     private func isSmartFillTake(_ take: ProjectTake) -> Bool {
-        URL(fileURLWithPath: take.filePath).lastPathComponent.lowercased().contains("_smartfill")
+        take.isSmartFillVariant
     }
     
     private func friendlyDisplayName(for take: ProjectTake, in session: ProjectSession) -> String {
@@ -773,6 +849,7 @@ struct SwipeableVideoPlayerView: View {
 
 struct CustomAVPlayerViewContent: View {
     let videoData: VideoPlayerDisplayData
+    let currentSession: ProjectSession
     let index: Int
     let onDismiss: () -> Void
     let onRatingChange: (TakeRating) -> Void
@@ -793,6 +870,7 @@ struct CustomAVPlayerViewContent: View {
     
     init(
         videoData: VideoPlayerDisplayData,
+        currentSession: ProjectSession,
         index: Int,
         onDismiss: @escaping () -> Void,
         onRatingChange: @escaping (TakeRating) -> Void,
@@ -808,6 +886,7 @@ struct CustomAVPlayerViewContent: View {
         enableVideoZoom: Bool = false
     ) {
         self.videoData = videoData
+        self.currentSession = currentSession
         self.index = index
         self.onDismiss = onDismiss
         self.onRatingChange = onRatingChange
@@ -826,6 +905,7 @@ struct CustomAVPlayerViewContent: View {
     var body: some View {
         CustomAVPlayerViewController(
             videoData: videoData,
+            currentSession: currentSession,
             index: index,
             onRatingChange: onRatingChange,
             onShare: onShare,
@@ -846,6 +926,7 @@ struct CustomAVPlayerViewContent: View {
 
 struct CustomAVPlayerViewController: UIViewControllerRepresentable {
     let videoData: VideoPlayerDisplayData
+    let currentSession: ProjectSession
     let index: Int
     let onRatingChange: (TakeRating) -> Void
     let onShare: () -> Void
@@ -1915,17 +1996,18 @@ struct CustomAVPlayerViewController: UIViewControllerRepresentable {
             }
         }
     }
-    
+
     private func smartFillButtonState(for take: ProjectTake) -> SmartFillButtonState {
         if isExportDeliverable(take) { return .hidden }
-        if isSmartFillVariant(take) {
-            return .edit
-        }
-        guard requiresSmartFill(for: take) else {
+        guard let intent = SmartFillPlayerEntryResolver.resolve(for: take, in: currentSession) else {
             return .hidden
         }
-        let hasCompanion = take.takeNotes?.contains("[SMARTFILL_ORIGINAL:") == true
-        return .request(available: !hasCompanion)
+        switch intent {
+        case .request:
+            return .request(available: true)
+        case .edit:
+            return .edit
+        }
     }
     
     private func createEditorButtonsOverlay(coordinator: Coordinator) -> UIView? {
@@ -2027,12 +2109,7 @@ struct CustomAVPlayerViewController: UIViewControllerRepresentable {
     }
     
     private func requiresSmartFill(for take: ProjectTake) -> Bool {
-        guard !isSmartFillVariant(take) else { return false }
-        if isExportDeliverable(take) { return false }
-        if let orientation = take.capturedOrientation {
-            return orientation == .portrait
-        }
-        return true
+        SmartFillPlayerEntryResolver.shouldRequestSmartFill(for: take)
     }
     
     private func isSmartFillVariant(_ take: ProjectTake) -> Bool {
@@ -2040,7 +2117,7 @@ struct CustomAVPlayerViewController: UIViewControllerRepresentable {
     }
     
     private func isExportDeliverable(_ take: ProjectTake) -> Bool {
-        take.takeType == .merged || take.takeType == .exported
+        SmartFillPlayerEntryResolver.isExportDeliverable(take)
     }
     
     private func createRatingButtonsOverlay(coordinator: Coordinator) -> UIView {
