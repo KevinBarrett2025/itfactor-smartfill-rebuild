@@ -18,6 +18,7 @@ struct SmartFillWorkspaceView: View {
     @State private var processingProgress: Double = 0
     @State private var completionBehavior: SmartFillWorkspaceCompletionBehavior
     @State private var activeTool: SmartFillWorkspaceTool = .background
+    @State private var activeLookAdjustment: SmartFillWorkspaceLookAdjustment = .blur
 
     private let workspaceDefaults: SmartFillWorkspaceDefaults
 
@@ -94,6 +95,7 @@ struct SmartFillWorkspaceView: View {
                 autoReturnWorkItem?.cancel()
                 autoReturnWorkItem = nil
                 activeTool = .background
+                activeLookAdjustment = .blur
             }
             .onReceive(NotificationCenter.default.publisher(for: .smartFillProcessingProgress)) { notification in
                 guard coordinator.stage == .export else { return }
@@ -294,119 +296,65 @@ struct SmartFillWorkspaceView: View {
     }
 
     private var lookSurface: some View {
-            VStack(alignment: .leading, spacing: 14) {
-                toolSectionHeader("Background", value: SmartFillWorkspacePresentation.backgroundModeTitle(for: settings))
+        VStack(alignment: .leading, spacing: 14) {
+            toolSectionHeader("Background", value: SmartFillWorkspacePresentation.backgroundModeTitle(for: settings))
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
+            compactToolGroup(title: "Mode", value: SmartFillWorkspacePresentation.backgroundModeTitle(for: settings)) {
                 ForEach(SmartFillWorkspaceBackgroundMode.allCases, id: \.self) { mode in
-                    Button {
+                    compactToolChip(
+                        title: mode.title,
+                        subtitle: nil,
+                        systemImage: activeBackgroundMode == mode ? "checkmark.circle.fill" : nil,
+                        isSelected: activeBackgroundMode == mode
+                    ) {
                         applyBackgroundMode(mode)
-                    } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(mode.title)
-                                .font(.subheadline.weight(.semibold))
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 12)
-                        .background(backgroundModeBackground(for: mode), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .stroke(backgroundModeStroke(for: mode), lineWidth: 1)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
-                }
-            }
-
-            VStack(alignment: .leading, spacing: 10) {
-                toolSubheader("Finish", value: activeTreatmentPreset?.title ?? "Custom")
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                    ForEach(SmartFillWorkspaceTreatmentPreset.allCases, id: \.self) { preset in
-                        Button {
-                            applyTreatmentPreset(preset)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(preset.title)
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(Theme.textPrimary)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 12)
-                            .background(treatmentPresetBackground(for: preset), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .stroke(treatmentPresetStroke(for: preset), lineWidth: 1)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
                     }
                 }
             }
 
-            treatmentSlider(
-                icon: "circle.dotted",
-                title: "Blur radius",
-                valueLabel: "\(Int(settings.blurRadius)) px",
-                caption: "",
-                value: blurRadiusBinding,
-                range: 8...50,
-                step: 2
-            )
-            treatmentSlider(
-                icon: "moon.fill",
-                title: "Darken amount",
-                valueLabel: "\(Int(settings.darkenAmount * 100))%",
-                caption: "",
-                value: darkenAmountBinding,
-                range: 0...0.3,
-                step: 0.02
-            )
-            treatmentSlider(
-                icon: "arrow.up.left.and.arrow.down.right",
-                title: "Background fill",
-                valueLabel: String(format: "%.1f×", settings.backgroundScale),
-                caption: "",
-                value: backgroundScaleBinding,
-                range: 1.0...15.0,
-                step: 0.5
-            )
-
-            VStack(alignment: .leading, spacing: 10) {
-                toolSubheader("Quick fill", value: activeFillPreset?.title ?? "Custom")
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                    ForEach(SmartFillWorkspaceBackgroundFillPreset.allCases, id: \.self) { preset in
-                        Button {
-                            applyBackgroundFillPreset(preset)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(preset.title)
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(Theme.textPrimary)
-                                Text(String(format: "%.1f×", preset.scale))
-                                    .font(.caption2.weight(.semibold))
-                                    .foregroundStyle(Theme.primary)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(14)
-                            .background(backgroundFillPresetBackground(for: preset), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .stroke(backgroundFillPresetStroke(for: preset), lineWidth: 1)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
+            compactToolGroup(title: "Fill", value: activeFillPreset?.title ?? "Custom") {
+                ForEach(SmartFillWorkspaceBackgroundFillPreset.allCases, id: \.self) { preset in
+                    compactToolChip(
+                        title: preset.title,
+                        subtitle: String(format: "%.1f×", preset.scale),
+                        systemImage: activeFillPreset == preset ? "checkmark.circle.fill" : nil,
+                        isSelected: activeFillPreset == preset
+                    ) {
+                        applyBackgroundFillPreset(preset)
                     }
                 }
+            }
+
+            compactToolGroup(title: "Finish", value: activeTreatmentPreset?.title ?? "Custom") {
+                ForEach(SmartFillWorkspaceTreatmentPreset.allCases, id: \.self) { preset in
+                    compactToolChip(
+                        title: preset.title,
+                        subtitle: nil,
+                        systemImage: activeTreatmentPreset == preset ? "checkmark.circle.fill" : nil,
+                        isSelected: activeTreatmentPreset == preset
+                    ) {
+                        applyTreatmentPreset(preset)
+                    }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                toolSubheader("Adjust", value: activeLookAdjustment.valueLabel(for: settings))
+
+                compactToolGroup(title: nil, value: nil) {
+                    ForEach(SmartFillWorkspaceLookAdjustment.allCases, id: \.self) { adjustment in
+                        compactToolChip(
+                            title: adjustment.shortTitle,
+                            subtitle: adjustment.valueLabel(for: settings),
+                            systemImage: adjustment.symbolName,
+                            isSelected: activeLookAdjustment == adjustment
+                        ) {
+                            activeLookAdjustment = adjustment
+                        }
+                    }
+                }
+
+                activeLookAdjustmentControl
             }
 
             Button {
@@ -425,11 +373,18 @@ struct SmartFillWorkspaceView: View {
         VStack(alignment: .leading, spacing: 16) {
             toolSectionHeader("Subject", value: String(format: "%.2f×", settings.foregroundScale))
 
-            summaryRow(
-                icon: "person.crop.rectangle",
-                title: "Subject scale",
-                value: String(format: "%.2f×", settings.foregroundScale)
-            )
+            compactToolGroup(title: "Scale", value: String(format: "%.2f×", settings.foregroundScale)) {
+                ForEach(SmartFillWorkspaceSubjectPreset.allCases, id: \.self) { preset in
+                    compactToolChip(
+                        title: preset.title,
+                        subtitle: preset.valueLabel,
+                        systemImage: nil,
+                        isSelected: preset.matches(settings.foregroundScale)
+                    ) {
+                        applySubjectPreset(preset)
+                    }
+                }
+            }
 
             Slider(value: foregroundScaleBinding, in: 0.85...1.25, step: 0.05) {
                 Text("Subject scale")
@@ -444,10 +399,10 @@ struct SmartFillWorkspaceView: View {
         VStack(alignment: .leading, spacing: 16) {
             toolSectionHeader("Output", value: "\(Int(settings.renderSize.width))×\(Int(settings.renderSize.height))")
 
-            LazyVGrid(columns: outputOptionColumns, spacing: 12) {
-                renderSizeOption(width: 1920, height: 1080, title: "Full HD", subtitle: "1920×1080")
-                renderSizeOption(width: 1280, height: 720, title: "HD", subtitle: "1280×720")
-                renderSizeOption(width: 3840, height: 2160, title: "4K", subtitle: "3840×2160")
+            compactToolGroup(title: "Resolution", value: "\(Int(settings.renderSize.width))×\(Int(settings.renderSize.height))") {
+                renderSizeChip(width: 1920, height: 1080, title: "Full HD", subtitle: "1080p")
+                renderSizeChip(width: 1280, height: 720, title: "HD", subtitle: "720p")
+                renderSizeChip(width: 3840, height: 2160, title: "4K", subtitle: "2160p")
             }
 
             VStack(alignment: .leading, spacing: 10) {
@@ -470,26 +425,31 @@ struct SmartFillWorkspaceView: View {
         VStack(alignment: .leading, spacing: 12) {
             toolSectionHeader("Save", value: completionBehavior.summaryTitle)
 
-            summaryRow(
-                icon: "square.and.arrow.down",
-                title: "Destination",
-                value: SmartFillWorkspacePresentation.destinationTitle(for: context)
-            )
-            summaryRow(
-                icon: "arrowshape.turn.up.backward",
-                title: "Return to",
-                value: SmartFillWorkspacePresentation.returnTargetTitle(for: context)
-            )
-            summaryRow(
-                icon: "arrow.triangle.2.circlepath",
-                title: "After save behavior",
-                value: completionBehavior.summaryTitle
-            )
-            summaryRow(
-                icon: "sparkles.rectangle.stack",
-                title: "Current action",
-                value: primaryActionTitle
-            )
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    statusPill(
+                        icon: "square.and.arrow.down",
+                        title: "Destination",
+                        value: SmartFillWorkspacePresentation.destinationTitle(for: context)
+                    )
+                    statusPill(
+                        icon: "arrowshape.turn.up.backward",
+                        title: "Return to",
+                        value: SmartFillWorkspacePresentation.returnTargetTitle(for: context)
+                    )
+                    statusPill(
+                        icon: "arrow.triangle.2.circlepath",
+                        title: "After save",
+                        value: completionBehavior.summaryTitle
+                    )
+                    statusPill(
+                        icon: "sparkles.rectangle.stack",
+                        title: "Action",
+                        value: primaryActionTitle
+                    )
+                }
+                .padding(.horizontal, 2)
+            }
 
             VStack(alignment: .leading, spacing: 10) {
                 Text("After save")
@@ -550,6 +510,42 @@ struct SmartFillWorkspaceView: View {
         }
         .padding(18)
         .background(panelBackground)
+    }
+
+    @ViewBuilder
+    private var activeLookAdjustmentControl: some View {
+        switch activeLookAdjustment {
+        case .blur:
+            treatmentSlider(
+                icon: activeLookAdjustment.symbolName,
+                title: "Blur radius",
+                valueLabel: activeLookAdjustment.valueLabel(for: settings),
+                caption: blurCaption(for: settings.blurRadius),
+                value: blurRadiusBinding,
+                range: 8...50,
+                step: 2
+            )
+        case .darken:
+            treatmentSlider(
+                icon: activeLookAdjustment.symbolName,
+                title: "Darken amount",
+                valueLabel: activeLookAdjustment.valueLabel(for: settings),
+                caption: darkenCaption(for: settings.darkenAmount),
+                value: darkenAmountBinding,
+                range: 0...0.3,
+                step: 0.02
+            )
+        case .fill:
+            treatmentSlider(
+                icon: activeLookAdjustment.symbolName,
+                title: "Background fill",
+                valueLabel: activeLookAdjustment.valueLabel(for: settings),
+                caption: backgroundScaleCaption(for: settings.backgroundScale),
+                value: backgroundScaleBinding,
+                range: 1.0...15.0,
+                step: 0.5
+            )
+        }
     }
 
     private var actionBar: some View {
@@ -990,6 +986,60 @@ struct SmartFillWorkspaceView: View {
         }
     }
 
+    @ViewBuilder
+    private func compactToolGroup<Content: View>(title: String?, value: String?, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if let title, let value {
+                toolSubheader(title, value: value)
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    content()
+                }
+                .padding(.horizontal, 2)
+            }
+        }
+    }
+
+    private func compactToolChip(
+        title: String,
+        subtitle: String?,
+        systemImage: String?,
+        isSelected: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                if let systemImage {
+                    Image(systemName: systemImage)
+                        .font(.caption.weight(.semibold))
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.caption.weight(.semibold))
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(isSelected ? Theme.textPrimary.opacity(0.88) : .secondary)
+                    }
+                }
+            }
+            .foregroundStyle(isSelected ? Theme.textPrimary : .secondary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(isSelected ? Theme.primary.opacity(0.18) : Color.white.opacity(0.03))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(isSelected ? Theme.primary.opacity(0.6) : Color.white.opacity(0.10), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
     private func statusPill(icon: String, title: String, value: String) -> some View {
         HStack(spacing: 8) {
             Image(systemName: icon)
@@ -1045,30 +1095,18 @@ struct SmartFillWorkspaceView: View {
         .background(Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
-    private func renderSizeOption(width: CGFloat, height: CGFloat, title: String, subtitle: String) -> some View {
+    private func renderSizeChip(width: CGFloat, height: CGFloat, title: String, subtitle: String) -> some View {
         let isSelected = Int(settings.renderSize.width) == Int(width) && Int(settings.renderSize.height) == Int(height)
 
-        return Button {
+        return compactToolChip(
+            title: title,
+            subtitle: subtitle,
+            systemImage: isSelected ? "checkmark.circle.fill" : nil,
+            isSelected: isSelected
+        ) {
             settings.renderSize = CGSize(width: width, height: height)
             markSettingsDirty()
-        } label: {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.textPrimary)
-                Text(subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(14)
-            .background(isSelected ? Theme.primary.opacity(0.16) : Color.white.opacity(0.02), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(isSelected ? Theme.primary.opacity(0.6) : Color.white.opacity(0.10), lineWidth: 1)
-            )
         }
-        .buttonStyle(.plain)
     }
 
     private func applyBackgroundMode(_ mode: SmartFillWorkspaceBackgroundMode) {
@@ -1092,6 +1130,11 @@ struct SmartFillWorkspaceView: View {
         settings.darkenAmount = preset.darkenAmount
         settings.presetName = preset.presetName
         settings.forceUpdateToken = UUID()
+        markSettingsDirty()
+    }
+
+    private func applySubjectPreset(_ preset: SmartFillWorkspaceSubjectPreset) {
+        settings.foregroundScale = preset.scale
         markSettingsDirty()
     }
 
@@ -1372,6 +1415,81 @@ private enum SmartFillWorkspaceTool: CaseIterable {
         case .save:
             return behavior.pickerTitle
         }
+    }
+}
+
+private enum SmartFillWorkspaceLookAdjustment: CaseIterable {
+    case blur
+    case darken
+    case fill
+
+    var shortTitle: String {
+        switch self {
+        case .blur:
+            return "Blur"
+        case .darken:
+            return "Darken"
+        case .fill:
+            return "Fill"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .blur:
+            return "circle.dotted"
+        case .darken:
+            return "moon.fill"
+        case .fill:
+            return "arrow.up.left.and.arrow.down.right"
+        }
+    }
+
+    func valueLabel(for settings: SmartFillSettings) -> String {
+        switch self {
+        case .blur:
+            return "\(Int(settings.blurRadius)) px"
+        case .darken:
+            return "\(Int(settings.darkenAmount * 100))%"
+        case .fill:
+            return String(format: "%.1f×", settings.backgroundScale)
+        }
+    }
+}
+
+private enum SmartFillWorkspaceSubjectPreset: CaseIterable {
+    case fit
+    case balanced
+    case close
+
+    var scale: CGFloat {
+        switch self {
+        case .fit:
+            return 0.90
+        case .balanced:
+            return 1.0
+        case .close:
+            return 1.10
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .fit:
+            return "Fit"
+        case .balanced:
+            return "Balanced"
+        case .close:
+            return "Close"
+        }
+    }
+
+    var valueLabel: String {
+        String(format: "%.2f×", scale)
+    }
+
+    func matches(_ value: CGFloat) -> Bool {
+        abs(value - scale) < 0.01
     }
 }
 

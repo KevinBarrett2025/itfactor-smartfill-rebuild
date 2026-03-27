@@ -185,6 +185,12 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase26_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase26_tests.log`
   - xcresult: `/tmp/itfactor_smartfill_phase26_tests/Logs/Test/Test-STSiPhone-2026.03.27_08-13-12--0400.xcresult`
+- `SF-REBUILD-027` — densify workspace trays with progressive tool groups — `COMPLETE (LOCAL-GATED 2026-03-27)`
+  - `SmartFillWorkspaceView` now condenses the active tray into compact tool groups so common background, subject, output, and save controls stay visible without reviving a long scrolling settings pane.
+  - The background lane now exposes quick `Mode`, `Fill`, `Finish`, and `Adjust` chips plus one active fine-tune control at a time, while framing/output controls use denser chips and save summary rows are compressed into status pills.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase27_gateA.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase27_tests.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase27_tests/Logs/Test/Test-STSiPhone-2026.03.27_08-34-30--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -208,6 +214,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Use `SF-REBUILD-026` as the new SmartFill workspace baseline and decide the next density pass for which tools belong in the contextual tray versus secondary sheets.
+1. Use `SF-REBUILD-027` as the new SmartFill workspace baseline and decide which secondary controls should expand in-place versus move into dedicated sheets.
 2. Implement that next slice on GM with Gate A and focused SmartFill parity before any promotion discussion.
-3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell.
+3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell plus the denser quick-tool treatment.

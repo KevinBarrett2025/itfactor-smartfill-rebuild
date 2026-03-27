@@ -1,12 +1,12 @@
 # CODEX Thread Continuity
 
-## Ticket 026 SmartFill Workspace Chrome Refactor (2026-03-27)
-- Thread Status: chrome refactor is complete in a clean GM worktree, Gate A and focused SmartFill parity are green, and the slice is ready for commit/push.
+## Ticket 027 SmartFill Workspace Density Pass (2026-03-27)
+- Thread Status: density refactor landed on the clean GM branch, passed Gate A plus focused SmartFill parity, and is ready to anchor as `SF-REBUILD-027`.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
 - Active Worktree Truth: `/tmp/itfactor_smartfill_phase26`
 - Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
-- Working Branch: `gm/smartfill-itfactor-phase26`
-- Working Head SHA: `73575f1540edc7be538f26d74bc02db00b6f873e`
+- Working Branch: `gm/smartfill-itfactor-phase27`
+- Working Head SHA: `42597b306c84c07a9d7e480b202ee3255e87a87a`
 - Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 - Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
 - Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
@@ -15,56 +15,30 @@
   - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 
 ### Objective
-Replace the current long-scroll SmartFill workspace chrome with a fixed editor layout:
-1. keep the preview canvas pinned as the primary content instead of one panel in a vertical document
-2. replace the stacked look/framing/output/save panels with a persistent bottom mode rail and one contextual controls tray
-3. reduce explanatory copy so the main editor reads through short labels, icons, and current values rather than paragraphs
-4. preserve existing SmartFill settings, save behavior, and review/editor handoff truth while changing only the workspace chrome structure
+Make the new tray-and-rail SmartFill chrome scale to more tools without becoming wordy or hidden:
+1. tighten the active tray so common controls stay one tap away while deeper controls collapse behind compact affordances
+2. add clearer feature grouping inside the tray so the editor reads more like Instagram/CapCut tool chrome than a mini form
+3. preserve preview prominence and existing SmartFill behavior/save/reopen truth while reducing the amount of vertical tray scrolling
+4. keep the resulting chrome reusable for the later standalone utility derivation
 
 ### Preflight
 - Truth-sync confirmed:
   - `git -C /Users/kevinbarrett/Dev/itFactor_1.23.26_git fetch origin --prune`
-  - `HEAD`: `73575f1540edc7be538f26d74bc02db00b6f873e`
+  - `HEAD`: `42597b306c84c07a9d7e480b202ee3255e87a87a`
   - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
   - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
-- Primary checkout was dirty with stale local changes in:
-  - `LightweightEditorViewController+ModularWiring.swift`
-  - `SwipeableVideoPlayerView.swift`
-  - `SmartFillReopenDestinationContext.swift`
-  - `SmartFillRebuildBridgeTests.swift`
-  - `STSiPhone.xcscheme`
-- To keep scope clean under STS law, the chrome refactor is isolated in `/tmp/itfactor_smartfill_phase26`.
+- `SF-REBUILD-026` is the clean local baseline for this density pass.
+- Work continues in `/tmp/itfactor_smartfill_phase26` so the primary checkout stays isolated from any stale local changes.
 
 ### Next Action
-1. Commit and push `SF-REBUILD-026` from the clean GM worktree with Gate A and focused SmartFill parity evidence.
-2. Use the new tray-and-rail chrome as the baseline for the next density pass instead of reviving the old long-scroll document layout.
-3. Keep the standalone derivation ledger aligned because the later utility app should inherit the same fixed preview + bottom tool rail architecture.
+1. `SmartFillWorkspaceView` now uses compact tool groups, quick-choice chips, and one active fine-tune control at a time instead of exposing every slider in one tray.
+2. Gate A PASS: `/tmp/itfactor_smartfill_phase27_gateA.log`
+3. Focused parity PASS: `/tmp/itfactor_smartfill_phase27_tests.log`
+4. xcresult: `/tmp/itfactor_smartfill_phase27_tests/Logs/Test/Test-STSiPhone-2026.03.27_08-34-30--0400.xcresult`
+5. Next phase should decide which advanced controls stay in the main tray and which move into secondary sheets without undoing the tray-and-rail shell.
 
-### Completed This Pass
-- `SmartFillWorkspaceView` no longer uses the long `ScrollView` document as the primary editor shell.
-- The rebuild workspace now keeps the preview pinned, adds a compact workspace status strip, and moves the editing surface into:
-  - one persistent bottom mode rail
-  - one contextual controls tray
-- Background, subject, output, and save controls now render as contextual trays instead of stacked panels competing with the preview.
-- The main workspace copy was reduced to short labels, current values, and status pills so the editor reads more like a tool surface and less like a settings document.
-
-### Validation
-- Gate A command:
-  - `xcodebuild -project /tmp/itfactor_smartfill_phase26/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase26_gateA build | tee /tmp/itfactor_smartfill_phase26_gateA.log`
-- Gate A result:
-  - `PASS`
-- Gate A log:
-  - `/tmp/itfactor_smartfill_phase26_gateA.log`
-- Focused parity command:
-  - `xcodebuild -project /tmp/itfactor_smartfill_phase26/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase26_tests -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase26_tests.log`
-- Focused parity result:
-  - `PASS`
-- Focused parity log:
-  - `/tmp/itfactor_smartfill_phase26_tests.log`
-- Focused parity xcresult:
-  - `/tmp/itfactor_smartfill_phase26_tests/Logs/Test/Test-STSiPhone-2026.03.27_08-13-12--0400.xcresult`
-- `project.pbxproj` drift:
-  - `NONE`
+## Ticket 026 SmartFill Workspace Chrome Refactor (2026-03-27)
+- Thread Status: chrome refactor landed in the clean GM worktree, passed Gate A and focused SmartFill parity, and was pushed on `gm/smartfill-itfactor-phase26`.
 
 ## Ticket 024 Source-Take Compare Actions In Reopened Destinations (2026-03-26)
 - Thread Status: reopened player/review and editor destinations now expose direct compare/open-source actions back to the original source take when SmartFill lineage is known, local gating is green, and commit/push is the active next action.
