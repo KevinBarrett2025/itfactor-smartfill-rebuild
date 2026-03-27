@@ -191,6 +191,12 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase27_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase27_tests.log`
   - xcresult: `/tmp/itfactor_smartfill_phase27_tests/Logs/Test/Test-STSiPhone-2026.03.27_08-34-30--0400.xcresult`
+- `SF-REBUILD-028` — move deeper workspace controls into secondary sheets — `COMPLETE (LOCAL-GATED 2026-03-27)`
+  - `SmartFillWorkspaceView` now keeps fast chips and current values inline, but routes fine tuning, precision subject scale, processing speed, and save-plan details into explicit secondary sheets instead of growing the main tray back into a form.
+  - The tray height is lower, the main rail stays lighter, and save/reopen behavior still uses the same shared rebuild seams.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase28_gateA.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase28_tests.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase28_tests/Logs/Test/Test-STSiPhone-2026.03.27_08-54-02--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -214,6 +220,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Use `SF-REBUILD-027` as the new SmartFill workspace baseline and decide which secondary controls should expand in-place versus move into dedicated sheets.
+1. Use `SF-REBUILD-028` as the new SmartFill workspace baseline and decide which controls are strong enough to stay inline versus which should remain sheet-only.
 2. Implement that next slice on GM with Gate A and focused SmartFill parity before any promotion discussion.
-3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell plus the denser quick-tool treatment.
+3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell plus the tray-to-sheet split for deeper tools.

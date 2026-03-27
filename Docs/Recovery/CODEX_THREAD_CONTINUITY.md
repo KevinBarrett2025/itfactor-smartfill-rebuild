@@ -1,12 +1,12 @@
 # CODEX Thread Continuity
 
-## Ticket 027 SmartFill Workspace Density Pass (2026-03-27)
-- Thread Status: density refactor landed on the clean GM branch, passed Gate A plus focused SmartFill parity, and is ready to anchor as `SF-REBUILD-027`.
+## Ticket 028 SmartFill Workspace Secondary Sheet Split (2026-03-27)
+- Thread Status: tray-to-sheet split landed on the clean GM branch, passed Gate A plus focused SmartFill parity, and is ready to anchor as `SF-REBUILD-028`.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
 - Active Worktree Truth: `/tmp/itfactor_smartfill_phase26`
 - Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
-- Working Branch: `gm/smartfill-itfactor-phase27`
-- Working Head SHA: `42597b306c84c07a9d7e480b202ee3255e87a87a`
+- Working Branch: `gm/smartfill-itfactor-phase28`
+- Working Head SHA: `f2073450a8d5f14897f6f49bb3e90acce3459da8`
 - Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 - Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
 - Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
@@ -15,27 +15,30 @@
   - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 
 ### Objective
-Make the new tray-and-rail SmartFill chrome scale to more tools without becoming wordy or hidden:
-1. tighten the active tray so common controls stay one tap away while deeper controls collapse behind compact affordances
-2. add clearer feature grouping inside the tray so the editor reads more like Instagram/CapCut tool chrome than a mini form
-3. preserve preview prominence and existing SmartFill behavior/save/reopen truth while reducing the amount of vertical tray scrolling
-4. keep the resulting chrome reusable for the later standalone utility derivation
+Turn the denser Phase 27 tray into a scalable tool system:
+1. keep the fast chips and current values inline in the tray
+2. move deeper tool controls into explicit per-tool secondary sheets instead of letting the tray grow into another settings document
+3. preserve preview prominence and all existing SmartFill save/reopen truth while making the main editor feel lighter
+4. keep the resulting tray-plus-sheet structure reusable for the later standalone utility derivation
 
 ### Preflight
 - Truth-sync confirmed:
   - `git -C /Users/kevinbarrett/Dev/itFactor_1.23.26_git fetch origin --prune`
-  - `HEAD`: `42597b306c84c07a9d7e480b202ee3255e87a87a`
+  - `HEAD`: `f2073450a8d5f14897f6f49bb3e90acce3459da8`
   - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
   - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
-- `SF-REBUILD-026` is the clean local baseline for this density pass.
+- `SF-REBUILD-027` is the clean local baseline for this tray-to-sheet split.
 - Work continues in `/tmp/itfactor_smartfill_phase26` so the primary checkout stays isolated from any stale local changes.
 
 ### Next Action
-1. `SmartFillWorkspaceView` now uses compact tool groups, quick-choice chips, and one active fine-tune control at a time instead of exposing every slider in one tray.
-2. Gate A PASS: `/tmp/itfactor_smartfill_phase27_gateA.log`
-3. Focused parity PASS: `/tmp/itfactor_smartfill_phase27_tests.log`
-4. xcresult: `/tmp/itfactor_smartfill_phase27_tests/Logs/Test/Test-STSiPhone-2026.03.27_08-34-30--0400.xcresult`
-5. Next phase should decide which advanced controls stay in the main tray and which move into secondary sheets without undoing the tray-and-rail shell.
+1. `SmartFillWorkspaceView` now keeps quick choices inline but routes deeper background, subject, output, and save controls into dedicated secondary sheets.
+2. Gate A PASS: `/tmp/itfactor_smartfill_phase28_gateA.log`
+3. Focused parity PASS: `/tmp/itfactor_smartfill_phase28_tests.log`
+4. xcresult: `/tmp/itfactor_smartfill_phase28_tests/Logs/Test/Test-STSiPhone-2026.03.27_08-54-02--0400.xcresult`
+5. Next phase should decide which controls deserve true inline visibility and which should stay in secondary sheets as the tool count grows.
+
+## Ticket 027 SmartFill Workspace Density Pass (2026-03-27)
+- Thread Status: density refactor landed on the clean GM branch, passed Gate A plus focused SmartFill parity, and is anchored as `SF-REBUILD-027`.
 
 ## Ticket 026 SmartFill Workspace Chrome Refactor (2026-03-27)
 - Thread Status: chrome refactor landed in the clean GM worktree, passed Gate A and focused SmartFill parity, and was pushed on `gm/smartfill-itfactor-phase26`.

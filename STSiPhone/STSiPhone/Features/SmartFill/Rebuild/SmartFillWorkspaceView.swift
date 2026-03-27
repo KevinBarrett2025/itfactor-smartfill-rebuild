@@ -10,7 +10,7 @@ struct SmartFillWorkspaceView: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @StateObject private var coordinator = SmartFillWorkspaceCoordinator()
     @State private var settings: SmartFillSettings
-    @State private var showAdvancedSettings = false
+    @State private var activeSheet: SmartFillWorkspaceSheet?
     @State private var statusMessage: String?
     @State private var previewErrorMessage: String?
     @State private var queueAttempted = false
@@ -74,12 +74,8 @@ struct SmartFillWorkspaceView: View {
             .safeAreaInset(edge: .bottom) {
                 editorChrome
             }
-            .sheet(isPresented: $showAdvancedSettings) {
-                SmartFillAdvancedSettingsView(
-                    blurRadius: blurRadiusBinding,
-                    darkenAmount: darkenAmountBinding,
-                    backgroundScale: backgroundScaleBinding
-                )
+            .sheet(item: $activeSheet) { sheet in
+                workspaceSheet(for: sheet)
             }
             .onAppear {
                 let launchContext = SmartFillTakeBridge.makeContext(
@@ -96,6 +92,7 @@ struct SmartFillWorkspaceView: View {
                 autoReturnWorkItem = nil
                 activeTool = .background
                 activeLookAdjustment = .blur
+                activeSheet = nil
             }
             .onReceive(NotificationCenter.default.publisher(for: .smartFillProcessingProgress)) { notification in
                 guard coordinator.stage == .export else { return }
@@ -350,20 +347,29 @@ struct SmartFillWorkspaceView: View {
                             isSelected: activeLookAdjustment == adjustment
                         ) {
                             activeLookAdjustment = adjustment
+                            activeSheet = .lookAdjustments
                         }
                     }
                 }
-
-                activeLookAdjustmentControl
             }
 
-            Button {
-                showAdvancedSettings = true
-            } label: {
-                Label("More controls", systemImage: "slider.horizontal.3")
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 10) {
+                secondarySheetButton(
+                    title: "Fine tune",
+                    value: activeLookAdjustment.valueLabel(for: settings),
+                    systemImage: "slider.horizontal.3"
+                ) {
+                    activeSheet = .lookAdjustments
+                }
+
+                secondarySheetButton(
+                    title: "Advanced",
+                    value: "More",
+                    systemImage: "ellipsis.circle"
+                ) {
+                    activeSheet = .advancedLook
+                }
             }
-            .buttonStyle(.bordered)
         }
         .padding(18)
         .background(panelBackground)
@@ -386,10 +392,13 @@ struct SmartFillWorkspaceView: View {
                 }
             }
 
-            Slider(value: foregroundScaleBinding, in: 0.85...1.25, step: 0.05) {
-                Text("Subject scale")
+            secondarySheetButton(
+                title: "Precision scale",
+                value: String(format: "%.2f×", settings.foregroundScale),
+                systemImage: "slider.horizontal.below.rectangle"
+            ) {
+                activeSheet = .subjectScale
             }
-            .tint(Theme.primary)
         }
         .padding(18)
         .background(panelBackground)
@@ -408,13 +417,13 @@ struct SmartFillWorkspaceView: View {
             VStack(alignment: .leading, spacing: 10) {
                 toolSubheader("Speed", value: SmartFillWorkspacePresentation.processingPriorityTitle(for: settings.processingPriority))
 
-                Picker("Processing speed", selection: processingPriorityBinding) {
-                    ForEach(SmartFillSettings.ProcessingPriority.allCases, id: \.self) { priority in
-                        Text(SmartFillWorkspacePresentation.processingPriorityTitle(for: priority))
-                            .tag(priority)
-                    }
+                secondarySheetButton(
+                    title: "Processing",
+                    value: SmartFillWorkspacePresentation.processingPriorityTitle(for: settings.processingPriority),
+                    systemImage: "bolt.fill"
+                ) {
+                    activeSheet = .outputOptions
                 }
-                .pickerStyle(.segmented)
             }
         }
         .padding(18)
@@ -451,36 +460,12 @@ struct SmartFillWorkspaceView: View {
                 .padding(.horizontal, 2)
             }
 
-            VStack(alignment: .leading, spacing: 10) {
-                Text("After save")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.textPrimary)
-
-                Picker("After save", selection: $completionBehavior) {
-                    ForEach(SmartFillWorkspaceCompletionBehavior.allCases, id: \.self) { behavior in
-                        Text(behavior.pickerTitle)
-                            .tag(behavior)
-                    }
-                }
-                .pickerStyle(.segmented)
-
-                Text(completionBehavior.caption(for: context))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            saveOutcomePanel
-
-            if let record = coordinator.lastResult {
-                latestSavedResultPanel(for: record)
-            }
-
-            if coordinator.stage == .export {
-                exportProgressPanel
-            } else if hasPendingAutoReturn, let record = coordinator.lastResult {
-                returnControlPanel(for: record)
-            } else if effectiveStage == .completed && completionBehavior == .stayHere && !hasUnsavedChangesSinceLastSave, let record = coordinator.lastResult {
-                stayComparisonPanel(for: record)
+            secondarySheetButton(
+                title: "Save details",
+                value: completionBehavior.summaryTitle,
+                systemImage: "square.and.arrow.down.on.square"
+            ) {
+                activeSheet = .savePlan
             }
 
             if hasUnsavedChangesSinceLastSave {
@@ -510,6 +495,108 @@ struct SmartFillWorkspaceView: View {
         }
         .padding(18)
         .background(panelBackground)
+    }
+
+    @ViewBuilder
+    private func workspaceSheet(for sheet: SmartFillWorkspaceSheet) -> some View {
+        switch sheet {
+        case .advancedLook:
+            SmartFillAdvancedSettingsView(
+                blurRadius: blurRadiusBinding,
+                darkenAmount: darkenAmountBinding,
+                backgroundScale: backgroundScaleBinding
+            )
+        case .lookAdjustments:
+            workspaceSheetContainer(
+                title: "Fine tune",
+                subtitle: "Adjust blur, darkening, and fill without crowding the main tray."
+            ) {
+                compactToolGroup(title: "Adjust", value: activeLookAdjustment.valueLabel(for: settings)) {
+                    ForEach(SmartFillWorkspaceLookAdjustment.allCases, id: \.self) { adjustment in
+                        compactToolChip(
+                            title: adjustment.shortTitle,
+                            subtitle: adjustment.valueLabel(for: settings),
+                            systemImage: adjustment.symbolName,
+                            isSelected: activeLookAdjustment == adjustment
+                        ) {
+                            activeLookAdjustment = adjustment
+                        }
+                    }
+                }
+
+                activeLookAdjustmentControl
+            }
+        case .subjectScale:
+            workspaceSheetContainer(
+                title: "Subject scale",
+                subtitle: "Use presets in the main tray, then refine the framing here when the subject needs a tighter fit."
+            ) {
+                toolSectionCard {
+                    toolSubheader("Scale", value: String(format: "%.2f×", settings.foregroundScale))
+
+                    Slider(value: foregroundScaleBinding, in: 0.85...1.25, step: 0.05) {
+                        Text("Subject scale")
+                    }
+                    .tint(Theme.primary)
+                }
+            }
+        case .outputOptions:
+            workspaceSheetContainer(
+                title: "Processing options",
+                subtitle: "Keep resolution in the main tray and change processing speed here."
+            ) {
+                toolSectionCard {
+                    toolSubheader("Speed", value: SmartFillWorkspacePresentation.processingPriorityTitle(for: settings.processingPriority))
+
+                    Picker("Processing speed", selection: processingPriorityBinding) {
+                        ForEach(SmartFillSettings.ProcessingPriority.allCases, id: \.self) { priority in
+                            Text(SmartFillWorkspacePresentation.processingPriorityTitle(for: priority))
+                                .tag(priority)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+            }
+        case .savePlan:
+            workspaceSheetContainer(
+                title: "Save details",
+                subtitle: "Review what save does, choose whether to stay or return, and inspect the latest saved result."
+            ) {
+                toolSectionCard {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("After save")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Theme.textPrimary)
+
+                        Picker("After save", selection: $completionBehavior) {
+                            ForEach(SmartFillWorkspaceCompletionBehavior.allCases, id: \.self) { behavior in
+                                Text(behavior.pickerTitle)
+                                    .tag(behavior)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+
+                        Text(completionBehavior.caption(for: context))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                saveOutcomePanel
+
+                if let record = coordinator.lastResult {
+                    latestSavedResultPanel(for: record)
+                }
+
+                if coordinator.stage == .export {
+                    exportProgressPanel
+                } else if hasPendingAutoReturn, let record = coordinator.lastResult {
+                    returnControlPanel(for: record)
+                } else if effectiveStage == .completed && completionBehavior == .stayHere && !hasUnsavedChangesSinceLastSave, let record = coordinator.lastResult {
+                    stayComparisonPanel(for: record)
+                }
+            }
+        }
     }
 
     @ViewBuilder
@@ -742,23 +829,20 @@ struct SmartFillWorkspaceView: View {
         context.previewURL.lastPathComponent
     }
 
-    private var outputOptionColumns: [GridItem] {
-        [
-            GridItem(.flexible(), spacing: 12),
-            GridItem(.flexible(), spacing: 12)
-        ]
-    }
-
     private var toolTrayHeight: CGFloat {
         switch (verticalSizeClass, activeTool) {
         case (.compact, .save):
-            return 210
+            return 165
+        case (.compact, .background):
+            return 185
         case (.compact, _):
-            return 190
+            return 150
         case (_, .save):
-            return 260
+            return 190
+        case (_, .background):
+            return 210
         default:
-            return 230
+            return 165
         }
     }
 
@@ -792,30 +876,6 @@ struct SmartFillWorkspaceView: View {
         case .preview where hasUnsavedChangesSinceLastSave: return .orange
         default: return .secondary
         }
-    }
-
-    private func backgroundModeBackground(for mode: SmartFillWorkspaceBackgroundMode) -> Color {
-        activeBackgroundMode == mode ? Theme.primary.opacity(0.16) : Color.white.opacity(0.02)
-    }
-
-    private func backgroundModeStroke(for mode: SmartFillWorkspaceBackgroundMode) -> Color {
-        activeBackgroundMode == mode ? Theme.primary.opacity(0.6) : Color.white.opacity(0.10)
-    }
-
-    private func treatmentPresetBackground(for preset: SmartFillWorkspaceTreatmentPreset) -> Color {
-        activeTreatmentPreset == preset ? Theme.primary.opacity(0.16) : Color.white.opacity(0.02)
-    }
-
-    private func treatmentPresetStroke(for preset: SmartFillWorkspaceTreatmentPreset) -> Color {
-        activeTreatmentPreset == preset ? Theme.primary.opacity(0.6) : Color.white.opacity(0.10)
-    }
-
-    private func backgroundFillPresetBackground(for preset: SmartFillWorkspaceBackgroundFillPreset) -> Color {
-        activeFillPreset == preset ? Theme.primary.opacity(0.16) : Color.white.opacity(0.02)
-    }
-
-    private func backgroundFillPresetStroke(for preset: SmartFillWorkspaceBackgroundFillPreset) -> Color {
-        activeFillPreset == preset ? Theme.primary.opacity(0.6) : Color.white.opacity(0.10)
     }
 
     private var activeBackgroundMode: SmartFillWorkspaceBackgroundMode? {
@@ -1059,6 +1119,45 @@ struct SmartFillWorkspaceView: View {
         .background(Color.white.opacity(0.05), in: Capsule())
     }
 
+    private func secondarySheetButton(
+        title: String,
+        value: String,
+        systemImage: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: systemImage)
+                    .foregroundStyle(Theme.primary)
+                    .font(.subheadline.weight(.semibold))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Text(value)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.textPrimary)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
+            .background(Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(Color.white.opacity(0.10), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
     @ViewBuilder
     private func treatmentSlider(
         icon: String,
@@ -1093,6 +1192,52 @@ struct SmartFillWorkspaceView: View {
         }
         .padding(12)
         .background(Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private func toolSectionCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            content()
+        }
+        .padding(16)
+        .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.white.opacity(0.10), lineWidth: 1)
+        )
+    }
+
+    private func workspaceSheetContainer<Content: View>(
+        title: String,
+        subtitle: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        NavigationStack {
+            ZStack {
+                BrandBackground()
+                    .ignoresSafeArea()
+
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text(subtitle)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        content()
+                    }
+                    .padding(Theme.Layout.screenPadding)
+                }
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        activeSheet = nil
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
     }
 
     private func renderSizeChip(width: CGFloat, height: CGFloat, title: String, subtitle: String) -> some View {
@@ -1416,6 +1561,16 @@ private enum SmartFillWorkspaceTool: CaseIterable {
             return behavior.pickerTitle
         }
     }
+}
+
+private enum SmartFillWorkspaceSheet: String, Identifiable {
+    case lookAdjustments
+    case advancedLook
+    case subjectScale
+    case outputOptions
+    case savePlan
+
+    var id: String { rawValue }
 }
 
 private enum SmartFillWorkspaceLookAdjustment: CaseIterable {
