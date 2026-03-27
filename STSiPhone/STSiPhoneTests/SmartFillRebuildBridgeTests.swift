@@ -573,6 +573,34 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertTrue(clamped.requiresPlayerSync(currentTime: 9.0, isPlaying: false))
     }
 
+    func testPreviewCompareStateUsesSelectedModeWhenNotHolding() {
+        let result = SmartFillWorkspacePreviewCompareState(
+            selectedMode: .result,
+            isHoldingComparison: false
+        )
+        let source = SmartFillWorkspacePreviewCompareState(
+            selectedMode: .source,
+            isHoldingComparison: false
+        )
+
+        XCTAssertEqual(result.effectiveMode, .result)
+        XCTAssertEqual(source.effectiveMode, .source)
+    }
+
+    func testPreviewCompareStateTemporarilyShowsAlternateModeWhileHolding() {
+        let result = SmartFillWorkspacePreviewCompareState(
+            selectedMode: .result,
+            isHoldingComparison: true
+        )
+        let source = SmartFillWorkspacePreviewCompareState(
+            selectedMode: .source,
+            isHoldingComparison: true
+        )
+
+        XCTAssertEqual(result.effectiveMode, .source)
+        XCTAssertEqual(source.effectiveMode, .result)
+    }
+
     func testWorkspacePresentationUsesContextOverridesWhenAvailable() {
         let context = makeWorkspaceContext(
             take: ProjectTake(filePath: "/tmp/original.mov", durationSeconds: 12),

@@ -1,5 +1,47 @@
 # CODEX Thread Continuity
 
+## Ticket 037 SmartFill Hold-to-Compare Preview Switching (2026-03-27)
+- Thread Status: phase-37 local patch landed on a fresh GM worktree, Gate A and focused parity both pass, and the slice is ready to anchor as `SF-REBUILD-037`.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase37`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase37`
+- Working Head SHA: `37c290f11909e5b99f352d4ef28a1f9e16a5de17`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Sharpen compare behavior on the canvas-first preview without adding any new chrome:
+1. let the pinned preview temporarily flip to the alternate source/result state while the user presses and holds on the canvas
+2. keep the existing `Current` and `Source` chips as the persistent mode controls instead of adding another compare row
+3. make the momentary compare behavior share the same live preview seam and playback-state model already used by the stronger source/result preview work
+4. prove the new compare-state rules directly in focused parity instead of hiding the behavior inside view-only gesture code
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase37`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase37`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase37`
+  - `git rev-parse HEAD` -> `37c290f11909e5b99f352d4ef28a1f9e16a5de17`
+  - `git status --porcelain` -> two local phase-37 edits in `SmartFillWorkspaceView.swift` and `SmartFillRebuildBridgeTests.swift`
+  - `git log -1 --oneline` -> `37c290f SF-REBUILD-036: embed live preview transport into the SmartFill canvas`
+- Truth-sync confirmed:
+  - `git -C /tmp/itfactor_smartfill_phase37 fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Next Action
+1. `SmartFillWorkspaceView` now computes one `SmartFillWorkspacePreviewCompareState` so the preview keeps its selected `Current` or `Source` mode when idle but temporarily flips to the alternate state during a press-and-hold compare gesture.
+2. The interactive preview surface now emits compare pressing changes directly from the canvas, and both result/source preview branches consume the same callback without adding another chrome row.
+3. Focused parity now locks the new compare-state helper so the hold-to-compare rules stay stable as deeper live preview work continues.
+4. Gate A PASS: `/tmp/itfactor_smartfill_phase37_gateA.log`
+5. Focused parity PASS: `/tmp/itfactor_smartfill_phase37_tests.log`
+6. xcresult: `/tmp/itfactor_smartfill_phase37_tests/Logs/Test/Test-STSiPhone-2026.03.27_18-28-57--0400.xcresult`
+7. Next best slice after this compare pass: keep improving the professional editor feel only where it sharpens live preview and source/result comparison without re-expanding the chrome.
+
 ## Ticket 036 SmartFill Canvas-Embedded Live Preview Transport (2026-03-27)
 - Thread Status: phase-36 local patch landed on a fresh GM worktree, Gate A and focused parity both pass, and the slice is ready to anchor as `SF-REBUILD-036`.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

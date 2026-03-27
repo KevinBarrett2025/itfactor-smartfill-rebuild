@@ -23,6 +23,7 @@ struct SmartFillWorkspaceView: View {
     @State private var activeLookAdjustment: SmartFillWorkspaceLookAdjustment = .blur
     @State private var previewMode: SmartFillWorkspacePreviewMode = .result
     @State private var previewPlaybackState = SmartFillWorkspacePreviewPlaybackState()
+    @State private var isHoldingPreviewComparison = false
 
     private let workspaceDefaults: SmartFillWorkspaceDefaults
 
@@ -186,13 +187,13 @@ struct SmartFillWorkspaceView: View {
 
                 Spacer()
 
-                Label(previewMode.shortTitle, systemImage: previewMode.symbolName)
+                Label(effectivePreviewMode.shortTitle, systemImage: effectivePreviewMode.symbolName)
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(previewMode == .result ? Theme.primary : Theme.textPrimary)
+                    .foregroundStyle(effectivePreviewMode == .result ? Theme.primary : Theme.textPrimary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .background(
-                        (previewMode == .result ? Theme.primary.opacity(0.12) : Color.white.opacity(0.05)),
+                        (effectivePreviewMode == .result ? Theme.primary.opacity(0.12) : Color.white.opacity(0.05)),
                         in: Capsule()
                     )
             }
@@ -201,7 +202,7 @@ struct SmartFillWorkspaceView: View {
             .frame(maxWidth: .infinity)
             .frame(maxHeight: previewSurfaceMaxHeight)
 
-            if let previewErrorMessage, previewMode == .result {
+            if let previewErrorMessage, effectivePreviewMode == .result {
                 Label(previewErrorMessage, systemImage: "exclamationmark.triangle.fill")
                     .font(.caption)
                     .foregroundStyle(.orange)
@@ -237,22 +238,24 @@ struct SmartFillWorkspaceView: View {
                 settings: settings,
                 refreshID: previewRefreshIdentity,
                 playbackState: previewPlaybackState,
-                isActive: previewMode == .result,
+                isActive: effectivePreviewMode == .result,
+                onComparePressingChanged: updatePreviewComparePressing,
                 onPlaybackStateChange: updatePreviewPlaybackState
             ) { error in
                 previewErrorMessage = error.localizedDescription
             }
-            .opacity(previewMode == .result ? 1 : 0)
-            .allowsHitTesting(previewMode == .result)
+            .opacity(effectivePreviewMode == .result ? 1 : 0)
+            .allowsHitTesting(effectivePreviewMode == .result)
 
             SmartFillSourcePreviewView(
                 videoURL: context.previewURL,
                 playbackState: previewPlaybackState,
-                isActive: previewMode == .source,
+                isActive: effectivePreviewMode == .source,
+                onComparePressingChanged: updatePreviewComparePressing,
                 onPlaybackStateChange: updatePreviewPlaybackState
             )
-            .opacity(previewMode == .source ? 1 : 0)
-            .allowsHitTesting(previewMode == .source)
+            .opacity(effectivePreviewMode == .source ? 1 : 0)
+            .allowsHitTesting(effectivePreviewMode == .source)
         }
     }
 
@@ -713,6 +716,7 @@ struct SmartFillWorkspaceView: View {
                         videoURL: context.previewURL,
                         playbackState: previewPlaybackState,
                         isActive: true,
+                        onComparePressingChanged: { _ in },
                         onPlaybackStateChange: updatePreviewPlaybackState
                     )
                         .frame(maxWidth: .infinity)
@@ -958,6 +962,17 @@ struct SmartFillWorkspaceView: View {
 
     private var previewSurfaceMaxHeight: CGFloat {
         verticalSizeClass == .compact ? 250 : 360
+    }
+
+    private var previewCompareState: SmartFillWorkspacePreviewCompareState {
+        SmartFillWorkspacePreviewCompareState(
+            selectedMode: previewMode,
+            isHoldingComparison: isHoldingPreviewComparison
+        )
+    }
+
+    private var effectivePreviewMode: SmartFillWorkspacePreviewMode {
+        previewCompareState.effectiveMode
     }
 
     private var toolTrayHeight: CGFloat {
@@ -1308,7 +1323,7 @@ struct SmartFillWorkspaceView: View {
     }
 
     private func previewReferenceChip(_ item: SmartFillWorkspacePreviewReferenceItem) -> some View {
-        let isSelected = previewMode == item.previewMode
+        let isSelected = effectivePreviewMode == item.previewMode
 
         return Button {
             handlePreviewReferenceSelection(item.previewMode)
@@ -1651,6 +1666,10 @@ struct SmartFillWorkspaceView: View {
         previewMode = mode
     }
 
+    private func updatePreviewComparePressing(_ isPressing: Bool) {
+        isHoldingPreviewComparison = isPressing
+    }
+
     private func updatePreviewPlaybackState(_ state: SmartFillWorkspacePreviewPlaybackState) {
         guard previewPlaybackState.shouldReplace(with: state) else {
             return
@@ -1810,6 +1829,24 @@ enum SmartFillWorkspacePreviewMode: String, CaseIterable {
         case .source:
             return "rectangle.on.rectangle"
         }
+    }
+
+    var comparisonMode: SmartFillWorkspacePreviewMode {
+        switch self {
+        case .result:
+            return .source
+        case .source:
+            return .result
+        }
+    }
+}
+
+struct SmartFillWorkspacePreviewCompareState: Equatable {
+    let selectedMode: SmartFillWorkspacePreviewMode
+    let isHoldingComparison: Bool
+
+    var effectiveMode: SmartFillWorkspacePreviewMode {
+        isHoldingComparison ? selectedMode.comparisonMode : selectedMode
     }
 }
 
@@ -2580,6 +2617,7 @@ private struct SmartFillWorkspaceResultPreviewView: View {
     let refreshID: String
     let playbackState: SmartFillWorkspacePreviewPlaybackState
     let isActive: Bool
+    let onComparePressingChanged: (Bool) -> Void
     let onPlaybackStateChange: (SmartFillWorkspacePreviewPlaybackState) -> Void
     let onError: (Error) -> Void
 
@@ -2590,7 +2628,10 @@ private struct SmartFillWorkspaceResultPreviewView: View {
     var body: some View {
         VStack(spacing: 8) {
             if let player {
-                SmartFillWorkspaceInteractivePreviewSurface(player: player)
+                SmartFillWorkspaceInteractivePreviewSurface(
+                    player: player,
+                    onComparePressingChanged: onComparePressingChanged
+                )
                 .onReceive(player.$currentTime) { _ in
                     publishPlaybackState()
                 }
@@ -2684,6 +2725,7 @@ private struct SmartFillSourcePreviewView: View {
     let videoURL: URL
     let playbackState: SmartFillWorkspacePreviewPlaybackState
     let isActive: Bool
+    let onComparePressingChanged: (Bool) -> Void
     let onPlaybackStateChange: (SmartFillWorkspacePreviewPlaybackState) -> Void
 
     @State private var player: ModernSmartFillPlayer?
@@ -2692,7 +2734,10 @@ private struct SmartFillSourcePreviewView: View {
     var body: some View {
         VStack(spacing: 8) {
             if let player {
-                SmartFillWorkspaceInteractivePreviewSurface(player: player)
+                SmartFillWorkspaceInteractivePreviewSurface(
+                    player: player,
+                    onComparePressingChanged: onComparePressingChanged
+                )
                 .onReceive(player.$currentTime) { _ in
                     publishPlaybackState()
                 }
@@ -2764,6 +2809,7 @@ private struct SmartFillSourcePreviewView: View {
 
 private struct SmartFillWorkspaceInteractivePreviewSurface: View {
     @ObservedObject var player: ModernSmartFillPlayer
+    let onComparePressingChanged: (Bool) -> Void
 
     var body: some View {
         ZStack {
@@ -2771,6 +2817,9 @@ private struct SmartFillWorkspaceInteractivePreviewSurface: View {
                 .contentShape(Rectangle())
                 .onTapGesture {
                     togglePlayback()
+                }
+                .onLongPressGesture(minimumDuration: 0.12, maximumDistance: 30, perform: { }) { isPressing in
+                    onComparePressingChanged(isPressing)
                 }
 
             if player.isReady && !player.isPlaying {
