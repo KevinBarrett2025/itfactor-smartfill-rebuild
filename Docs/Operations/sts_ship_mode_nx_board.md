@@ -48,6 +48,7 @@ Rules:
 - The rebuild workspace now actually reopens that saved SmartFill take from its completed-state primary action instead of only dismissing the sheet, and the follow-up route now respects whether the launch came from project review/player or editor.
 - The rebuild workspace now also routes automatic `Return` through that same saved-result reopen seam instead of dismissing generically after save.
 - Reopened project-review/player and editor destinations now explicitly identify that reopened take as the just-saved SmartFill result instead of silently landing on it.
+- Reopened project-review/player and editor destinations now also expose direct comparison/open-source actions back to the original source take when SmartFill lineage exists.
 - `authority/main` now exists remotely and locally at the untouched Jan 23 baseline.
 
 ---
@@ -76,6 +77,7 @@ Rules:
 | 4M | SF-REBUILD-021 | Reopen saved SmartFill take from completed workspace | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase21_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase21_tests.log`; completed-state primary actions now reopen the adopted SmartFill take through project-review/player or editor-specific follow-up routes instead of only dismissing the workspace |
 | 4N | SF-REBUILD-022 | Route auto-return through saved-result reopen seam | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase22_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase22_tests.log`; queued automatic `Return` now uses the same saved-result follow-up seam as manual `Open <saved take>` actions instead of dismissing generically |
 | 4O | SF-REBUILD-023 | Surface saved-result context in reopened destinations | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase23_gateA_rerun3.log`; focused parity PASS `/tmp/itfactor_smartfill_phase23_tests_rerun3.log`; player/review and editor reopen destinations now explicitly identify the just-saved SmartFill result instead of silently landing on it |
+| 4P | SF-REBUILD-024 | Add source-take compare actions to reopened destinations | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase24_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase24_tests.log`; reopened player/review now offers one-tap compare-back-to-source and editor reopen now offers `Open <source take>` when original-take lineage exists |
 
 ---
 
@@ -96,6 +98,6 @@ Rules:
 ---
 
 ## Next Action
-1. Choose the next intentional flagship SmartFill workspace/product phase now that entry, defaults, result adoption, preview, quick fill choices, treatment-finish presets, explicit stay/return choice, honest save-outcome messaging, finish-state-aware save/update affordances, concrete saved-take outcome messaging, saved-take-aware post-save actions, real reopen handoff for both manual and automatic finish paths, and explicit saved-result context in reopened destinations all live under the rebuild namespace.
+1. Choose the next intentional flagship SmartFill workspace/product phase now that entry, defaults, result adoption, preview, quick fill choices, treatment-finish presets, explicit stay/return choice, honest save-outcome messaging, finish-state-aware save/update affordances, concrete saved-take outcome messaging, saved-take-aware post-save actions, real reopen handoff for both manual and automatic finish paths, explicit saved-result context in reopened destinations, and direct source-take comparison actions all live under the rebuild namespace.
 2. Implement that slice on `gm/smartfill-itfactor-rebuild`, then rerun Gate A plus focused SmartFill parity before any promotion discussion.
 3. Keep the standalone derivation ledger in sync while future shared-workspace work lands.

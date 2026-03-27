@@ -663,6 +663,41 @@ extension LightweightEditorViewController {
             return
         }
 
+        openTakeInRebuildEditor(take, session: session, project: project, repository: repository)
+
+        let sourceTake = session.takes.first(where: { $0.id == record.originalTakeID && $0.id != take.id })
+        let sourceTakeDisplayName = sourceTake.map { TakeDisplayFormatter.label(for: $0, in: session) }
+
+        let reopenContext = SmartFillReopenDestinationContext.editor(
+            adoptedTakeDisplayName: record.adoptedTakeDisplayName,
+            sourceTakeID: sourceTake?.id,
+            sourceTakeDisplayName: sourceTakeDisplayName
+        )
+        let alert = UIAlertController(
+            title: reopenContext.title,
+            message: reopenContext.message,
+            preferredStyle: .alert
+        )
+        if let sourceTake,
+           let sourceActionTitle = reopenContext.editorComparisonActionTitle {
+            alert.addAction(UIAlertAction(title: sourceActionTitle, style: .default) { [weak self] _ in
+                guard let self else { return }
+                self.openTakeInRebuildEditor(sourceTake, session: session, project: project, repository: repository)
+            })
+        }
+        alert.addAction(UIAlertAction(title: "Stay on \(record.adoptedTakeDisplayName)", style: .default))
+        present(alert, animated: true)
+
+        print("✅ SMARTFILL WORKSPACE: Reopened saved take \(record.adoptedTakeDisplayName) in editor")
+    }
+
+    @MainActor
+    private func openTakeInRebuildEditor(
+        _ take: ProjectTake,
+        session: ProjectSession,
+        project: Project,
+        repository: ProjectsRepository
+    ) {
         setupWithRepository(repository, take: take, session: session, project: project)
 
         let effectiveURL = VideoVariantResolver.effectiveURL(for: take)
@@ -674,19 +709,6 @@ extension LightweightEditorViewController {
             self.reloadSurface(for: newKind)
             self.updateToolbar(for: .playback, kind: newKind)
         }
-
-        let reopenContext = SmartFillReopenDestinationContext.editor(
-            adoptedTakeDisplayName: record.adoptedTakeDisplayName
-        )
-        let alert = UIAlertController(
-            title: reopenContext.title,
-            message: reopenContext.message,
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
-
-        print("✅ SMARTFILL WORKSPACE: Reopened saved take \(record.adoptedTakeDisplayName) in editor")
     }
     
     private func handleSmartFillComplete(outputURL: URL) {

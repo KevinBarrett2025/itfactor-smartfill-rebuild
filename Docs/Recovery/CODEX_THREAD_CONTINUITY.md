@@ -1,5 +1,79 @@
 # CODEX Thread Continuity
 
+## Ticket 024 Source-Take Compare Actions In Reopened Destinations (2026-03-26)
+- Thread Status: reopened player/review and editor destinations now expose direct compare/open-source actions back to the original source take when SmartFill lineage is known, local gating is green, and commit/push is the active next action.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-rebuild`
+- Working Head SHA: `6c0a3b23f7ffe7fcbb161ff44060888477f3715d`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Make reopened destinations support real result-versus-source comparison:
+1. let project-review/player reopen destinations jump directly from the saved SmartFill result back to the original source take when lineage exists
+2. let editor reopen destinations offer a direct `Open <source take>` comparison action instead of trapping the user on the saved result only
+3. keep the saved-result/original-source relationship centralized in one shared destination-context seam instead of inventing separate comparison UI paths
+4. keep standalone derivation aligned because the later hidden-session utility will need the same `open saved result` plus `compare to original source` finish seam after save
+
+### Completed This Pass
+- Truth-sync preflight confirmed:
+  - `HEAD`: `6c0a3b23f7ffe7fcbb161ff44060888477f3715d`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Archaeology confirmed the remaining product gap after `SF-REBUILD-023`:
+  - reopened destinations now named the saved SmartFill result correctly
+  - neither player/review nor editor gave the user a direct way to compare the saved result against the original source take
+  - the original-take lineage already existed in `SmartFillResultBridgeRecord.originalTakeID`, so the correct next move was to extend the destination-context seam instead of inventing another workspace completion surface
+- `SmartFillReopenDestinationContext` now also carries original/source take identity and user-facing compare/open-source action titles for both player/review and editor destinations.
+- `ProjectDetailView` now resolves the original source take alongside the adopted SmartFill take and passes that comparison truth into `SwipeableVideoPlayerData`.
+- `SwipeableVideoPlayerView` now exposes a direct compare button in the reopened result overlay, and that action jumps the player/review flow back onto the original source take.
+- `LightweightEditorViewController+ModularWiring` now offers a direct `Open <source take>` action after reopening the saved SmartFill result in editor context.
+- Focused parity now covers:
+  - player/review compare-action titles when source lineage exists
+  - editor compare-action titles when source lineage exists
+
+### Validation
+- Preflight fetch:
+  - `git -C /Users/kevinbarrett/Dev/itFactor_1.23.26_git fetch origin --prune`
+- Gate A command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase24_gateA build | tee /tmp/itfactor_smartfill_phase24_gateA.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase24_gateA.log`
+- Focused parity command:
+  - `xcodebuild -project /Users/kevinbarrett/Dev/itFactor_1.23.26_git/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase24_tests -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase24_tests.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase24_tests.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase24_tests/Logs/Test/Test-STSiPhone-2026.03.26_20-21-40--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Archaeology Snapshot
+- `SF-REBUILD-021`, `SF-REBUILD-022`, and `SF-REBUILD-023` got the user back to the right saved result and named it honestly, but the reopened destination still left the original source take hidden behind generic swipe navigation or manual re-selection.
+- The rebuild already had enough truth to wire comparison directly:
+  - `SmartFillResultBridgeRecord.originalTakeID`
+  - adopted take identity
+  - review/player session take list
+  - editor reopen callback path
+- The right seam was therefore the reopened destination itself:
+  - player/review should make comparison one tap away
+  - editor should make source take reopening one action away
+- The same seam matters for the future standalone hidden-session utility because post-save result review there will also need a direct compare-back-to-source behavior without reviving a separate success screen or utility-only compare controller.
+
+### Next Action
+1. Commit and push Ticket 024 on `gm/smartfill-itfactor-rebuild` with Gate A and focused parity evidence attached.
+2. Choose the next flagship SmartFill workspace phase now that reopened destinations can both identify the saved SmartFill result and offer a direct path back to the original source take when lineage exists.
+3. Keep the standalone derivation ledger synchronized because the future hidden-session utility should inherit the same saved-result plus source-compare finish seam.
+
 ## Ticket 023 Saved Result Context In Reopened Destinations (2026-03-26)
 - Thread Status: reopened project-review/player and editor destinations now explicitly surface saved SmartFill result identity/context after completion, local gating is green, and commit/push is the active next action.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

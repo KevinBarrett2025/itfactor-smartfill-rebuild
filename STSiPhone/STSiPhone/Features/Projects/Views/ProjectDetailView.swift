@@ -1887,7 +1887,8 @@ public struct ProjectDetailView: View {
                 session: resolved.session,
                 project: resolved.project,
                 preferredReviewData: reviewData,
-                savedResultDisplayName: pending.result.adoptedTakeDisplayName
+                savedResultDisplayName: pending.result.adoptedTakeDisplayName,
+                originalTakeID: pending.result.originalTakeID
             ) else {
                 return false
             }
@@ -1918,13 +1919,17 @@ public struct ProjectDetailView: View {
         session: ProjectSession,
         project: Project,
         preferredReviewData: TakeReviewData?,
-        savedResultDisplayName: String? = nil
+        savedResultDisplayName: String? = nil,
+        originalTakeID: UUID? = nil
     ) -> SwipeableVideoPlayerData? {
         guard let initialIndex = session.takes.firstIndex(where: { $0.id == take.id }) else {
             return nil
         }
 
         let fallbackViewType: TakeReviewPage.ViewType = take.takeType.isSlateLike ? .slates : .scenes
+        let sourceTake = originalTakeID.flatMap { sourceID in
+            session.takes.first(where: { $0.id == sourceID && $0.id != take.id })
+        }
         return SwipeableVideoPlayerData(
             takes: session.takes,
             initialIndex: initialIndex,
@@ -1934,7 +1939,11 @@ public struct ProjectDetailView: View {
             contextSceneNumber: preferredReviewData?.selectedSceneNumber ?? take.sceneNumber,
             savedResultTakeID: take.id,
             savedResultContext: savedResultDisplayName.map {
-                SmartFillReopenDestinationContext.player(adoptedTakeDisplayName: $0)
+                SmartFillReopenDestinationContext.player(
+                    adoptedTakeDisplayName: $0,
+                    sourceTakeID: sourceTake?.id,
+                    sourceTakeDisplayName: sourceTake.map { TakeDisplayFormatter.label(for: $0, in: session) }
+                )
             }
         )
     }

@@ -245,6 +245,9 @@ struct SwipeableVideoPlayerView: View {
                                         onSmartFillTap: { take in
                                             handleSmartFillButtonTap(for: take)
                                         },
+                                        onCompareSourceTake: { sourceTakeID in
+                                            handleCompareSourceTake(sourceTakeID)
+                                        },
                                         refreshTrigger: refreshTrigger,  // 🚨 SMARTFILL DATA REFRESH FIX: Pass refresh trigger
                                         enableVideoZoom: true
                                     )
@@ -368,6 +371,18 @@ struct SwipeableVideoPlayerView: View {
     }
     private func handleStandardEditTap(for take: ProjectTake) {
         handleEditorRequestWithRefresh(take)
+    }
+
+    private func handleCompareSourceTake(_ sourceTakeID: UUID) {
+        guard let sourceIndex = videoPlayerData.firstIndex(where: { $0.take.id == sourceTakeID }) else {
+            print("⚠️ SwipeableVideoPlayer: Could not resolve source take \(sourceTakeID) for compare")
+            return
+        }
+        guard sourceIndex != currentIndex else { return }
+        withAnimation(.easeInOut(duration: 0.2)) {
+            currentIndex = sourceIndex
+        }
+        print("🔁 SwipeableVideoPlayer: Jumped to source take for compare at index \(sourceIndex + 1)")
     }
     
     private func shouldRequestSmartFill(for take: ProjectTake) -> Bool {
@@ -770,6 +785,7 @@ struct CustomAVPlayerViewContent: View {
     // PHASE 1: NEW - Editor request callback
     let onEditorRequest: ((ProjectTake) -> Void)?
     let onSmartFillTap: ((ProjectTake) -> Void)?
+    let onCompareSourceTake: ((UUID) -> Void)?
     
     // 🚨 SMARTFILL DATA REFRESH FIX: Add refresh trigger
     let refreshTrigger: Int
@@ -787,6 +803,7 @@ struct CustomAVPlayerViewContent: View {
         ratingsOverlayMode: RatingsOverlayMode = .uikit,
         onEditorRequest: ((ProjectTake) -> Void)? = nil,
         onSmartFillTap: ((ProjectTake) -> Void)? = nil,
+        onCompareSourceTake: ((UUID) -> Void)? = nil,
         refreshTrigger: Int,
         enableVideoZoom: Bool = false
     ) {
@@ -801,6 +818,7 @@ struct CustomAVPlayerViewContent: View {
         self.ratingsOverlayMode = ratingsOverlayMode
         self.onEditorRequest = onEditorRequest
         self.onSmartFillTap = onSmartFillTap
+        self.onCompareSourceTake = onCompareSourceTake
         self.refreshTrigger = refreshTrigger
         self.enableVideoZoom = enableVideoZoom
     }
@@ -817,6 +835,7 @@ struct CustomAVPlayerViewContent: View {
             ratingsOverlayMode: ratingsOverlayMode,
             onEditorRequest: onEditorRequest,  // PHASE 1: NEW - Pass editor callback through
             onSmartFillTap: onSmartFillTap,
+            onCompareSourceTake: onCompareSourceTake,
             refreshTrigger: refreshTrigger,  // 🚨 SMARTFILL DATA REFRESH FIX: Pass refresh trigger
             enableVideoZoom: enableVideoZoom
         )
@@ -841,6 +860,7 @@ struct CustomAVPlayerViewController: UIViewControllerRepresentable {
     // PHASE 1: NEW - Editor request callback
     let onEditorRequest: ((ProjectTake) -> Void)?
     let onSmartFillTap: ((ProjectTake) -> Void)?
+    let onCompareSourceTake: ((UUID) -> Void)?
     
     // 🚨 SMARTFILL DATA REFRESH FIX: Add refresh trigger
     let refreshTrigger: Int
@@ -1020,6 +1040,11 @@ struct CustomAVPlayerViewController: UIViewControllerRepresentable {
         @objc func trimButtonTapped() {
             print("✂️ Trim button tapped for: \(parent.videoData.unifiedTake.fileName)")
             parent.onEditorRequest?(parent.videoData.take)
+        }
+
+        @objc func compareSourceButtonTapped() {
+            guard let sourceTakeID = parent.videoData.reopenContext?.sourceTakeID else { return }
+            parent.onCompareSourceTake?(sourceTakeID)
         }
         func setRatingsCenterYConstraint(_ constraint: NSLayoutConstraint) {
             ratingsCenterYConstraint = constraint
@@ -1766,7 +1791,7 @@ struct CustomAVPlayerViewController: UIViewControllerRepresentable {
         
         if showsTitleOverlay {
             // Add video title with SAFE AREA positioning
-            let titleView = createTitleOverlay()
+            let titleView = createTitleOverlay(coordinator: coordinator)
             overlayView.addSubview(titleView)
             
             titleView.translatesAutoresizingMaskIntoConstraints = false
@@ -2074,7 +2099,7 @@ struct CustomAVPlayerViewController: UIViewControllerRepresentable {
         return containerView
     }
     
-    private func createTitleOverlay() -> UIView {
+    private func createTitleOverlay(coordinator: Coordinator) -> UIView {
         let containerView = UIView()
         containerView.tag = OverlayTags.titleView
         containerView.backgroundColor = UIColor.black.withAlphaComponent(0.5)
@@ -2117,6 +2142,19 @@ struct CustomAVPlayerViewController: UIViewControllerRepresentable {
             contextLabel.textAlignment = .center
             contextLabel.numberOfLines = 0
             stackView.addArrangedSubview(contextLabel)
+
+            if let compareActionTitle = reopenContext.playerComparisonActionTitle,
+               onCompareSourceTake != nil {
+                let compareButton = UIButton(type: .system)
+                compareButton.setTitle(compareActionTitle, for: .normal)
+                compareButton.setTitleColor(.white, for: .normal)
+                compareButton.titleLabel?.font = UIFont.systemFont(ofSize: 12, weight: .semibold)
+                compareButton.backgroundColor = UIColor.systemTeal.withAlphaComponent(0.22)
+                compareButton.layer.cornerRadius = 14
+                compareButton.contentEdgeInsets = UIEdgeInsets(top: 7, left: 12, bottom: 7, right: 12)
+                compareButton.addTarget(coordinator, action: #selector(Coordinator.compareSourceButtonTapped), for: .touchUpInside)
+                stackView.addArrangedSubview(compareButton)
+            }
         }
         
         containerView.addSubview(stackView)

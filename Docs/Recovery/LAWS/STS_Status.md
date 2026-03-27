@@ -42,6 +42,7 @@ _Current rebuild working baseline:_ `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 - Workspace saved-take primary action now performs real reopen handoff: COMPLETE (LOCAL-GATED)
 - Workspace auto-return now reopens the saved take too: COMPLETE (LOCAL-GATED)
 - Reopened destinations now surface explicit saved-result context: COMPLETE (LOCAL-GATED)
+- Reopened destinations now offer direct source-take comparison actions: COMPLETE (LOCAL-GATED)
 - Standalone derivation ledger: ACTIVE
 
 If anything above is not true, it must be reflected here.
@@ -171,6 +172,12 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase23_gateA_rerun3.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase23_tests_rerun3.log`
   - xcresult: `/tmp/itfactor_smartfill_phase23_tests_rerun3/Logs/Test/Test-STSiPhone-2026.03.26_19-56-52--0400.xcresult`
+- `SF-REBUILD-024` — add source-take compare actions to reopened destinations — `COMPLETE (LOCAL-GATED 2026-03-26)`
+  - `SmartFillReopenDestinationContext` now also carries original/source take identity and compare/open-source action titles alongside the saved-result context.
+  - `SwipeableVideoPlayerView` now exposes a direct compare action that jumps from the reopened SmartFill result back to the original source take, and editor reopen now offers the same source-take jump through its completion alert.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase24_gateA.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase24_tests.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase24_tests/Logs/Test/Test-STSiPhone-2026.03.26_20-21-40--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -194,6 +201,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Decide the next intentional flagship SmartFill workspace evolution now that the rebuild owns entry, preview, defaults, quick fill choices, treatment-finish presets, explicit after-save stay/return control, save/update wording that matches the chosen finish behavior, explicit save-outcome truth, live save-state feedback, honest post-save dirty-state handling, concrete saved take identity in completion messaging, completed-state actions that name the real saved take, real reopen handoff for both manual and automatic finish paths, and explicit saved-result context in reopened review/player and editor destinations.
+1. Decide the next intentional flagship SmartFill workspace evolution now that the rebuild owns entry, preview, defaults, quick fill choices, treatment-finish presets, explicit after-save stay/return control, save/update wording that matches the chosen finish behavior, explicit save-outcome truth, live save-state feedback, honest post-save dirty-state handling, concrete saved take identity in completion messaging, completed-state actions that name the real saved take, real reopen handoff for both manual and automatic finish paths, explicit saved-result context in reopened review/player and editor destinations, and direct source-take comparison actions once those reopened destinations appear.
 2. Implement that next slice on `gm/smartfill-itfactor-rebuild` with Gate A and focused SmartFill parity before any promotion discussion.
 3. Keep the standalone derivation ledger updated in every phase.

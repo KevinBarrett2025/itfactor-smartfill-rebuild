@@ -736,6 +736,23 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         )
     }
 
+    func testReopenDestinationContextOffersPlayerCompareActionWhenSourceTakeKnown() {
+        let sourceTakeID = UUID()
+        let context = SmartFillReopenDestinationContext.player(
+            adoptedTakeDisplayName: "S1T1 SmartFill",
+            sourceTakeID: sourceTakeID,
+            sourceTakeDisplayName: "S1T1"
+        )
+
+        XCTAssertEqual(context.sourceTakeID, sourceTakeID)
+        XCTAssertEqual(context.sourceTakeDisplayName, "S1T1")
+        XCTAssertEqual(context.playerComparisonActionTitle, "Compare with S1T1")
+        XCTAssertEqual(
+            context.message,
+            "This is the SmartFill take you just saved. Swipe or tap Compare with S1T1 to judge it against the original source take."
+        )
+    }
+
     func testReopenDestinationContextNamesSavedTakeForEditor() {
         let context = SmartFillReopenDestinationContext.editor(
             adoptedTakeDisplayName: "S1T1 SmartFill"
@@ -746,6 +763,23 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertEqual(
             context.message,
             "You are now editing the saved SmartFill take. Keep trimming, cropping, or exporting from this updated result."
+        )
+    }
+
+    func testReopenDestinationContextOffersEditorCompareActionWhenSourceTakeKnown() {
+        let sourceTakeID = UUID()
+        let context = SmartFillReopenDestinationContext.editor(
+            adoptedTakeDisplayName: "S1T1 SmartFill",
+            sourceTakeID: sourceTakeID,
+            sourceTakeDisplayName: "S1T1"
+        )
+
+        XCTAssertEqual(context.sourceTakeID, sourceTakeID)
+        XCTAssertEqual(context.sourceTakeDisplayName, "S1T1")
+        XCTAssertEqual(context.editorComparisonActionTitle, "Open S1T1")
+        XCTAssertEqual(
+            context.message,
+            "You are now editing the saved SmartFill take. Open S1T1 if you want to compare it against the original source take."
         )
     }
 
