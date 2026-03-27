@@ -20,6 +20,7 @@ struct SmartFillWorkspaceView: View {
     @State private var completionBehavior: SmartFillWorkspaceCompletionBehavior
     @State private var activeTool: SmartFillWorkspaceTool = .background
     @State private var activeLookAdjustment: SmartFillWorkspaceLookAdjustment = .blur
+    @State private var previewMode: SmartFillWorkspacePreviewMode = .result
 
     private let workspaceDefaults: SmartFillWorkspaceDefaults
 
@@ -92,6 +93,7 @@ struct SmartFillWorkspaceView: View {
                 autoReturnWorkItem = nil
                 activeTool = .background
                 activeLookAdjustment = .blur
+                previewMode = .result
                 activeSheet = nil
             }
             .onReceive(NotificationCenter.default.publisher(for: .smartFillProcessingProgress)) { notification in
@@ -181,37 +183,22 @@ struct SmartFillWorkspaceView: View {
 
                 Spacer()
 
-                Button {
-                    activeSheet = .sourcePreview
-                } label: {
-                    Label("Original", systemImage: "rectangle.on.rectangle")
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(Theme.textPrimary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Color.white.opacity(0.05), in: Capsule())
-                }
-                .buttonStyle(.plain)
-
-                Label("Live", systemImage: "play.rectangle.fill")
+                Label(previewMode.shortTitle, systemImage: previewMode.symbolName)
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(Theme.primary)
+                    .foregroundStyle(previewMode == .result ? Theme.primary : Theme.textPrimary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(Theme.primary.opacity(0.12), in: Capsule())
+                    .background(
+                        (previewMode == .result ? Theme.primary.opacity(0.12) : Color.white.opacity(0.05)),
+                        in: Capsule()
+                    )
             }
 
-            SmartFillPreviewView(
-                videoURL: context.previewURL,
-                settings: settings
-            ) { error in
-                previewErrorMessage = error.localizedDescription
-            }
-            .id(previewRefreshIdentity)
+            activePreviewContent
             .frame(maxWidth: .infinity)
             .frame(maxHeight: previewSurfaceMaxHeight)
 
-            if let previewErrorMessage {
+            if let previewErrorMessage, previewMode == .result {
                 Label(previewErrorMessage, systemImage: "exclamationmark.triangle.fill")
                     .font(.caption)
                     .foregroundStyle(.orange)
@@ -237,6 +224,22 @@ struct SmartFillWorkspaceView: View {
         .padding(.top, 12)
         .padding(.bottom, 16)
         .background(.ultraThinMaterial)
+    }
+
+    @ViewBuilder
+    private var activePreviewContent: some View {
+        switch previewMode {
+        case .result:
+            SmartFillPreviewView(
+                videoURL: context.previewURL,
+                settings: settings
+            ) { error in
+                previewErrorMessage = error.localizedDescription
+            }
+            .id(previewRefreshIdentity)
+        case .source:
+            SmartFillSourcePreviewView(videoURL: context.previewURL)
+        }
     }
 
     private var previewToolFocusDeck: some View {
@@ -274,7 +277,7 @@ struct SmartFillWorkspaceView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(previewReferenceItems) { item in
-                        previewFocusChip(item)
+                        previewReferenceChip(item)
                     }
 
                     ForEach(activeToolFocusItems) { item in
@@ -669,7 +672,8 @@ struct SmartFillWorkspaceView: View {
                 title: "Original source",
                 subtitle: SmartFillWorkspacePresentation.sourcePreviewMessage(
                     for: context,
-                    adoptedTakeDisplayName: coordinator.lastResult?.adoptedTakeDisplayName
+                    adoptedTakeDisplayName: coordinator.lastResult?.adoptedTakeDisplayName,
+                    previewMode: previewMode
                 )
             ) {
                 toolSectionCard {
@@ -962,19 +966,21 @@ struct SmartFillWorkspaceView: View {
         )
     }
 
-    private var previewReferenceItems: [SmartFillWorkspaceFocusItem] {
+    private var previewReferenceItems: [SmartFillWorkspacePreviewReferenceItem] {
         [
-            SmartFillWorkspaceFocusItem(
+            SmartFillWorkspacePreviewReferenceItem(
                 title: "Source",
                 value: SmartFillWorkspacePresentation.sourcePreviewTitle(for: context),
-                symbolName: "film"
+                symbolName: "film",
+                previewMode: .source
             ),
-            SmartFillWorkspaceFocusItem(
+            SmartFillWorkspacePreviewReferenceItem(
                 title: "Current",
                 value: SmartFillWorkspacePresentation.previewResultTitle(
                     adoptedTakeDisplayName: coordinator.lastResult?.adoptedTakeDisplayName
                 ),
-                symbolName: "sparkles.tv"
+                symbolName: "sparkles.tv",
+                previewMode: .result
             )
         ]
     }
@@ -1282,6 +1288,50 @@ struct SmartFillWorkspaceView: View {
         .background(Color.white.opacity(0.04), in: Capsule())
     }
 
+    private func previewReferenceChip(_ item: SmartFillWorkspacePreviewReferenceItem) -> some View {
+        let isSelected = previewMode == item.previewMode
+
+        return Button {
+            handlePreviewReferenceSelection(item.previewMode)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: item.symbolName)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(isSelected ? Theme.primary : .secondary)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.title)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Text(item.value)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.textPrimary)
+                        .lineLimit(1)
+                }
+
+                if isSelected && item.previewMode == .source {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(
+                isSelected ? Theme.primary.opacity(0.14) : Color.white.opacity(0.04),
+                in: Capsule()
+            )
+            .overlay(
+                Capsule()
+                    .stroke(
+                        isSelected ? Theme.primary.opacity(0.45) : Color.white.opacity(0.08),
+                        lineWidth: 1
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
     private func toolLinkChip(
         title: String,
         subtitle: String,
@@ -1571,6 +1621,17 @@ struct SmartFillWorkspaceView: View {
         }
     }
 
+    private func handlePreviewReferenceSelection(_ mode: SmartFillWorkspacePreviewMode) {
+        if previewMode == mode {
+            if mode == .source {
+                activeSheet = .sourcePreview
+            }
+            return
+        }
+
+        previewMode = mode
+    }
+
     private func handleSecondaryAction() {
         if hasPendingAutoReturn {
             cancelAutoReturn()
@@ -1687,11 +1748,43 @@ struct SmartFillWorkspaceFocusItem: Equatable, Identifiable {
     var id: String { "\(title)|\(value)|\(symbolName)" }
 }
 
+struct SmartFillWorkspacePreviewReferenceItem: Equatable, Identifiable {
+    let title: String
+    let value: String
+    let symbolName: String
+    let previewMode: SmartFillWorkspacePreviewMode
+
+    var id: String { "\(title)|\(value)|\(symbolName)|\(previewMode.rawValue)" }
+}
+
 struct SmartFillWorkspaceDrillInDescriptor: Equatable {
     let title: String
     let value: String
     let symbolName: String
     let sheet: SmartFillWorkspaceSheet
+}
+
+enum SmartFillWorkspacePreviewMode: String, CaseIterable {
+    case result
+    case source
+
+    var shortTitle: String {
+        switch self {
+        case .result:
+            return "Result"
+        case .source:
+            return "Original"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .result:
+            return "sparkles.tv"
+        case .source:
+            return "rectangle.on.rectangle"
+        }
+    }
 }
 
 enum SmartFillWorkspaceTool: CaseIterable {
@@ -2255,9 +2348,13 @@ enum SmartFillWorkspacePresentation {
 
     static func sourcePreviewMessage(
         for context: SmartFillSettingsContext,
-        adoptedTakeDisplayName: String? = nil
+        adoptedTakeDisplayName: String? = nil,
+        previewMode: SmartFillWorkspacePreviewMode = .result
     ) -> String {
         let resultTitle = previewResultTitle(adoptedTakeDisplayName: adoptedTakeDisplayName)
+        if previewMode == .source {
+            return "Open the untouched source clip for “\(context.displayName)” in a larger viewer while the main editor stays on the original comparison state."
+        }
         return "Scrub the untouched source clip for “\(context.displayName)” here while the main editor keeps showing \(resultTitle)."
     }
 
@@ -2429,36 +2526,70 @@ enum SmartFillWorkspacePresentation {
 private struct SmartFillSourcePreviewView: View {
     let videoURL: URL
 
-    @State private var player = AVPlayer()
+    @State private var player: ModernSmartFillPlayer?
     @State private var loadedURL: URL?
 
     var body: some View {
-        VideoPlayer(player: player)
-            .aspectRatio(16 / 9, contentMode: .fit)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .background(Color.black, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .onAppear {
-                preparePlayer(resetPlayback: true)
+        VStack(spacing: 8) {
+            if let player {
+                SmartFillWorkspaceVideoSurface(player: player.player)
+                    .aspectRatio(16 / 9, contentMode: .fit)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .background(Color.black, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+                ModernSmartFillPreviewControls(player: player)
+            } else {
+                ProgressView()
+                    .frame(maxWidth: .infinity, minHeight: 220)
             }
-            .onDisappear {
-                player.pause()
-            }
-            .onChange(of: videoURL) { _, _ in
-                preparePlayer(resetPlayback: true)
-            }
+        }
+        .onAppear {
+            preparePlayer(resetPlayback: true)
+        }
+        .onDisappear {
+            player?.pause()
+        }
+        .onChange(of: videoURL) { _, _ in
+            preparePlayer(resetPlayback: true)
+        }
     }
 
     private func preparePlayer(resetPlayback: Bool) {
         if loadedURL != videoURL {
             loadedURL = videoURL
             let item = AVPlayerItem(url: videoURL)
-            player.replaceCurrentItem(with: item)
-            player.actionAtItemEnd = .pause
+            player = ModernSmartFillPlayer(playerItem: item)
+            player?.player.actionAtItemEnd = .pause
         }
 
         if resetPlayback {
-            player.pause()
-            player.seek(to: .zero)
+            player?.pause()
+            player?.seek(to: .zero)
+        }
+    }
+}
+
+private struct SmartFillWorkspaceVideoSurface: UIViewRepresentable {
+    let player: AVPlayer
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.backgroundColor = .black
+
+        let playerLayer = AVPlayerLayer(player: player)
+        playerLayer.videoGravity = .resizeAspect
+        view.layer.addSublayer(playerLayer)
+
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        if let playerLayer = uiView.layer.sublayers?.first as? AVPlayerLayer {
+            playerLayer.player = player
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            playerLayer.frame = uiView.bounds
+            CATransaction.commit()
         }
     }
 }

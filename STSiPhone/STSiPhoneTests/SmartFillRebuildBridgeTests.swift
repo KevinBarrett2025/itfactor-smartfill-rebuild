@@ -542,6 +542,14 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
             ),
             "Scrub the untouched source clip for “S1T1” here while the main editor keeps showing S1T1 SmartFill."
         )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.sourcePreviewMessage(
+                for: context,
+                adoptedTakeDisplayName: "S1T1 SmartFill",
+                previewMode: .source
+            ),
+            "Open the untouched source clip for “S1T1” in a larger viewer while the main editor stays on the original comparison state."
+        )
     }
 
     func testWorkspacePresentationUsesReturnActionForEditorCompletion() {
