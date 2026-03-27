@@ -222,6 +222,34 @@ private struct ModernVideoPlayerView: UIViewRepresentable {
     }
 }
 
+struct SmartFillPreviewFrameStep {
+    static let defaultSeconds = 1.0 / 30.0
+
+    static func seconds(forNominalFrameRate nominalFrameRate: Float?) -> Double {
+        guard
+            let nominalFrameRate,
+            nominalFrameRate.isFinite,
+            nominalFrameRate > 0
+        else {
+            return defaultSeconds
+        }
+
+        return 1.0 / Double(nominalFrameRate)
+    }
+
+    static func steppedTime(
+        currentTime: Double,
+        duration: Double,
+        frameStepSeconds: Double,
+        frames: Int
+    ) -> Double {
+        let safeDuration = max(duration, 0)
+        let safeStep = frameStepSeconds.isFinite && frameStepSeconds > 0 ? frameStepSeconds : defaultSeconds
+        let proposed = currentTime + (Double(frames) * safeStep)
+        return max(0, min(proposed, safeDuration))
+    }
+}
+
 // MARK: - Modern Preview Controls
 
 public struct ModernSmartFillPreviewControls: View {
@@ -246,6 +274,15 @@ public struct ModernSmartFillPreviewControls: View {
             }
             .buttonStyle(.plain)
 
+            Button(action: stepBackward) {
+                Image(systemName: "backward.frame.fill")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.92))
+                    .frame(width: 28, height: 28)
+                    .background(Color.white.opacity(0.1), in: Circle())
+            }
+            .buttonStyle(.plain)
+
             Text(formatTime(displayTime))
                 .font(.caption.weight(.semibold).monospacedDigit())
                 .foregroundStyle(.white.opacity(0.92))
@@ -266,6 +303,15 @@ public struct ModernSmartFillPreviewControls: View {
             Text(formatTime(player.duration))
                 .font(.caption.weight(.semibold).monospacedDigit())
                 .foregroundStyle(.white.opacity(0.72))
+
+            Button(action: stepForward) {
+                Image(systemName: "forward.frame.fill")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.92))
+                    .frame(width: 28, height: 28)
+                    .background(Color.white.opacity(0.1), in: Circle())
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
@@ -285,6 +331,16 @@ public struct ModernSmartFillPreviewControls: View {
         } else {
             player.play()
         }
+    }
+
+    private func stepBackward() {
+        cancelScrubState()
+        player.stepBackwardOneFrame()
+    }
+
+    private func stepForward() {
+        cancelScrubState()
+        player.stepForwardOneFrame()
     }
 
     private func updateScrubPosition(_ newValue: Double) {
@@ -317,6 +373,12 @@ public struct ModernSmartFillPreviewControls: View {
         if shouldResumeAfterScrub {
             player.play()
         }
+        shouldResumeAfterScrub = false
+    }
+
+    private func cancelScrubState() {
+        isDraggingSlider = false
+        scrubPosition = nil
         shouldResumeAfterScrub = false
     }
 

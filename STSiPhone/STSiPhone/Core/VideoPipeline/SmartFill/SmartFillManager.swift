@@ -257,6 +257,7 @@ public final class ModernSmartFillPlayer: ObservableObject {
     @Published public private(set) var currentTime: Double = 0
     @Published public private(set) var duration: Double = 0
     @Published public private(set) var isReady = false
+    @Published public private(set) var frameStepSeconds: Double = SmartFillPreviewFrameStep.defaultSeconds
     
     // MARK: - Properties
     public let player: AVPlayer
@@ -288,6 +289,14 @@ public final class ModernSmartFillPlayer: ObservableObject {
         player.seek(to: time)
         logger.debug("⏭️ Seeked to: \(time.seconds)s")
     }
+
+    public func stepForwardOneFrame() {
+        step(byFrames: 1)
+    }
+
+    public func stepBackwardOneFrame() {
+        step(byFrames: -1)
+    }
     
     // MARK: - Modern Combine Observation (No KVO!)
     
@@ -305,20 +314,26 @@ public final class ModernSmartFillPlayer: ObservableObject {
         player.publisher(for: \.status)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] status in
-                self?.isReady = (status == .readyToPlay)
+                guard let self else { return }
+                self.isReady = (status == .readyToPlay)
                 
                 if status == .readyToPlay {
+                    let asset = self.playerItem.asset
                     // FIXED: Use modern async duration loading
-                    Task {
+                    Task { [weak self] in
                         do {
-                            let duration = try await self?.playerItem.asset.load(.duration)
+                            let duration = try await asset.load(.duration)
+                            let tracks = try await asset.loadTracks(withMediaType: .video)
+                            let nominalFrameRate = try await tracks.first?.load(.nominalFrameRate)
                             await MainActor.run {
-                                self?.duration = duration?.seconds ?? 0
-                                self?.logger.info("✅ Player ready, duration: \(self?.duration ?? 0)s")
+                                guard let self else { return }
+                                self.duration = duration.seconds
+                                self.frameStepSeconds = SmartFillPreviewFrameStep.seconds(forNominalFrameRate: nominalFrameRate)
+                                self.logger.info("✅ Player ready, duration: \(self.duration)s frameStep: \(self.frameStepSeconds)s")
                             }
                         } catch {
                             await MainActor.run {
-                                self?.logger.error("Failed to load duration: \(error)")
+                                self?.logger.error("Failed to load duration/frame rate: \(error)")
                             }
                         }
                     }
@@ -352,6 +367,20 @@ public final class ModernSmartFillPlayer: ObservableObject {
     deinit {
         cancellables.removeAll()
         logger.info("🧹 ModernSmartFillPlayer: Cleaned up")
+    }
+
+    private func step(byFrames frames: Int) {
+        guard frames != 0 else { return }
+        let targetSeconds = SmartFillPreviewFrameStep.steppedTime(
+            currentTime: currentTime,
+            duration: duration,
+            frameStepSeconds: frameStepSeconds,
+            frames: frames
+        )
+
+        pause()
+        currentTime = targetSeconds
+        seek(to: CMTime(seconds: targetSeconds, preferredTimescale: 600))
     }
 }
 

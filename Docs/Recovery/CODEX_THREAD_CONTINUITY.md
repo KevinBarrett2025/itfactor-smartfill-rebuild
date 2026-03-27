@@ -1,5 +1,47 @@
 # CODEX Thread Continuity
 
+## Ticket 038 SmartFill Live Preview Frame-Step Nudging (2026-03-27)
+- Thread Status: phase-38 local patch landed on a fresh GM worktree, Gate A and focused parity both pass, and the slice is ready to anchor as `SF-REBUILD-038`.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase38`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase38`
+- Working Head SHA: `af3f3413ac4e19a376de29e39db5b17c49268984`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Sharpen the professional live-preview feel without growing the chrome again:
+1. add frame-step nudging to the existing preview transport capsule instead of creating a second transport row
+2. make the nudge controls use the real source/result playback seam so both compare modes feel precise, not static
+3. derive frame-step timing from the loaded video track when possible, with a safe 30 fps fallback when frame-rate metadata is missing
+4. prove the frame-step math directly in focused parity so the transport stays deterministic as live preview work continues
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase38`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase38`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase38`
+  - `git rev-parse HEAD` -> `af3f3413ac4e19a376de29e39db5b17c49268984`
+  - `git status --porcelain` -> three local phase-38 edits in `SmartFillManager.swift`, `SmartFillPreviewView.swift`, and `SmartFillRebuildBridgeTests.swift`
+  - `git log -1 --oneline` -> `af3f341 SF-REBUILD-037: add hold-to-compare preview switching`
+- Truth-sync confirmed:
+  - `git -C /tmp/itfactor_smartfill_phase38 fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Next Action
+1. `ModernSmartFillPlayer` now derives one `frameStepSeconds` value from the loaded video track when possible and falls back to 30 fps when metadata is missing, so preview nudging is tied to real media timing instead of an arbitrary seek amount.
+2. `SmartFillPreviewView` now adds inline frame-back and frame-forward actions inside the existing transport capsule, and both actions cancel active scrubbing state before stepping so the live preview remains coherent.
+3. Focused parity now locks the frame-step timing helpers and clamp behavior so preview nudging stays stable as deeper live-preview polish continues.
+4. Gate A PASS: `/tmp/itfactor_smartfill_phase38_gateA.log`
+5. Focused parity PASS: `/tmp/itfactor_smartfill_phase38_tests.log`
+6. xcresult: `/tmp/itfactor_smartfill_phase38_tests/Logs/Test/Test-STSiPhone-2026.03.27_18-56-06--0400.xcresult`
+7. Next best slice after this transport pass: keep improving professional live-preview feel only where it sharpens preview/compare behavior without re-expanding the chrome.
+
 ## Ticket 037 SmartFill Hold-to-Compare Preview Switching (2026-03-27)
 - Thread Status: phase-37 local patch landed on a fresh GM worktree, Gate A and focused parity both pass, and the slice is ready to anchor as `SF-REBUILD-037`.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

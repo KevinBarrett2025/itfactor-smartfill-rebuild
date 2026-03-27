@@ -601,6 +601,60 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertEqual(source.effectiveMode, .result)
     }
 
+    func testPreviewFrameStepUsesNominalFrameRateWhenAvailable() {
+        XCTAssertEqual(
+            SmartFillPreviewFrameStep.seconds(forNominalFrameRate: 60),
+            1.0 / 60.0,
+            accuracy: 0.0001
+        )
+    }
+
+    func testPreviewFrameStepFallsBackToThirtyFpsWhenNominalRateMissing() {
+        XCTAssertEqual(
+            SmartFillPreviewFrameStep.seconds(forNominalFrameRate: nil),
+            1.0 / 30.0,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            SmartFillPreviewFrameStep.seconds(forNominalFrameRate: 0),
+            1.0 / 30.0,
+            accuracy: 0.0001
+        )
+    }
+
+    func testPreviewFrameStepClampsWithinDuration() {
+        XCTAssertEqual(
+            SmartFillPreviewFrameStep.steppedTime(
+                currentTime: 1.0,
+                duration: 5.0,
+                frameStepSeconds: 1.0 / 30.0,
+                frames: 3
+            ),
+            1.1,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            SmartFillPreviewFrameStep.steppedTime(
+                currentTime: 0.01,
+                duration: 5.0,
+                frameStepSeconds: 1.0 / 30.0,
+                frames: -3
+            ),
+            0,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            SmartFillPreviewFrameStep.steppedTime(
+                currentTime: 4.98,
+                duration: 5.0,
+                frameStepSeconds: 1.0 / 30.0,
+                frames: 3
+            ),
+            5.0,
+            accuracy: 0.0001
+        )
+    }
+
     func testWorkspacePresentationUsesContextOverridesWhenAvailable() {
         let context = makeWorkspaceContext(
             take: ProjectTake(filePath: "/tmp/original.mov", durationSeconds: 12),

@@ -95,6 +95,7 @@ The flagship rebuild now has one shared SmartFill entry seam across both launch 
 - The HomeScreen portrait-player SmartFill chip now also routes through the same rebuild request/edit seam as project detail, which later lets the utility app treat every visible SmartFill chip as a real workspace launch path instead of a placeholder affordance with no handler behind it.
 - The rebuilt workspace preview now also embeds its playback transport directly into the preview canvas with tap-to-play/pause, a centered paused-state affordance, and resume-after-scrub behavior, which later lets the utility app inherit a more professional canvas-first playback feel without adding another layer of chrome under the player.
 - The rebuilt workspace preview now also supports momentary hold-to-compare directly on the canvas, which later lets the utility app offer fast original-vs-result peeking without adding another persistent compare row or separate compare controller.
+- The rebuilt workspace preview transport now also supports deterministic frame-step nudging derived from real track timing when available and a 30 fps fallback otherwise, which later lets the utility app offer precise preview inspection in the same compact canvas transport instead of inventing a second utility-only trim or seek row.
 
 This means the future standalone utility already has a clearer derivation path:
 1. import one clip
