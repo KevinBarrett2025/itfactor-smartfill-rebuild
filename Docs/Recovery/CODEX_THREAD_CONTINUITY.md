@@ -1,5 +1,47 @@
 # CODEX Thread Continuity
 
+## Ticket 039 SmartFill Canvas Precision Scrubbing (2026-03-27)
+- Thread Status: phase-39 local patch landed on a fresh GM worktree, Gate A and focused parity both pass, and the slice is ready to anchor as `SF-REBUILD-039`.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase39`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase39`
+- Working Head SHA: `2736bb79c11ef08d902a2b44940e72bdae626283`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Sharpen the professional live-preview feel without growing the chrome again:
+1. add horizontal precision scrubbing directly on the pinned preview canvas instead of creating another visible transport row
+2. preserve the shared play/pause intent while dragging so the canvas resumes only when the preview had been actively playing
+3. keep scrub feedback attached to the preview itself through a temporary HUD instead of adding another permanent compare or transport slab
+4. prove the bounded seek-span, clamp, and resume-intent rules directly in focused parity so future live-preview work does not make scrubbing jumpy or unstable
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase39`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase39`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase39`
+  - `git rev-parse HEAD` -> `2736bb79c11ef08d902a2b44940e72bdae626283`
+  - `git status --porcelain` -> two local phase-39 edits in `SmartFillWorkspaceView.swift` and `SmartFillRebuildBridgeTests.swift`
+  - `git log -1 --oneline` -> `2736bb7 SF-REBUILD-038: add frame-step nudging to the live preview transport`
+- Truth-sync confirmed:
+  - `git -C /tmp/itfactor_smartfill_phase39 fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Next Action
+1. `SmartFillWorkspaceView` now defines one `SmartFillWorkspacePreviewCanvasScrubState` helper so canvas dragging uses a bounded precision seek span, clamps target times inside the clip duration, and preserves resume intent when the preview was already playing.
+2. The interactive preview surface now captures horizontal drags directly on the canvas, pauses into a temporary scrub state, seeks continuously while the user drags, and restores playback only when the active session had been playing before the scrub began.
+3. The canvas now renders a temporary `Scrub Preview` HUD with a monospaced time readout, so precise scrubbing feedback stays attached to the pinned preview instead of spawning another transport row or expanding the tray chrome.
+4. Gate A PASS: `/tmp/itfactor_smartfill_phase39_gateA.log`
+5. Focused parity PASS: `/tmp/itfactor_smartfill_phase39_tests.log`
+6. xcresult: `/tmp/itfactor_smartfill_phase39_tests/Logs/Test/Test-STSiPhone-2026.03.27_19-36-49--0400.xcresult`
+7. Next best slice after this canvas-scrub pass: keep improving professional live-preview feel only where it sharpens preview/compare behavior without re-expanding the chrome.
+
 ## Ticket 038 SmartFill Live Preview Frame-Step Nudging (2026-03-27)
 - Thread Status: phase-38 local patch landed on a fresh GM worktree, Gate A and focused parity both pass, and the slice is ready to anchor as `SF-REBUILD-038`.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

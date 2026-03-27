@@ -264,6 +264,12 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase38_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase38_tests.log`
   - xcresult: `/tmp/itfactor_smartfill_phase38_tests/Logs/Test/Test-STSiPhone-2026.03.27_18-56-06--0400.xcresult`
+- `SF-REBUILD-039` — add precision scrub gestures to the live preview canvas — `COMPLETE (LOCAL-GATED 2026-03-27)`
+  - `SmartFillWorkspaceView` now gives the pinned preview a bounded horizontal precision-scrub gesture with a temporary HUD, so users can seek directly on the canvas without creating another permanent transport row.
+  - The shared preview state now preserves play/resume intent across these drag scrubs, and focused parity locks the seek-span, clamp, and resume helpers directly.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase39_gateA.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase39_tests.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase39_tests/Logs/Test/Test-STSiPhone-2026.03.27_19-36-49--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -287,6 +293,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Use `SF-REBUILD-038` as the new SmartFill workspace baseline and decide the next real editor-quality upgrade now that live transport, hold-to-compare, and frame-step nudging all live directly on the preview canvas while the chrome stays stable.
+1. Use `SF-REBUILD-039` as the new SmartFill workspace baseline and decide the next real editor-quality upgrade now that live transport, hold-to-compare, frame-step nudging, and direct canvas precision scrubbing all live directly on the preview canvas while the chrome stays stable.
 2. Implement that next slice on GM with Gate A and focused SmartFill parity before any promotion discussion.
-3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, inline ownership model, preview-focus deck, canvas-embedded live transport, synchronized source/result compare behavior, hold-to-compare canvas behavior, frame-step transport nudging, working entry routing, and tray-to-sheet split for deeper tools.
+3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, inline ownership model, preview-focus deck, canvas-embedded live transport, synchronized source/result compare behavior, hold-to-compare canvas behavior, frame-step transport nudging, direct canvas precision scrubbing, working entry routing, and tray-to-sheet split for deeper tools.

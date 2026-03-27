@@ -99,6 +99,7 @@ Rules:
 | 5A | SF-REBUILD-036 | Embed live preview transport into the SmartFill canvas | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase36_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase36_tests.log`; preview transport now lives inside the canvas with tap-to-play, centered paused-state affordance, continuous scrubbing, and resume-after-scrub behavior instead of a separate playback slab |
 | 5B | SF-REBUILD-037 | Add hold-to-compare preview switching on the live canvas | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase37_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase37_tests.log`; preview now temporarily flips between current and source while pressed without adding another compare row to the editor chrome |
 | 5C | SF-REBUILD-038 | Add frame-step nudging to the live preview transport | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase38_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase38_tests.log`; the compact preview transport now supports frame-back and frame-forward nudging based on real track timing, with a deterministic 30 fps fallback when metadata is missing |
+| 5D | SF-REBUILD-039 | Add precision scrub gestures to the live preview canvas | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase39_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase39_tests.log`; the pinned preview now supports bounded horizontal precision scrubbing with a temporary HUD and play/resume intent preservation instead of relying only on the transport capsule |
 
 ---
 
@@ -119,6 +120,6 @@ Rules:
 ---
 
 ## Next Action
-1. Choose the next intentional workspace slice now that `SF-REBUILD-038` keeps live playback, momentary compare, and precise frame-step nudging directly on the preview canvas while the HomeScreen portrait-player SmartFill chip still opens the rebuild workspace correctly.
+1. Choose the next intentional workspace slice now that `SF-REBUILD-039` keeps live playback, momentary compare, precise frame-step nudging, and direct canvas precision scrubbing directly on the preview canvas while the HomeScreen portrait-player SmartFill chip still opens the rebuild workspace correctly.
 2. Implement that slice on GM, then rerun Gate A plus focused SmartFill parity before any promotion discussion.
-3. Keep the standalone derivation ledger in sync while future shared-workspace chrome, synchronized compare states, hold-to-compare behavior, frame-step transport nudging, working entry routes, and any deeper preview/live-transport work lands.
+3. Keep the standalone derivation ledger in sync while future shared-workspace chrome, synchronized compare states, hold-to-compare behavior, frame-step transport nudging, direct canvas scrubbing, working entry routes, and any deeper preview/live-transport work lands.

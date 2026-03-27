@@ -655,6 +655,75 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         )
     }
 
+    func testPreviewCanvasScrubUsesBoundedPrecisionSeekSpan() {
+        XCTAssertEqual(
+            SmartFillWorkspacePreviewCanvasScrubState.seekSpan(forDuration: 4.0),
+            3.0,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePreviewCanvasScrubState.seekSpan(forDuration: 20.0),
+            7.0,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePreviewCanvasScrubState.seekSpan(forDuration: 80.0),
+            12.0,
+            accuracy: 0.0001
+        )
+    }
+
+    func testPreviewCanvasScrubClampsTargetTimeWithinDuration() {
+        XCTAssertEqual(
+            SmartFillWorkspacePreviewCanvasScrubState.targetTime(
+                anchorTime: 10.0,
+                translation: 150,
+                width: 300,
+                duration: 20.0
+            ),
+            13.5,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePreviewCanvasScrubState.targetTime(
+                anchorTime: 1.0,
+                translation: -400,
+                width: 300,
+                duration: 20.0
+            ),
+            0,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePreviewCanvasScrubState.targetTime(
+                anchorTime: 19.0,
+                translation: 400,
+                width: 300,
+                duration: 20.0
+            ),
+            20.0,
+            accuracy: 0.0001
+        )
+    }
+
+    func testPreviewCanvasScrubKeepsResumePlaybackIntent() {
+        let state = SmartFillWorkspacePreviewCanvasScrubState.begin(
+            currentTime: 6.2,
+            duration: 18.0,
+            wasPlaying: true
+        ).updated(
+            translation: -90,
+            width: 300,
+            duration: 18.0
+        )
+
+        XCTAssertEqual(state.anchorTime, 6.2, accuracy: 0.0001)
+        XCTAssertTrue(state.resumePlayback)
+        XCTAssertEqual(state.currentTime, 4.31, accuracy: 0.0001)
+        XCTAssertEqual(state.playbackState.currentTime, 4.31, accuracy: 0.0001)
+        XCTAssertFalse(state.playbackState.shouldPlay)
+    }
+
     func testWorkspacePresentationUsesContextOverridesWhenAvailable() {
         let context = makeWorkspaceContext(
             take: ProjectTake(filePath: "/tmp/original.mov", durationSeconds: 12),

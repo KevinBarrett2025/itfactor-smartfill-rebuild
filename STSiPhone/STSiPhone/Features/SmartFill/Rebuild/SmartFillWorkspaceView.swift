@@ -1869,6 +1869,82 @@ struct SmartFillWorkspacePreviewPlaybackState: Equatable {
     }
 }
 
+struct SmartFillWorkspacePreviewCanvasScrubState: Equatable {
+    static let minimumSeekSpan: Double = 3.0
+    static let maximumSeekSpan: Double = 12.0
+    static let durationMultiplier: Double = 0.35
+
+    let anchorTime: Double
+    let currentTime: Double
+    let resumePlayback: Bool
+
+    static func seekSpan(forDuration duration: Double) -> Double {
+        guard duration.isFinite, duration > 0 else {
+            return minimumSeekSpan
+        }
+
+        return min(
+            max(duration * durationMultiplier, minimumSeekSpan),
+            maximumSeekSpan
+        )
+    }
+
+    static func targetTime(
+        anchorTime: Double,
+        translation: CGFloat,
+        width: CGFloat,
+        duration: Double
+    ) -> Double {
+        let safeDuration = max(duration, 0)
+        let clampedAnchor = min(max(anchorTime, 0), safeDuration)
+        guard width.isFinite, width > 0 else {
+            return clampedAnchor
+        }
+
+        let progress = Double(translation / width)
+        let proposed = clampedAnchor + (progress * seekSpan(forDuration: safeDuration))
+        return min(max(proposed, 0), safeDuration)
+    }
+
+    static func begin(
+        currentTime: Double,
+        duration: Double,
+        wasPlaying: Bool
+    ) -> SmartFillWorkspacePreviewCanvasScrubState {
+        let safeDuration = max(duration, 0)
+        let clampedCurrentTime = min(max(currentTime, 0), safeDuration)
+        return SmartFillWorkspacePreviewCanvasScrubState(
+            anchorTime: clampedCurrentTime,
+            currentTime: clampedCurrentTime,
+            resumePlayback: wasPlaying
+        )
+    }
+
+    func updated(
+        translation: CGFloat,
+        width: CGFloat,
+        duration: Double
+    ) -> SmartFillWorkspacePreviewCanvasScrubState {
+        SmartFillWorkspacePreviewCanvasScrubState(
+            anchorTime: anchorTime,
+            currentTime: Self.targetTime(
+                anchorTime: anchorTime,
+                translation: translation,
+                width: width,
+                duration: duration
+            ),
+            resumePlayback: resumePlayback
+        )
+    }
+
+    var playbackState: SmartFillWorkspacePreviewPlaybackState {
+        SmartFillWorkspacePreviewPlaybackState(
+            currentTime: currentTime,
+            shouldPlay: false
+        )
+    }
+}
+
 enum SmartFillWorkspaceTool: CaseIterable {
     case background
     case subject
@@ -2630,7 +2706,8 @@ private struct SmartFillWorkspaceResultPreviewView: View {
             if let player {
                 SmartFillWorkspaceInteractivePreviewSurface(
                     player: player,
-                    onComparePressingChanged: onComparePressingChanged
+                    onComparePressingChanged: onComparePressingChanged,
+                    onPlaybackStateChange: onPlaybackStateChange
                 )
                 .onReceive(player.$currentTime) { _ in
                     publishPlaybackState()
@@ -2736,7 +2813,8 @@ private struct SmartFillSourcePreviewView: View {
             if let player {
                 SmartFillWorkspaceInteractivePreviewSurface(
                     player: player,
-                    onComparePressingChanged: onComparePressingChanged
+                    onComparePressingChanged: onComparePressingChanged,
+                    onPlaybackStateChange: onPlaybackStateChange
                 )
                 .onReceive(player.$currentTime) { _ in
                     publishPlaybackState()
@@ -2810,39 +2888,51 @@ private struct SmartFillSourcePreviewView: View {
 private struct SmartFillWorkspaceInteractivePreviewSurface: View {
     @ObservedObject var player: ModernSmartFillPlayer
     let onComparePressingChanged: (Bool) -> Void
+    let onPlaybackStateChange: (SmartFillWorkspacePreviewPlaybackState) -> Void
+
+    @State private var canvasScrubState: SmartFillWorkspacePreviewCanvasScrubState?
 
     var body: some View {
-        ZStack {
-            SmartFillWorkspaceVideoSurface(player: player.player)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    togglePlayback()
-                }
-                .onLongPressGesture(minimumDuration: 0.12, maximumDistance: 30, perform: { }) { isPressing in
-                    onComparePressingChanged(isPressing)
+        GeometryReader { geometry in
+            ZStack {
+                SmartFillWorkspaceVideoSurface(player: player.player)
+                    .contentShape(Rectangle())
+                    .highPriorityGesture(canvasScrubGesture(width: geometry.size.width))
+                    .onTapGesture {
+                        togglePlayback()
+                    }
+                    .onLongPressGesture(minimumDuration: 0.12, maximumDistance: 30, perform: { }) { isPressing in
+                        onComparePressingChanged(isPressing)
+                    }
+
+                if let canvasScrubState {
+                    canvasScrubHUD(for: canvasScrubState)
+                        .padding(.top, 16)
+                        .frame(maxHeight: .infinity, alignment: .top)
                 }
 
-            if player.isReady && !player.isPlaying {
-                Button(action: togglePlayback) {
-                    Image(systemName: "play.fill")
-                        .font(.system(size: 26, weight: .bold))
-                        .foregroundStyle(.white)
-                        .padding(18)
-                        .background(Color.black.opacity(0.52), in: Circle())
+                if player.isReady && !player.isPlaying && canvasScrubState == nil {
+                    Button(action: togglePlayback) {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 26, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(18)
+                            .background(Color.black.opacity(0.52), in: Circle())
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
-            }
 
-            VStack {
-                Spacer()
-                HStack {
+                VStack {
                     Spacer()
-                    ModernSmartFillPreviewControls(player: player)
-                        .frame(maxWidth: 440)
-                    Spacer()
+                    HStack {
+                        Spacer()
+                        ModernSmartFillPreviewControls(player: player)
+                            .frame(maxWidth: 440)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 14)
                 }
-                .padding(.horizontal, 14)
-                .padding(.bottom, 14)
             }
         }
         .aspectRatio(16 / 9, contentMode: .fit)
@@ -2856,6 +2946,103 @@ private struct SmartFillWorkspaceInteractivePreviewSurface: View {
         } else {
             player.play()
         }
+    }
+
+    private func canvasScrubGesture(width: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 8)
+            .onChanged { value in
+                updateCanvasScrub(
+                    translation: value.translation.width,
+                    width: width
+                )
+            }
+            .onEnded { value in
+                finishCanvasScrub(
+                    translation: value.translation.width,
+                    width: width
+                )
+            }
+    }
+
+    private func updateCanvasScrub(translation: CGFloat, width: CGFloat) {
+        let baseState = canvasScrubState ?? beginCanvasScrub()
+        let updatedState = baseState.updated(
+            translation: translation,
+            width: width,
+            duration: player.duration
+        )
+
+        if updatedState.currentTime != canvasScrubState?.currentTime {
+            player.seek(to: CMTime(seconds: updatedState.currentTime, preferredTimescale: 600))
+            onPlaybackStateChange(updatedState.playbackState)
+        }
+
+        canvasScrubState = updatedState
+    }
+
+    private func finishCanvasScrub(translation: CGFloat, width: CGFloat) {
+        guard let baseState = canvasScrubState else { return }
+        let finalState = baseState.updated(
+            translation: translation,
+            width: width,
+            duration: player.duration
+        )
+
+        player.seek(to: CMTime(seconds: finalState.currentTime, preferredTimescale: 600))
+        onPlaybackStateChange(
+            SmartFillWorkspacePreviewPlaybackState(
+                currentTime: finalState.currentTime,
+                shouldPlay: finalState.resumePlayback
+            )
+        )
+
+        if finalState.resumePlayback {
+            player.play()
+        } else {
+            player.pause()
+        }
+
+        canvasScrubState = nil
+    }
+
+    private func beginCanvasScrub() -> SmartFillWorkspacePreviewCanvasScrubState {
+        let state = SmartFillWorkspacePreviewCanvasScrubState.begin(
+            currentTime: player.currentTime,
+            duration: player.duration,
+            wasPlaying: player.isPlaying
+        )
+
+        if player.isPlaying {
+            player.pause()
+        }
+
+        onPlaybackStateChange(state.playbackState)
+        canvasScrubState = state
+        return state
+    }
+
+    private func canvasScrubHUD(
+        for state: SmartFillWorkspacePreviewCanvasScrubState
+    ) -> some View {
+        VStack(spacing: 4) {
+            Text("Scrub Preview")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.75))
+
+            Text(formatPreviewTime(state.currentTime))
+                .font(.callout.weight(.semibold).monospacedDigit())
+                .foregroundStyle(.white)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color.black.opacity(0.62), in: Capsule())
+    }
+
+    private func formatPreviewTime(_ seconds: Double) -> String {
+        guard seconds.isFinite && seconds >= 0 else { return "0:00" }
+        let minutes = Int(seconds) / 60
+        let remainingSeconds = Int(seconds) % 60
+        return String(format: "%d:%02d", minutes, remainingSeconds)
     }
 }
 
