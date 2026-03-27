@@ -2590,14 +2590,7 @@ private struct SmartFillWorkspaceResultPreviewView: View {
     var body: some View {
         VStack(spacing: 8) {
             if let player {
-                VStack(spacing: 8) {
-                    SmartFillWorkspaceVideoSurface(player: player.player)
-                        .aspectRatio(16 / 9, contentMode: .fit)
-                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                        .background(Color.black, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-
-                    ModernSmartFillPreviewControls(player: player)
-                }
+                SmartFillWorkspaceInteractivePreviewSurface(player: player)
                 .onReceive(player.$currentTime) { _ in
                     publishPlaybackState()
                 }
@@ -2699,14 +2692,7 @@ private struct SmartFillSourcePreviewView: View {
     var body: some View {
         VStack(spacing: 8) {
             if let player {
-                VStack(spacing: 8) {
-                    SmartFillWorkspaceVideoSurface(player: player.player)
-                        .aspectRatio(16 / 9, contentMode: .fit)
-                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                        .background(Color.black, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-
-                    ModernSmartFillPreviewControls(player: player)
-                }
+                SmartFillWorkspaceInteractivePreviewSurface(player: player)
                 .onReceive(player.$currentTime) { _ in
                     publishPlaybackState()
                 }
@@ -2773,6 +2759,54 @@ private struct SmartFillSourcePreviewView: View {
                 shouldPlay: player.isPlaying
             )
         )
+    }
+}
+
+private struct SmartFillWorkspaceInteractivePreviewSurface: View {
+    @ObservedObject var player: ModernSmartFillPlayer
+
+    var body: some View {
+        ZStack {
+            SmartFillWorkspaceVideoSurface(player: player.player)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    togglePlayback()
+                }
+
+            if player.isReady && !player.isPlaying {
+                Button(action: togglePlayback) {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 26, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(18)
+                        .background(Color.black.opacity(0.52), in: Circle())
+                }
+                .buttonStyle(.plain)
+            }
+
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    ModernSmartFillPreviewControls(player: player)
+                        .frame(maxWidth: 440)
+                    Spacer()
+                }
+                .padding(.horizontal, 14)
+                .padding(.bottom, 14)
+            }
+        }
+        .aspectRatio(16 / 9, contentMode: .fit)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(Color.black, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private func togglePlayback() {
+        if player.isPlaying {
+            player.pause()
+        } else {
+            player.play()
+        }
     }
 }
 

@@ -54,6 +54,7 @@ Rules:
 - The rebuild workspace preview now also uses the live SmartFill transport seam, so play/pause and scrubbing live in the pinned preview instead of requiring a separate player screen.
 - The rebuild workspace preview now also exposes an `Original` compare affordance and a dedicated scrubbable source-preview sheet, so original-state inspection happens beside the live preview instead of waiting for reopen flow.
 - The rebuild workspace preview now also switches inline between `Current` and `Source` states directly from the preview chips, and the larger original viewer now uses the same stronger live transport model instead of a weaker fallback player.
+- The rebuild workspace preview now also embeds its playback transport directly into the preview canvas, so play/pause, scrubbing, and paused-state affordances feel like part of the editor surface instead of a separate slab under the player.
 - `authority/main` now exists remotely and locally at the untouched Jan 23 baseline.
 
 ---
@@ -93,6 +94,7 @@ Rules:
 | 4X | SF-REBUILD-033 | Tighten inline source-result preview compare states | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase33_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase33_tests.log`; pinned preview now switches directly between `Current` and `Source` states from the preview chips, while the larger source viewer reuses the stronger live transport model |
 | 4Y | SF-REBUILD-034 | Synchronize source-result live preview states | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase34_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase34_tests.log`; result and source previews now share live playback state so compare toggles preserve scrub/play intent instead of resetting the preview experience |
 | 4Z | SF-REBUILD-035 | Route portrait player SmartFill chip to the real target | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase35_gateA_clean.log`; focused parity PASS `/tmp/itfactor_smartfill_phase35_tests_final3.log`; HomeScreen review/player now wires portrait-player SmartFill taps into the rebuild workspace instead of resolving an intent and then logging that no handler is wired |
+| 5A | SF-REBUILD-036 | Embed live preview transport into the SmartFill canvas | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase36_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase36_tests.log`; preview transport now lives inside the canvas with tap-to-play, centered paused-state affordance, continuous scrubbing, and resume-after-scrub behavior instead of a separate playback slab |
 
 ---
 
@@ -113,6 +115,6 @@ Rules:
 ---
 
 ## Next Action
-1. Choose the next intentional workspace slice now that `SF-REBUILD-035` keeps source/result compare synchronized through one live preview-state seam and also makes the HomeScreen portrait-player SmartFill chip open the rebuild workspace.
+1. Choose the next intentional workspace slice now that `SF-REBUILD-036` keeps live playback transport embedded directly into the preview canvas while the HomeScreen portrait-player SmartFill chip still opens the rebuild workspace correctly.
 2. Implement that slice on GM, then rerun Gate A plus focused SmartFill parity before any promotion discussion.
-3. Keep the standalone derivation ledger in sync while future shared-workspace chrome, synchronized compare states, working entry routes, and any deeper live preview work lands.
+3. Keep the standalone derivation ledger in sync while future shared-workspace chrome, synchronized compare states, working entry routes, and any deeper preview/live-transport work lands.

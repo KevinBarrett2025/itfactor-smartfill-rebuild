@@ -228,64 +228,98 @@ public struct ModernSmartFillPreviewControls: View {
     
     @ObservedObject private var player: ModernSmartFillPlayer
     @State private var isDraggingSlider = false
+    @State private var scrubPosition: Double?
+    @State private var shouldResumeAfterScrub = false
     
     public init(player: ModernSmartFillPlayer) {
         self.player = player
     }
     
     public var body: some View {
-        VStack(spacing: 8) {
-            // Progress Slider
-            HStack {
-                Text(formatTime(player.currentTime))
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.8))
-                
-                Slider(
-                    value: Binding(
-                        get: { player.currentTime },
-                        set: { newValue in
-                            if !isDraggingSlider {
-                                let time = CMTime(seconds: newValue, preferredTimescale: 600)
-                                player.seek(to: time)
-                            }
-                        }
-                    ),
-                    in: 0...max(player.duration, 0.1)
-                ) { editing in
-                    isDraggingSlider = editing
-                }
-                .tint(.white)
-                
-                Text(formatTime(player.duration))
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.8))
-            }
-            
-            // Play/Pause Button
-            Button(action: {
-                if player.isPlaying {
-                    player.pause()
-                } else {
-                    player.play()
-                }
-            }) {
-                Image(systemName: player.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                    .font(.title2)
+        HStack(spacing: 12) {
+            Button(action: togglePlayback) {
+                Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
+                    .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(.white)
+                    .frame(width: 34, height: 34)
+                    .background(Color.white.opacity(0.14), in: Circle())
             }
+            .buttonStyle(.plain)
+
+            Text(formatTime(displayTime))
+                .font(.caption.weight(.semibold).monospacedDigit())
+                .foregroundStyle(.white.opacity(0.92))
+
+            Slider(
+                value: Binding(
+                    get: { scrubPosition ?? player.currentTime },
+                    set: { newValue in
+                        updateScrubPosition(newValue)
+                    }
+                ),
+                in: 0...max(player.duration, 0.1)
+            ) { editing in
+                handleScrubEditing(editing)
+            }
+            .tint(.white)
+
+            Text(formatTime(player.duration))
+                .font(.caption.weight(.semibold).monospacedDigit())
+                .foregroundStyle(.white.opacity(0.72))
         }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
         .background(
-            LinearGradient(
-                colors: [.clear, .black.opacity(0.6)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+            Color.black.opacity(0.58),
+            in: Capsule()
         )
     }
     
+    private var displayTime: Double {
+        scrubPosition ?? player.currentTime
+    }
+
+    private func togglePlayback() {
+        if player.isPlaying {
+            player.pause()
+        } else {
+            player.play()
+        }
+    }
+
+    private func updateScrubPosition(_ newValue: Double) {
+        scrubPosition = newValue
+        let time = CMTime(seconds: newValue, preferredTimescale: 600)
+        player.seek(to: time)
+    }
+
+    private func handleScrubEditing(_ editing: Bool) {
+        if editing {
+            guard !isDraggingSlider else { return }
+            shouldResumeAfterScrub = player.isPlaying
+            if player.isPlaying {
+                player.pause()
+            }
+            isDraggingSlider = true
+            return
+        }
+
+        guard isDraggingSlider else { return }
+        isDraggingSlider = false
+
+        if let scrubPosition {
+            let time = CMTime(seconds: scrubPosition, preferredTimescale: 600)
+            player.seek(to: time)
+        }
+
+        scrubPosition = nil
+
+        if shouldResumeAfterScrub {
+            player.play()
+        }
+        shouldResumeAfterScrub = false
+    }
+
     private func formatTime(_ seconds: Double) -> String {
         guard seconds.isFinite && seconds >= 0 else { return "0:00" }
         

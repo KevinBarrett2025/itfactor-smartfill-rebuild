@@ -48,6 +48,7 @@ _Current rebuild working baseline:_ `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 - Workspace preview now exposes live play/pause and scrubbing transport: COMPLETE (LOCAL-GATED)
 - Workspace preview now exposes original-source comparison in a dedicated live sheet: COMPLETE (LOCAL-GATED)
 - Workspace preview now supports inline result-vs-original switching with a stronger live source viewer: COMPLETE (LOCAL-GATED)
+- Workspace preview transport now lives directly inside the canvas with tap-to-play and resumable scrubbing: COMPLETE (LOCAL-GATED)
 - Standalone derivation ledger: ACTIVE
 
 If anything above is not true, it must be reflected here.
@@ -243,6 +244,12 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase35_gateA_clean.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase35_tests_final3.log`
   - xcresult: `/tmp/itfactor_smartfill_phase35_tests_final3/Logs/Test/Test-STSiPhone-2026.03.27_15-50-28--0400.xcresult`
+- `SF-REBUILD-036` — embed live preview transport into the SmartFill canvas — `COMPLETE (LOCAL-GATED 2026-03-27)`
+  - `SmartFillPreviewView` now uses one compact transport capsule with continuous seeking and resume-after-scrub behavior instead of split playback rows, and `SmartFillWorkspaceView` now pins that transport inside the preview canvas with tap-to-play/pause and a centered paused-state play affordance.
+  - This keeps the tray-and-rail shell intact while making playback feel like part of the preview surface instead of a separate slab under it.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase36_gateA.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase36_tests.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase36_tests/Logs/Test/Test-STSiPhone-2026.03.27_17-27-43--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -266,6 +273,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Use `SF-REBUILD-035` as the new SmartFill workspace baseline and decide the next real editor-quality upgrade now that the synchronized source/result preview seam is intact and the HomeScreen portrait-player SmartFill chip actually opens the rebuild workspace.
+1. Use `SF-REBUILD-036` as the new SmartFill workspace baseline and decide the next real editor-quality upgrade now that live transport is embedded directly into the canvas and the preview remains the primary editing surface.
 2. Implement that next slice on GM with Gate A and focused SmartFill parity before any promotion discussion.
-3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, inline ownership model, preview-focus deck, live transport surface, synchronized source/result compare behavior, working entry routing, and tray-to-sheet split for deeper tools.
+3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, inline ownership model, preview-focus deck, canvas-embedded live transport, synchronized source/result compare behavior, working entry routing, and tray-to-sheet split for deeper tools.

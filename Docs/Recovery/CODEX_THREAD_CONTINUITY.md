@@ -1,5 +1,47 @@
 # CODEX Thread Continuity
 
+## Ticket 036 SmartFill Canvas-Embedded Live Preview Transport (2026-03-27)
+- Thread Status: phase-36 local patch landed on a fresh GM worktree, Gate A and focused parity both pass, and the slice is ready to anchor as `SF-REBUILD-036`.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase36`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase36`
+- Working Head SHA: `3ed0e31ed75b63fc2b33145b3c5c8180fb987c21`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Make the SmartFill preview feel more like a professional editor surface without growing the chrome again:
+1. embed the transport controls into the preview canvas instead of leaving them as a disconnected slab under the player
+2. make scrubbing feel more deliberate by pausing on drag, seeking continuously, and resuming playback when appropriate
+3. let the preview itself respond to playback intent with tap-to-play/pause and a centered play affordance when paused
+4. keep the tray-and-rail architecture intact so this stays a canvas-first playback slice instead of another chrome expansion
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase36`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase36`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase36`
+  - `git rev-parse HEAD` -> `3ed0e31ed75b63fc2b33145b3c5c8180fb987c21`
+  - `git status --porcelain` -> two local phase-36 edits in `SmartFillPreviewView.swift` and `SmartFillWorkspaceView.swift`
+  - `git log -1 --oneline` -> `3ed0e31 SF-REBUILD-035: route portrait player SmartFill chip to the real target`
+- Truth-sync confirmed:
+  - `git -C /tmp/itfactor_smartfill_phase36 fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Next Action
+1. `SmartFillPreviewView` now uses one compact transport capsule with monospaced time labels, continuous seeking, and resume-after-scrub playback behavior instead of the older split transport rows.
+2. `SmartFillWorkspaceView` now renders the SmartFill preview through one interactive preview surface that supports tap-to-play/pause, an inline paused-state play affordance, and transport controls pinned inside the preview canvas.
+3. Focused parity still locks the shared preview playback-state helpers, so the new canvas-embedded transport behavior stays on the same tested live-preview seam.
+4. Gate A PASS: `/tmp/itfactor_smartfill_phase36_gateA.log`
+5. Focused parity PASS: `/tmp/itfactor_smartfill_phase36_tests.log`
+6. xcresult: `/tmp/itfactor_smartfill_phase36_tests/Logs/Test/Test-STSiPhone-2026.03.27_17-27-43--0400.xcresult`
+7. Next best slice after this playback pass: keep improving the professional editor feel only when it sharpens preview/compare behavior without re-expanding the chrome again.
+
 ## Ticket 035 SmartFill Portrait-Player Chip Routing (2026-03-27)
 - Thread Status: phase-35 local patch landed on a fresh GM worktree, Gate A and focused parity both pass, and the slice is ready to anchor as `SF-REBUILD-035`.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
