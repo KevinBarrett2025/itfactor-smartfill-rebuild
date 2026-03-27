@@ -309,19 +309,6 @@ struct SmartFillWorkspaceView: View {
                 }
             }
 
-            compactToolGroup(title: "Fill", value: activeFillPreset?.title ?? "Custom") {
-                ForEach(SmartFillWorkspaceBackgroundFillPreset.allCases, id: \.self) { preset in
-                    compactToolChip(
-                        title: preset.title,
-                        subtitle: String(format: "%.1f×", preset.scale),
-                        systemImage: activeFillPreset == preset ? "checkmark.circle.fill" : nil,
-                        isSelected: activeFillPreset == preset
-                    ) {
-                        applyBackgroundFillPreset(preset)
-                    }
-                }
-            }
-
             compactToolGroup(title: "Finish", value: activeTreatmentPreset?.title ?? "Custom") {
                 ForEach(SmartFillWorkspaceTreatmentPreset.allCases, id: \.self) { preset in
                     compactToolChip(
@@ -335,36 +322,26 @@ struct SmartFillWorkspaceView: View {
                 }
             }
 
-            VStack(alignment: .leading, spacing: 10) {
-                toolSubheader("Adjust", value: activeLookAdjustment.valueLabel(for: settings))
-
-                compactToolGroup(title: nil, value: nil) {
-                    ForEach(SmartFillWorkspaceLookAdjustment.allCases, id: \.self) { adjustment in
-                        compactToolChip(
-                            title: adjustment.shortTitle,
-                            subtitle: adjustment.valueLabel(for: settings),
-                            systemImage: adjustment.symbolName,
-                            isSelected: activeLookAdjustment == adjustment
-                        ) {
-                            activeLookAdjustment = adjustment
-                            activeSheet = .lookAdjustments
-                        }
-                    }
+            compactToolGroup(title: "More", value: nil) {
+                toolLinkChip(
+                    title: "Fill",
+                    subtitle: activeFillPreset?.title ?? "Custom",
+                    systemImage: "arrow.up.left.and.arrow.down.right"
+                ) {
+                    activeSheet = .backgroundFill
                 }
-            }
 
-            HStack(spacing: 10) {
-                secondarySheetButton(
+                toolLinkChip(
                     title: "Fine tune",
-                    value: activeLookAdjustment.valueLabel(for: settings),
+                    subtitle: activeLookAdjustment.valueLabel(for: settings),
                     systemImage: "slider.horizontal.3"
                 ) {
                     activeSheet = .lookAdjustments
                 }
 
-                secondarySheetButton(
+                toolLinkChip(
                     title: "Advanced",
-                    value: "More",
+                    subtitle: "More",
                     systemImage: "ellipsis.circle"
                 ) {
                     activeSheet = .advancedLook
@@ -392,12 +369,14 @@ struct SmartFillWorkspaceView: View {
                 }
             }
 
-            secondarySheetButton(
-                title: "Precision scale",
-                value: String(format: "%.2f×", settings.foregroundScale),
-                systemImage: "slider.horizontal.below.rectangle"
-            ) {
-                activeSheet = .subjectScale
+            compactToolGroup(title: "More", value: nil) {
+                toolLinkChip(
+                    title: "Precision",
+                    subtitle: String(format: "%.2f×", settings.foregroundScale),
+                    systemImage: "slider.horizontal.below.rectangle"
+                ) {
+                    activeSheet = .subjectScale
+                }
             }
         }
         .padding(18)
@@ -417,12 +396,14 @@ struct SmartFillWorkspaceView: View {
             VStack(alignment: .leading, spacing: 10) {
                 toolSubheader("Speed", value: SmartFillWorkspacePresentation.processingPriorityTitle(for: settings.processingPriority))
 
-                secondarySheetButton(
-                    title: "Processing",
-                    value: SmartFillWorkspacePresentation.processingPriorityTitle(for: settings.processingPriority),
-                    systemImage: "bolt.fill"
-                ) {
-                    activeSheet = .outputOptions
+                compactToolGroup(title: nil, value: nil) {
+                    toolLinkChip(
+                        title: "Processing",
+                        subtitle: SmartFillWorkspacePresentation.processingPriorityTitle(for: settings.processingPriority),
+                        systemImage: "bolt.fill"
+                    ) {
+                        activeSheet = .outputOptions
+                    }
                 }
             }
         }
@@ -460,12 +441,34 @@ struct SmartFillWorkspaceView: View {
                 .padding(.horizontal, 2)
             }
 
-            secondarySheetButton(
-                title: "Save details",
-                value: completionBehavior.summaryTitle,
-                systemImage: "square.and.arrow.down.on.square"
-            ) {
-                activeSheet = .savePlan
+            toolSectionCard {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("After save")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.textPrimary)
+
+                    Picker("After save", selection: $completionBehavior) {
+                        ForEach(SmartFillWorkspaceCompletionBehavior.allCases, id: \.self) { behavior in
+                            Text(behavior.pickerTitle)
+                                .tag(behavior)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    Text(completionBehavior.caption(for: context))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            compactToolGroup(title: "More", value: nil) {
+                toolLinkChip(
+                    title: "Save details",
+                    subtitle: completionBehavior.summaryTitle,
+                    systemImage: "square.and.arrow.down.on.square"
+                ) {
+                    activeSheet = .savePlan
+                }
             }
 
             if hasUnsavedChangesSinceLastSave {
@@ -506,6 +509,24 @@ struct SmartFillWorkspaceView: View {
                 darkenAmount: darkenAmountBinding,
                 backgroundScale: backgroundScaleBinding
             )
+        case .backgroundFill:
+            workspaceSheetContainer(
+                title: "Background fill",
+                subtitle: "Use the quick mode and finish choices in the tray, then pick the fill strength here when the frame needs more or less coverage."
+            ) {
+                compactToolGroup(title: "Fill", value: activeFillPreset?.title ?? "Custom") {
+                    ForEach(SmartFillWorkspaceBackgroundFillPreset.allCases, id: \.self) { preset in
+                        compactToolChip(
+                            title: preset.title,
+                            subtitle: String(format: "%.1f×", preset.scale),
+                            systemImage: activeFillPreset == preset ? "checkmark.circle.fill" : nil,
+                            isSelected: activeFillPreset == preset
+                        ) {
+                            applyBackgroundFillPreset(preset)
+                        }
+                    }
+                }
+            }
         case .lookAdjustments:
             workspaceSheetContainer(
                 title: "Fine tune",
@@ -832,17 +853,17 @@ struct SmartFillWorkspaceView: View {
     private var toolTrayHeight: CGFloat {
         switch (verticalSizeClass, activeTool) {
         case (.compact, .save):
-            return 165
+            return 205
         case (.compact, .background):
-            return 185
-        case (.compact, _):
-            return 150
-        case (_, .save):
-            return 190
-        case (_, .background):
-            return 210
-        default:
             return 165
+        case (.compact, _):
+            return 135
+        case (_, .save):
+            return 235
+        case (_, .background):
+            return 175
+        default:
+            return 145
         }
     }
 
@@ -1119,9 +1140,9 @@ struct SmartFillWorkspaceView: View {
         .background(Color.white.opacity(0.05), in: Capsule())
     }
 
-    private func secondarySheetButton(
+    private func toolLinkChip(
         title: String,
-        value: String,
+        subtitle: String,
         systemImage: String,
         action: @escaping () -> Void
     ) -> some View {
@@ -1135,7 +1156,7 @@ struct SmartFillWorkspaceView: View {
                     Text(title)
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(.secondary)
-                    Text(value)
+                    Text(subtitle)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(Theme.textPrimary)
                         .lineLimit(1)
@@ -1564,6 +1585,7 @@ private enum SmartFillWorkspaceTool: CaseIterable {
 }
 
 private enum SmartFillWorkspaceSheet: String, Identifiable {
+    case backgroundFill
     case lookAdjustments
     case advancedLook
     case subjectScale

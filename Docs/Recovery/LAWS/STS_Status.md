@@ -197,6 +197,12 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase28_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase28_tests.log`
   - xcresult: `/tmp/itfactor_smartfill_phase28_tests/Logs/Test/Test-STSiPhone-2026.03.27_08-54-02--0400.xcresult`
+- `SF-REBUILD-029` — clarify inline control ownership in workspace chrome — `COMPLETE (LOCAL-GATED 2026-03-27)`
+  - `SmartFillWorkspaceView` now keeps only the highest-value edit choices inline: background mode, treatment finish, subject presets, output resolution, and after-save behavior.
+  - Background fill, fine tuning, precision subject scale, output speed, and save-plan detail now live behind consistent drill-in chips and sheets instead of competing with the main editor chrome.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase29_gateA.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase29_tests.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase29_tests/Logs/Test/Test-STSiPhone-2026.03.27_09-22-43--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -220,6 +226,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Use `SF-REBUILD-028` as the new SmartFill workspace baseline and decide which controls are strong enough to stay inline versus which should remain sheet-only.
+1. Use `SF-REBUILD-029` as the new SmartFill workspace baseline and decide the next real editor-quality upgrade now that inline control ownership is clearer.
 2. Implement that next slice on GM with Gate A and focused SmartFill parity before any promotion discussion.
-3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell plus the tray-to-sheet split for deeper tools.
+3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, inline ownership model, and tray-to-sheet split for deeper tools.
