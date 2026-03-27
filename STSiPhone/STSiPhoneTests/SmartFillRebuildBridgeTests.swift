@@ -335,6 +335,37 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         )
     }
 
+    func testPreviewPlaybackStateIgnoresNoiseButTracksMeaningfulChanges() {
+        let baseline = SmartFillWorkspacePreviewPlaybackState(currentTime: 4.0, shouldPlay: true)
+
+        XCTAssertFalse(
+            baseline.shouldReplace(
+                with: SmartFillWorkspacePreviewPlaybackState(currentTime: 4.05, shouldPlay: true)
+            )
+        )
+        XCTAssertTrue(
+            baseline.shouldReplace(
+                with: SmartFillWorkspacePreviewPlaybackState(currentTime: 4.25, shouldPlay: true)
+            )
+        )
+        XCTAssertTrue(
+            baseline.shouldReplace(
+                with: SmartFillWorkspacePreviewPlaybackState(currentTime: 4.0, shouldPlay: false)
+            )
+        )
+    }
+
+    func testPreviewPlaybackStateClampsAndRequiresSyncAgainstPlayerSnapshot() {
+        let state = SmartFillWorkspacePreviewPlaybackState(currentTime: 12.4, shouldPlay: true)
+        let clamped = state.clamped(to: 9.0)
+
+        XCTAssertEqual(clamped.currentTime, 9.0)
+        XCTAssertTrue(clamped.shouldPlay)
+        XCTAssertFalse(clamped.requiresPlayerSync(currentTime: 9.02, isPlaying: true))
+        XCTAssertTrue(clamped.requiresPlayerSync(currentTime: 8.6, isPlaying: true))
+        XCTAssertTrue(clamped.requiresPlayerSync(currentTime: 9.0, isPlaying: false))
+    }
+
     func testWorkspacePresentationUsesContextOverridesWhenAvailable() {
         let context = makeWorkspaceContext(
             take: ProjectTake(filePath: "/tmp/original.mov", durationSeconds: 12),

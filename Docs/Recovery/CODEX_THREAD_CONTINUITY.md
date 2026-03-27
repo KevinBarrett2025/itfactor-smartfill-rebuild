@@ -1,5 +1,46 @@
 # CODEX Thread Continuity
 
+## Ticket 034 SmartFill Synchronized Source-Result Live Preview (2026-03-27)
+- Thread Status: phase-34 local patch landed on a fresh GM worktree, Gate A and focused parity both pass, and the slice is ready to anchor as `SF-REBUILD-034`.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase34`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase34`
+- Working Head SHA: `6a2d2bd80b133ca898d0f8c343f1a676d45b6bc3`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Deepen live preview behavior only if it sharpens the editor feel without growing the chrome again:
+1. keep both source and result previews mounted inside the same compare language
+2. preserve playback state when users switch between `Result` and `Original`
+3. make the larger source viewer honor the same live playback state instead of behaving like a disconnected fallback
+4. prove the shared playback-state seam directly in focused parity
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase34`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase34`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase34`
+  - `git rev-parse HEAD` -> `6a2d2bd80b133ca898d0f8c343f1a676d45b6bc3`
+  - `git status --porcelain` -> local phase-34 edits only before commit
+  - `git log -1 --oneline` -> `6a2d2bd SF-REBUILD-033: tighten inline source-result preview compare`
+- Truth-sync confirmed:
+  - `git -C /tmp/itfactor_smartfill_phase33 fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Next Action
+1. `SmartFillWorkspaceView` now keeps both source and result previews alive under one shared playback-state seam, so switching the pinned preview between `Result` and `Original` no longer resets the compare experience.
+2. The larger source viewer now reuses that same shared playback state, so original inspection feels like part of one live compare system instead of a disconnected viewer.
+3. Gate A PASS: `/tmp/itfactor_smartfill_phase34_gateA.log`
+4. Focused parity PASS: `/tmp/itfactor_smartfill_phase34_tests.log`
+5. xcresult: `/tmp/itfactor_smartfill_phase34_tests/Logs/Test/Test-STSiPhone-2026.03.27_14-13-26--0400.xcresult`
+6. Next best slice after this live-sync pass: keep tightening preview professionalism near the canvas, but only if the next compare/live-preview step improves the editor feel without adding new chrome.
+
 ## Ticket 033 SmartFill Inline Preview Compare States (2026-03-27)
 - Thread Status: phase-33 local patch landed on a fresh GM worktree, Gate A and focused parity both pass, and the slice is ready to anchor as `SF-REBUILD-033`.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

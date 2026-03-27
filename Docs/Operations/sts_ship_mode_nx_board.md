@@ -91,6 +91,7 @@ Rules:
 | 4V | SF-REBUILD-031 | Restore live preview transport in workspace surface | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase31_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase31_tests.log`; pinned preview now uses `SmartFillPreviewView` so play/pause and scrubbing live inside the workspace surface while the preview-focus deck remains attached |
 | 4W | SF-REBUILD-032 | Add preview-adjacent original/source comparison | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase32_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase32_tests.log`; pinned preview now offers an `Original` compare affordance, source/result reference chips, and a dedicated scrubbable source-preview sheet |
 | 4X | SF-REBUILD-033 | Tighten inline source-result preview compare states | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase33_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase33_tests.log`; pinned preview now switches directly between `Current` and `Source` states from the preview chips, while the larger source viewer reuses the stronger live transport model |
+| 4Y | SF-REBUILD-034 | Synchronize source-result live preview states | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase34_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase34_tests.log`; result and source previews now share live playback state so compare toggles preserve scrub/play intent instead of resetting the preview experience |
 
 ---
 
@@ -111,6 +112,6 @@ Rules:
 ---
 
 ## Next Action
-1. Choose the next intentional workspace slice now that `SF-REBUILD-033` makes the preview both the live playback surface and the inline source/result compare surface.
+1. Choose the next intentional workspace slice now that `SF-REBUILD-034` keeps source/result compare synchronized through one live preview-state seam.
 2. Implement that slice on GM, then rerun Gate A plus focused SmartFill parity before any promotion discussion.
-3. Keep the standalone derivation ledger in sync while future shared-workspace chrome, inline compare states, and any deeper live preview work lands.
+3. Keep the standalone derivation ledger in sync while future shared-workspace chrome, synchronized compare states, and any deeper live preview work lands.

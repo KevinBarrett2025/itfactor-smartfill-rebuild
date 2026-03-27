@@ -231,6 +231,12 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase33_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase33_tests.log`
   - xcresult: `/tmp/itfactor_smartfill_phase33_tests/Logs/Test/Test-STSiPhone-2026.03.27_11-09-29--0400.xcresult`
+- `SF-REBUILD-034` — synchronize source-result live preview states — `COMPLETE (LOCAL-GATED 2026-03-27)`
+  - `SmartFillWorkspaceView` now keeps both result and source previews mounted with one shared playback-state seam, so toggling the pinned preview between `Result` and `Original` preserves the compare position and play/pause intent instead of resetting the live preview feel.
+  - The source drill-in viewer now honors that same shared playback state, and focused parity directly locks the new playback-state replacement/clamping rules.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase34_gateA.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase34_tests.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase34_tests/Logs/Test/Test-STSiPhone-2026.03.27_14-13-26--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -254,6 +260,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Use `SF-REBUILD-033` as the new SmartFill workspace baseline and decide the next real editor-quality upgrade now that the preview is the live playback surface and the inline source/result compare surface.
+1. Use `SF-REBUILD-034` as the new SmartFill workspace baseline and decide the next real editor-quality upgrade now that source/result compare stays synchronized through one live preview-state seam.
 2. Implement that next slice on GM with Gate A and focused SmartFill parity before any promotion discussion.
-3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, inline ownership model, preview-focus deck, live transport surface, inline source/result compare states, and tray-to-sheet split for deeper tools.
+3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, inline ownership model, preview-focus deck, live transport surface, synchronized source/result compare behavior, and tray-to-sheet split for deeper tools.

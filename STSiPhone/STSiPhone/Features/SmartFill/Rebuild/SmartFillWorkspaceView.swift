@@ -1,4 +1,5 @@
 import AVKit
+import Combine
 import SwiftUI
 
 struct SmartFillWorkspaceView: View {
@@ -21,6 +22,7 @@ struct SmartFillWorkspaceView: View {
     @State private var activeTool: SmartFillWorkspaceTool = .background
     @State private var activeLookAdjustment: SmartFillWorkspaceLookAdjustment = .blur
     @State private var previewMode: SmartFillWorkspacePreviewMode = .result
+    @State private var previewPlaybackState = SmartFillWorkspacePreviewPlaybackState()
 
     private let workspaceDefaults: SmartFillWorkspaceDefaults
 
@@ -94,6 +96,7 @@ struct SmartFillWorkspaceView: View {
                 activeTool = .background
                 activeLookAdjustment = .blur
                 previewMode = .result
+                previewPlaybackState = SmartFillWorkspacePreviewPlaybackState()
                 activeSheet = nil
             }
             .onReceive(NotificationCenter.default.publisher(for: .smartFillProcessingProgress)) { notification in
@@ -228,17 +231,28 @@ struct SmartFillWorkspaceView: View {
 
     @ViewBuilder
     private var activePreviewContent: some View {
-        switch previewMode {
-        case .result:
-            SmartFillPreviewView(
+        ZStack {
+            SmartFillWorkspaceResultPreviewView(
                 videoURL: context.previewURL,
-                settings: settings
+                settings: settings,
+                refreshID: previewRefreshIdentity,
+                playbackState: previewPlaybackState,
+                isActive: previewMode == .result,
+                onPlaybackStateChange: updatePreviewPlaybackState
             ) { error in
                 previewErrorMessage = error.localizedDescription
             }
-            .id(previewRefreshIdentity)
-        case .source:
-            SmartFillSourcePreviewView(videoURL: context.previewURL)
+            .opacity(previewMode == .result ? 1 : 0)
+            .allowsHitTesting(previewMode == .result)
+
+            SmartFillSourcePreviewView(
+                videoURL: context.previewURL,
+                playbackState: previewPlaybackState,
+                isActive: previewMode == .source,
+                onPlaybackStateChange: updatePreviewPlaybackState
+            )
+            .opacity(previewMode == .source ? 1 : 0)
+            .allowsHitTesting(previewMode == .source)
         }
     }
 
@@ -695,7 +709,12 @@ struct SmartFillWorkspaceView: View {
                         .padding(.horizontal, 2)
                     }
 
-                    SmartFillSourcePreviewView(videoURL: context.previewURL)
+                    SmartFillSourcePreviewView(
+                        videoURL: context.previewURL,
+                        playbackState: previewPlaybackState,
+                        isActive: true,
+                        onPlaybackStateChange: updatePreviewPlaybackState
+                    )
                         .frame(maxWidth: .infinity)
                         .frame(maxHeight: 360)
                 }
@@ -1632,6 +1651,13 @@ struct SmartFillWorkspaceView: View {
         previewMode = mode
     }
 
+    private func updatePreviewPlaybackState(_ state: SmartFillWorkspacePreviewPlaybackState) {
+        guard previewPlaybackState.shouldReplace(with: state) else {
+            return
+        }
+        previewPlaybackState = state
+    }
+
     private func handleSecondaryAction() {
         if hasPendingAutoReturn {
             cancelAutoReturn()
@@ -1784,6 +1810,25 @@ enum SmartFillWorkspacePreviewMode: String, CaseIterable {
         case .source:
             return "rectangle.on.rectangle"
         }
+    }
+}
+
+struct SmartFillWorkspacePreviewPlaybackState: Equatable {
+    var currentTime: Double = 0
+    var shouldPlay = false
+
+    func clamped(to duration: Double) -> SmartFillWorkspacePreviewPlaybackState {
+        let safeDuration = max(duration, 0)
+        let safeTime = currentTime.isFinite ? max(0, min(currentTime, safeDuration)) : 0
+        return SmartFillWorkspacePreviewPlaybackState(currentTime: safeTime, shouldPlay: shouldPlay)
+    }
+
+    func shouldReplace(with other: SmartFillWorkspacePreviewPlaybackState, tolerance: Double = 0.12) -> Bool {
+        abs(currentTime - other.currentTime) > tolerance || shouldPlay != other.shouldPlay
+    }
+
+    func requiresPlayerSync(currentTime: Double, isPlaying: Bool, tolerance: Double = 0.12) -> Bool {
+        abs(self.currentTime - currentTime) > tolerance || shouldPlay != isPlaying
     }
 }
 
@@ -2523,8 +2568,130 @@ enum SmartFillWorkspacePresentation {
     }
 }
 
+private struct SmartFillWorkspaceResultPreviewRequest: Equatable {
+    let videoURL: URL
+    let settings: SmartFillSettings
+    let refreshID: String
+}
+
+private struct SmartFillWorkspaceResultPreviewView: View {
+    let videoURL: URL
+    let settings: SmartFillSettings
+    let refreshID: String
+    let playbackState: SmartFillWorkspacePreviewPlaybackState
+    let isActive: Bool
+    let onPlaybackStateChange: (SmartFillWorkspacePreviewPlaybackState) -> Void
+    let onError: (Error) -> Void
+
+    @State private var player: ModernSmartFillPlayer?
+    @State private var loadedRequest: SmartFillWorkspaceResultPreviewRequest?
+    @State private var loadTask: Task<Void, Never>?
+
+    var body: some View {
+        VStack(spacing: 8) {
+            if let player {
+                VStack(spacing: 8) {
+                    SmartFillWorkspaceVideoSurface(player: player.player)
+                        .aspectRatio(16 / 9, contentMode: .fit)
+                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .background(Color.black, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+                    ModernSmartFillPreviewControls(player: player)
+                }
+                .onReceive(player.$currentTime) { _ in
+                    publishPlaybackState()
+                }
+                .onReceive(player.$isPlaying) { _ in
+                    publishPlaybackState()
+                }
+                .onReceive(player.$isReady) { isReady in
+                    guard isReady else { return }
+                    applyPlaybackState(playbackState, to: player, allowPlayback: isActive, force: true)
+                }
+            } else {
+                ProgressView()
+                    .frame(maxWidth: .infinity, minHeight: 220)
+            }
+        }
+        .onAppear {
+            preparePlayer(forceReload: false)
+        }
+        .onDisappear {
+            loadTask?.cancel()
+            player?.pause()
+        }
+        .onChange(of: isActive) { _, isActive in
+            guard let player else { return }
+            applyPlaybackState(playbackState, to: player, allowPlayback: isActive, force: true)
+        }
+        .onChange(of: videoURL) { _, _ in
+            preparePlayer(forceReload: true)
+        }
+        .onChange(of: settings) { _, _ in
+            preparePlayer(forceReload: true)
+        }
+        .onChange(of: refreshID) { _, _ in
+            preparePlayer(forceReload: true)
+        }
+        .onChange(of: playbackState) { _, playbackState in
+            guard let player else { return }
+            applyPlaybackState(playbackState, to: player, allowPlayback: isActive)
+        }
+    }
+
+    private func preparePlayer(forceReload: Bool) {
+        let request = SmartFillWorkspaceResultPreviewRequest(
+            videoURL: videoURL,
+            settings: settings,
+            refreshID: refreshID
+        )
+
+        guard forceReload || loadedRequest != request || player == nil else {
+            if let player {
+                applyPlaybackState(playbackState, to: player, allowPlayback: isActive, force: true)
+            }
+            return
+        }
+
+        loadedRequest = request
+        loadTask?.cancel()
+        player?.pause()
+        player = nil
+
+        loadTask = Task { @MainActor in
+            do {
+                let freshPlayer = try await SmartFillManager.shared.createPreviewPlayer(
+                    for: videoURL,
+                    settings: settings
+                )
+                guard !Task.isCancelled else { return }
+
+                player = freshPlayer
+                applyPlaybackState(playbackState, to: freshPlayer, allowPlayback: isActive, force: true)
+                publishPlaybackState()
+            } catch {
+                guard !Task.isCancelled else { return }
+                onError(error)
+            }
+        }
+    }
+
+    private func publishPlaybackState() {
+        guard isActive, let player else { return }
+        onPlaybackStateChange(
+            SmartFillWorkspacePreviewPlaybackState(
+                currentTime: max(player.currentTime, 0),
+                shouldPlay: player.isPlaying
+            )
+        )
+    }
+}
+
 private struct SmartFillSourcePreviewView: View {
     let videoURL: URL
+    let playbackState: SmartFillWorkspacePreviewPlaybackState
+    let isActive: Bool
+    let onPlaybackStateChange: (SmartFillWorkspacePreviewPlaybackState) -> Void
 
     @State private var player: ModernSmartFillPlayer?
     @State private var loadedURL: URL?
@@ -2532,40 +2699,80 @@ private struct SmartFillSourcePreviewView: View {
     var body: some View {
         VStack(spacing: 8) {
             if let player {
-                SmartFillWorkspaceVideoSurface(player: player.player)
-                    .aspectRatio(16 / 9, contentMode: .fit)
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .background(Color.black, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                VStack(spacing: 8) {
+                    SmartFillWorkspaceVideoSurface(player: player.player)
+                        .aspectRatio(16 / 9, contentMode: .fit)
+                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .background(Color.black, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
 
-                ModernSmartFillPreviewControls(player: player)
+                    ModernSmartFillPreviewControls(player: player)
+                }
+                .onReceive(player.$currentTime) { _ in
+                    publishPlaybackState()
+                }
+                .onReceive(player.$isPlaying) { _ in
+                    publishPlaybackState()
+                }
+                .onReceive(player.$isReady) { isReady in
+                    guard isReady else { return }
+                    applyPlaybackState(playbackState, to: player, allowPlayback: isActive, force: true)
+                }
             } else {
                 ProgressView()
                     .frame(maxWidth: .infinity, minHeight: 220)
             }
         }
         .onAppear {
-            preparePlayer(resetPlayback: true)
+            if isActive {
+                preparePlayer(forceReload: false)
+            }
         }
         .onDisappear {
             player?.pause()
         }
+        .onChange(of: isActive) { _, isActive in
+            if isActive {
+                preparePlayer(forceReload: false)
+            } else {
+                player?.pause()
+            }
+
+            guard let player else { return }
+            applyPlaybackState(playbackState, to: player, allowPlayback: isActive, force: true)
+        }
         .onChange(of: videoURL) { _, _ in
-            preparePlayer(resetPlayback: true)
+            preparePlayer(forceReload: true)
+        }
+        .onChange(of: playbackState) { _, playbackState in
+            guard let player else { return }
+            applyPlaybackState(playbackState, to: player, allowPlayback: isActive)
         }
     }
 
-    private func preparePlayer(resetPlayback: Bool) {
-        if loadedURL != videoURL {
-            loadedURL = videoURL
-            let item = AVPlayerItem(url: videoURL)
-            player = ModernSmartFillPlayer(playerItem: item)
-            player?.player.actionAtItemEnd = .pause
+    private func preparePlayer(forceReload: Bool) {
+        guard forceReload || loadedURL != videoURL || player == nil else {
+            if let player {
+                applyPlaybackState(playbackState, to: player, allowPlayback: isActive, force: true)
+            }
+            return
         }
 
-        if resetPlayback {
-            player?.pause()
-            player?.seek(to: .zero)
-        }
+        loadedURL = videoURL
+        let item = AVPlayerItem(url: videoURL)
+        let freshPlayer = ModernSmartFillPlayer(playerItem: item)
+        freshPlayer.player.actionAtItemEnd = .pause
+        player = freshPlayer
+        applyPlaybackState(playbackState, to: freshPlayer, allowPlayback: isActive, force: true)
+    }
+
+    private func publishPlaybackState() {
+        guard isActive, let player else { return }
+        onPlaybackStateChange(
+            SmartFillWorkspacePreviewPlaybackState(
+                currentTime: max(player.currentTime, 0),
+                shouldPlay: player.isPlaying
+            )
+        )
     }
 }
 
@@ -2591,5 +2798,27 @@ private struct SmartFillWorkspaceVideoSurface: UIViewRepresentable {
             playerLayer.frame = uiView.bounds
             CATransaction.commit()
         }
+    }
+}
+
+@MainActor
+private func applyPlaybackState(
+    _ playbackState: SmartFillWorkspacePreviewPlaybackState,
+    to player: ModernSmartFillPlayer,
+    allowPlayback: Bool,
+    force: Bool = false
+) {
+    let normalizedState = playbackState.clamped(to: player.duration)
+
+    if force || normalizedState.requiresPlayerSync(currentTime: player.currentTime, isPlaying: allowPlayback ? player.isPlaying : false) {
+        player.seek(to: CMTime(seconds: normalizedState.currentTime, preferredTimescale: 600))
+    }
+
+    if allowPlayback && normalizedState.shouldPlay {
+        if !player.isPlaying || force {
+            player.play()
+        }
+    } else if player.isPlaying || force {
+        player.pause()
     }
 }
