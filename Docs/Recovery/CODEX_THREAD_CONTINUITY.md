@@ -1,5 +1,47 @@
 # CODEX Thread Continuity
 
+## Ticket 042 SmartFill Compare Viewer Explicit Mode Toolbar (2026-03-28)
+- Thread Status: phase-42 local patch landed on a fresh GM worktree, Gate A and focused parity both pass, and the slice is ready to anchor as `SF-REBUILD-042`.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase42`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase42`
+- Working Head SHA: `c30e2982116e6fab9f1eab59d08c84354cbd2f8f`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Sharpen the professional compare experience without falling back to oversized chips or extra bars:
+1. replace the larger compare viewer's oversized `Source` / `Current` chips with one compact grouped compare toolbar
+2. make `Source`, `Current`, and `Wipe` explicit compare modes so advanced compare behavior is visible instead of gesture-only
+3. let `Wipe` become a deliberate pinned mode with one draggable divider while preserving the temporary long-press wipe for quick peeks
+4. prove the toolbar selection-state rules directly in focused parity so the compare viewer can grow without drifting back into wordy or ambiguous controls
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase42`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase42`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase42`
+  - `git rev-parse HEAD` -> `c30e2982116e6fab9f1eab59d08c84354cbd2f8f`
+  - `git status --porcelain` -> two local phase-42 edits in `SmartFillWorkspaceView.swift` and `SmartFillRebuildBridgeTests.swift`
+  - `git log -1 --oneline` -> `c30e298 SF-REBUILD-041: add a temporary split-wipe compare gesture inside the larger viewer`
+- Truth-sync confirmed:
+  - `git -C /tmp/itfactor_smartfill_phase41 fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Next Action
+1. `SmartFillWorkspaceCompareViewer` now replaces the oversized compare chips with one compact grouped toolbar that exposes explicit `Source`, `Current`, and `Wipe` modes at the top of the larger compare viewer.
+2. `Wipe` can now stay pinned as a deliberate compare mode with one draggable divider, while the temporary long-press wipe still exists for quick momentary comparison without growing the main workspace chrome.
+3. Compact reference pills now mirror the dominant compare side, and focused parity locks the toolbar-selection rules so the viewer keeps one studio-grade compare language instead of drifting back into ambiguous chip states.
+4. Gate A PASS: `/tmp/itfactor_smartfill_phase42_gateA.log`
+5. Focused parity PASS: `/tmp/itfactor_smartfill_phase42_tests_rerun.log`
+6. xcresult: `/tmp/itfactor_smartfill_phase42_tests_rerun/Logs/Test/Test-STSiPhone-2026.03.28_12-22-13--0400.xcresult`
+7. Next best slice after this explicit-mode toolbar pass: decide whether the compare system should remember and reopen on the user's last dominant mode or expose one equally compact compare affordance beside the pinned preview, but only if the fixed-shell chrome stays tight.
+
 ## Ticket 041 SmartFill Compare Viewer Split-Wipe Gesture (2026-03-28)
 - Thread Status: phase-41 local patch landed on a fresh GM worktree, Gate A and focused parity both pass, and the slice is ready to anchor as `SF-REBUILD-041`.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

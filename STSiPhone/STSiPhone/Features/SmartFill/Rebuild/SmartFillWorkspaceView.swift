@@ -1954,6 +1954,59 @@ struct SmartFillWorkspaceCompareWipeState: Equatable {
     }
 }
 
+enum SmartFillWorkspaceCompareViewerMode: CaseIterable {
+    case source
+    case current
+    case wipe
+
+    var title: String {
+        switch self {
+        case .source:
+            return "Source"
+        case .current:
+            return "Current"
+        case .wipe:
+            return "Wipe"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .source:
+            return "film"
+        case .current:
+            return "sparkles.tv"
+        case .wipe:
+            return "rectangle.split.2x1"
+        }
+    }
+}
+
+struct SmartFillWorkspaceCompareViewerSelectionState: Equatable {
+    var selectedMode: SmartFillWorkspacePreviewMode = .source
+    var isPinnedWipeMode = false
+
+    var toolbarMode: SmartFillWorkspaceCompareViewerMode {
+        if isPinnedWipeMode {
+            return .wipe
+        }
+        return selectedMode == .source ? .source : .current
+    }
+
+    mutating func selectToolbarMode(_ mode: SmartFillWorkspaceCompareViewerMode) {
+        switch mode {
+        case .source:
+            selectedMode = .source
+            isPinnedWipeMode = false
+        case .current:
+            selectedMode = .result
+            isPinnedWipeMode = false
+        case .wipe:
+            isPinnedWipeMode = true
+        }
+    }
+}
+
 enum SmartFillWorkspaceTool: CaseIterable {
     case background
     case subject
@@ -2913,9 +2966,10 @@ private struct SmartFillWorkspaceCompareViewer: View {
     let onPlaybackStateChange: (SmartFillWorkspacePreviewPlaybackState) -> Void
     let onError: (Error) -> Void
 
-    @State private var selectedMode: SmartFillWorkspacePreviewMode
+    @State private var selectionState = SmartFillWorkspaceCompareViewerSelectionState()
     @State private var isHoldingComparison = false
-    @State private var wipeState: SmartFillWorkspaceCompareWipeState?
+    @State private var temporaryWipeState: SmartFillWorkspaceCompareWipeState?
+    @State private var pinnedWipeProgress: CGFloat = SmartFillWorkspaceCompareWipeState.defaultProgress
 
     init(
         videoURL: URL,
@@ -2937,12 +2991,11 @@ private struct SmartFillWorkspaceCompareViewer: View {
         self.previewErrorMessage = previewErrorMessage
         self.onPlaybackStateChange = onPlaybackStateChange
         self.onError = onError
-        _selectedMode = State(initialValue: .source)
     }
 
     private var compareState: SmartFillWorkspacePreviewCompareState {
         SmartFillWorkspacePreviewCompareState(
-            selectedMode: selectedMode,
+            selectedMode: selectionState.selectedMode,
             isHoldingComparison: isHoldingComparison
         )
     }
@@ -2951,8 +3004,22 @@ private struct SmartFillWorkspaceCompareViewer: View {
         compareState.effectiveMode
     }
 
+    private var activeWipeState: SmartFillWorkspaceCompareWipeState? {
+        if let temporaryWipeState {
+            return temporaryWipeState
+        }
+        if selectionState.isPinnedWipeMode {
+            return SmartFillWorkspaceCompareWipeState(progress: pinnedWipeProgress)
+        }
+        return nil
+    }
+
     private var isShowingWipeCompare: Bool {
-        wipeState != nil
+        activeWipeState != nil
+    }
+
+    private var toolbarMode: SmartFillWorkspaceCompareViewerMode {
+        selectionState.toolbarMode
     }
 
     private var comparePlaybackState: SmartFillWorkspacePreviewPlaybackState {
@@ -2967,66 +3034,36 @@ private struct SmartFillWorkspaceCompareViewer: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            ScrollView(.horizontal, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 10) {
+                    compareToolbar
+                    Spacer(minLength: 0)
+                    compareReferencePill(
+                        title: compareModeSummaryTitle,
+                        value: compareModeSummaryValue,
+                        symbolName: compareModeSummarySymbolName,
+                        isSelected: true
+                    )
+                }
+
                 HStack(spacing: 8) {
-                    compareModeChip(
+                    compareReferencePill(
                         title: "Source",
                         value: sourceTitle,
                         symbolName: "film",
-                        mode: .source
+                        isSelected: toolbarMode == .source
                     )
-                    compareModeChip(
+                    compareReferencePill(
                         title: "Current",
                         value: resultTitle,
                         symbolName: "sparkles.tv",
-                        mode: .result
+                        isSelected: toolbarMode == .current
                     )
                 }
-                .padding(.horizontal, 2)
             }
 
             GeometryReader { geometry in
-                ZStack {
-                    SmartFillWorkspaceResultPreviewView(
-                        videoURL: videoURL,
-                        settings: settings,
-                        refreshID: refreshID,
-                        playbackState: comparePlaybackState,
-                        isActive: isShowingWipeCompare || effectiveMode == .result,
-                        onComparePressingChanged: updateComparePressing,
-                        onPlaybackStateChange: onPlaybackStateChange,
-                        onError: onError
-                    )
-                    .opacity(isShowingWipeCompare || effectiveMode == .result ? 1 : 0)
-                    .allowsHitTesting(!isShowingWipeCompare && effectiveMode == .result)
-
-                    SmartFillSourcePreviewView(
-                        videoURL: videoURL,
-                        playbackState: comparePlaybackState,
-                        isActive: isShowingWipeCompare || effectiveMode == .source,
-                        onComparePressingChanged: updateComparePressing,
-                        onPlaybackStateChange: onPlaybackStateChange
-                    )
-                    .opacity(isShowingWipeCompare ? 1 : (effectiveMode == .source ? 1 : 0))
-                    .allowsHitTesting(!isShowingWipeCompare && effectiveMode == .source)
-                    .mask(alignment: .leading) {
-                        if let wipeState {
-                            Rectangle()
-                                .frame(width: geometry.size.width * wipeState.progress)
-                        } else {
-                            Rectangle()
-                        }
-                    }
-
-                    if let wipeState {
-                        splitWipeOverlay(
-                            for: wipeState,
-                            width: geometry.size.width
-                        )
-                    }
-                }
-                .contentShape(Rectangle())
-                .highPriorityGesture(compareWipeGesture(width: geometry.size.width))
+                compareViewerSurface(width: geometry.size.width)
             }
             .frame(maxWidth: .infinity)
             .frame(height: 360)
@@ -3045,68 +3082,183 @@ private struct SmartFillWorkspaceCompareViewer: View {
         )
     }
 
-    private func compareModeChip(
-        title: String,
-        value: String,
-        symbolName: String,
-        mode: SmartFillWorkspacePreviewMode
-    ) -> some View {
-        let isSelected = selectedMode == mode
+    private var compareToolbar: some View {
+        HStack(spacing: 6) {
+            ForEach(SmartFillWorkspaceCompareViewerMode.allCases, id: \.self) { mode in
+                compareModeButton(mode)
+            }
+        }
+        .padding(4)
+        .background(Color.white.opacity(0.05), in: Capsule())
+        .overlay(
+            Capsule()
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        )
+    }
 
-        return Button {
-            selectedMode = mode
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: symbolName)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(isSelected ? Theme.primary : .secondary)
+    @ViewBuilder
+    private func compareViewerSurface(width: CGFloat) -> some View {
+        if selectionState.isPinnedWipeMode {
+            baseCompareSurface(width: width)
+                .highPriorityGesture(pinnedWipeGesture(width: width))
+        } else {
+            baseCompareSurface(width: width)
+                .highPriorityGesture(temporaryWipeGesture(width: width))
+        }
+    }
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    Text(value)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Theme.textPrimary)
-                        .lineLimit(1)
+    private func baseCompareSurface(width: CGFloat) -> some View {
+        ZStack {
+            SmartFillWorkspaceResultPreviewView(
+                videoURL: videoURL,
+                settings: settings,
+                refreshID: refreshID,
+                playbackState: comparePlaybackState,
+                isActive: isShowingWipeCompare || effectiveMode == .result,
+                onComparePressingChanged: updateComparePressing,
+                onPlaybackStateChange: onPlaybackStateChange,
+                onError: onError
+            )
+            .opacity(isShowingWipeCompare || effectiveMode == .result ? 1 : 0)
+            .allowsHitTesting(!isShowingWipeCompare && effectiveMode == .result)
+
+            SmartFillSourcePreviewView(
+                videoURL: videoURL,
+                playbackState: comparePlaybackState,
+                isActive: isShowingWipeCompare || effectiveMode == .source,
+                onComparePressingChanged: updateComparePressing,
+                onPlaybackStateChange: onPlaybackStateChange
+            )
+            .opacity(isShowingWipeCompare ? 1 : (effectiveMode == .source ? 1 : 0))
+            .allowsHitTesting(!isShowingWipeCompare && effectiveMode == .source)
+            .mask(alignment: .leading) {
+                if let activeWipeState {
+                    Rectangle()
+                        .frame(width: width * activeWipeState.progress)
+                } else {
+                    Rectangle()
                 }
             }
+
+            if let activeWipeState {
+                splitWipeOverlay(
+                    for: activeWipeState,
+                    width: width
+                )
+            }
+        }
+        .contentShape(Rectangle())
+    }
+
+    private func compareModeButton(
+        _ mode: SmartFillWorkspaceCompareViewerMode
+    ) -> some View {
+        let isSelected = toolbarMode == mode
+
+        return Button {
+            selectionState.selectToolbarMode(mode)
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: mode.symbolName)
+                    .font(.caption2.weight(.semibold))
+                Text(mode.title)
+                    .font(.caption.weight(.semibold))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(isSelected ? Theme.textPrimary : .secondary)
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
             .background(
-                isSelected ? Theme.primary.opacity(0.14) : Color.white.opacity(0.04),
+                isSelected ? Theme.primary.opacity(0.14) : Color.clear,
                 in: Capsule()
-            )
-            .overlay(
-                Capsule()
-                    .stroke(
-                        isSelected ? Theme.primary.opacity(0.45) : Color.white.opacity(0.08),
-                        lineWidth: 1
-                    )
             )
         }
         .buttonStyle(.plain)
     }
 
-    private func updateComparePressing(_ isPressing: Bool) {
-        isHoldingComparison = isPressing
+    private func compareReferencePill(
+        title: String,
+        value: String,
+        symbolName: String,
+        isSelected: Bool = false
+    ) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: symbolName)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(isSelected ? Theme.primary : .secondary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(
+            isSelected ? Theme.primary.opacity(0.14) : Color.white.opacity(0.04),
+            in: Capsule()
+        )
+        .overlay(
+            Capsule()
+                .stroke(
+                    isSelected ? Theme.primary.opacity(0.4) : Color.white.opacity(0.08),
+                    lineWidth: 1
+                )
+        )
     }
 
-    private func compareWipeGesture(width: CGFloat) -> some Gesture {
+    private var compareModeSummaryTitle: String {
+        switch toolbarMode {
+        case .source:
+            return "Viewing"
+        case .current:
+            return "Viewing"
+        case .wipe:
+            return "Mode"
+        }
+    }
+
+    private var compareModeSummaryValue: String {
+        switch toolbarMode {
+        case .source:
+            return sourceTitle
+        case .current:
+            return resultTitle
+        case .wipe:
+            return "Wipe compare"
+        }
+    }
+
+    private var compareModeSummarySymbolName: String {
+        switch toolbarMode {
+        case .source:
+            return "film"
+        case .current:
+            return "sparkles.tv"
+        case .wipe:
+            return "rectangle.lefthalf.filled"
+        }
+    }
+
+    private func temporaryWipeGesture(width: CGFloat) -> some Gesture {
         LongPressGesture(minimumDuration: 0.12, maximumDistance: 40)
             .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .local))
             .onChanged { value in
                 switch value {
                 case .first(true):
-                    if wipeState == nil {
-                        wipeState = SmartFillWorkspaceCompareWipeState.begin(width: width)
+                    if temporaryWipeState == nil {
+                        temporaryWipeState = SmartFillWorkspaceCompareWipeState.begin(width: width)
                     }
                 case .second(true, let drag?):
-                    let baseState = wipeState ?? SmartFillWorkspaceCompareWipeState.begin(
+                    let baseState = temporaryWipeState ?? SmartFillWorkspaceCompareWipeState.begin(
                         locationX: drag.location.x,
                         width: width
                     )
-                    wipeState = baseState.updated(
+                    temporaryWipeState = baseState.updated(
                         locationX: drag.location.x,
                         width: width
                     )
@@ -3115,8 +3267,22 @@ private struct SmartFillWorkspaceCompareViewer: View {
                 }
             }
             .onEnded { _ in
-                wipeState = nil
+                temporaryWipeState = nil
             }
+    }
+
+    private func pinnedWipeGesture(width: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 0, coordinateSpace: .local)
+            .onChanged { value in
+                pinnedWipeProgress = SmartFillWorkspaceCompareWipeState.clampedProgress(
+                    for: value.location.x,
+                    width: width
+                )
+            }
+    }
+
+    private func updateComparePressing(_ isPressing: Bool) {
+        isHoldingComparison = isPressing
     }
 
     private func splitWipeOverlay(

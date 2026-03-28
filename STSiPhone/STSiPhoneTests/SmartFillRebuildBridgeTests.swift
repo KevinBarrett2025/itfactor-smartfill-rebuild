@@ -981,6 +981,41 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         )
     }
 
+    func testCompareViewerSelectionStateMapsExplicitToolbarModes() {
+        var state = SmartFillWorkspaceCompareViewerSelectionState()
+
+        XCTAssertEqual(state.toolbarMode, .source)
+
+        state.selectToolbarMode(.current)
+        XCTAssertEqual(state.selectedMode, .result)
+        XCTAssertEqual(state.toolbarMode, .current)
+        XCTAssertFalse(state.isPinnedWipeMode)
+
+        state.selectToolbarMode(.source)
+        XCTAssertEqual(state.selectedMode, .source)
+        XCTAssertEqual(state.toolbarMode, .source)
+        XCTAssertFalse(state.isPinnedWipeMode)
+    }
+
+    func testCompareViewerSelectionStateKeepsLastDominantSideWhenWipeIsPinned() {
+        var state = SmartFillWorkspaceCompareViewerSelectionState(selectedMode: .result)
+
+        state.selectToolbarMode(.wipe)
+        XCTAssertEqual(state.selectedMode, .result)
+        XCTAssertEqual(state.toolbarMode, .wipe)
+        XCTAssertTrue(state.isPinnedWipeMode)
+
+        state.selectToolbarMode(.source)
+        XCTAssertEqual(state.selectedMode, .source)
+        XCTAssertEqual(state.toolbarMode, .source)
+        XCTAssertFalse(state.isPinnedWipeMode)
+
+        state.selectToolbarMode(.wipe)
+        XCTAssertEqual(state.selectedMode, .source)
+        XCTAssertEqual(state.toolbarMode, .wipe)
+        XCTAssertTrue(state.isPinnedWipeMode)
+    }
+
     func testWorkspacePresentationUsesReturnActionForEditorCompletion() {
         let context = makeWorkspaceContext(
             take: ProjectTake(filePath: "/tmp/original.mov", durationSeconds: 12),
