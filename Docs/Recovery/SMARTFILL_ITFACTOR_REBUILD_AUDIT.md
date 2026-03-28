@@ -52,6 +52,7 @@ These seams are the correct architectural anchors for the rebuild:
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspaceFollowUpRoute.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillReopenDestinationContext.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspacePresentation` (declared in `SmartFillWorkspaceView.swift`)
+- `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspacePreviewCompareGroupState` / inline pinned-preview compare state (declared in `SmartFillWorkspaceView.swift`)
 - `STSiPhone/STSiPhone/Features/Editing/LightweightEditorViewController+ModularWiring.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillDefaultsView.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillAdvancedSettingsView.swift`

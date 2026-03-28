@@ -576,11 +576,13 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
     func testPreviewCompareStateUsesSelectedModeWhenNotHolding() {
         let result = SmartFillWorkspacePreviewCompareState(
             selectedMode: .result,
-            isHoldingComparison: false
+            isHoldingComparison: false,
+            isPinnedWipeMode: false
         )
         let source = SmartFillWorkspacePreviewCompareState(
             selectedMode: .source,
-            isHoldingComparison: false
+            isHoldingComparison: false,
+            isPinnedWipeMode: false
         )
 
         XCTAssertEqual(result.effectiveMode, .result)
@@ -590,15 +592,33 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
     func testPreviewCompareStateTemporarilyShowsAlternateModeWhileHolding() {
         let result = SmartFillWorkspacePreviewCompareState(
             selectedMode: .result,
-            isHoldingComparison: true
+            isHoldingComparison: true,
+            isPinnedWipeMode: false
         )
         let source = SmartFillWorkspacePreviewCompareState(
             selectedMode: .source,
-            isHoldingComparison: true
+            isHoldingComparison: true,
+            isPinnedWipeMode: false
         )
 
         XCTAssertEqual(result.effectiveMode, .source)
         XCTAssertEqual(source.effectiveMode, .result)
+    }
+
+    func testPreviewCompareStateKeepsDominantSideWhenPinnedWipeIsActive() {
+        let result = SmartFillWorkspacePreviewCompareState(
+            selectedMode: .result,
+            isHoldingComparison: true,
+            isPinnedWipeMode: true
+        )
+        let source = SmartFillWorkspacePreviewCompareState(
+            selectedMode: .source,
+            isHoldingComparison: true,
+            isPinnedWipeMode: true
+        )
+
+        XCTAssertEqual(result.effectiveMode, .result)
+        XCTAssertEqual(source.effectiveMode, .source)
     }
 
     func testPreviewFrameStepUsesNominalFrameRateWhenAvailable() {
@@ -1053,48 +1073,39 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertEqual(memory.previewCompareControl.compareMode, .wipe)
     }
 
-    func testPreviewCompareGroupStateUsesActivePreviewModeWhenViewerIsClosed() {
+    func testPreviewCompareGroupStateUsesSelectedToolbarMode() {
         let sourceState = SmartFillWorkspacePreviewCompareGroupState(
-            activePreviewMode: .source,
-            compareControl: SmartFillWorkspacePreviewCompareControl(
-                title: "Compare",
+            toolbarMode: .source,
+            viewerControl: SmartFillWorkspacePreviewCompareControl(
+                title: "Viewer",
                 value: "Source",
                 symbolName: "film",
                 compareMode: .source
-            ),
-            isCompareViewerPresented: false
+            )
         )
         let currentState = SmartFillWorkspacePreviewCompareGroupState(
-            activePreviewMode: .result,
-            compareControl: SmartFillWorkspacePreviewCompareControl(
-                title: "Compare",
+            toolbarMode: .current,
+            viewerControl: SmartFillWorkspacePreviewCompareControl(
+                title: "Viewer",
                 value: "Current",
                 symbolName: "sparkles.tv",
                 compareMode: .current
-            ),
-            isCompareViewerPresented: false
+            )
         )
-
-        XCTAssertEqual(sourceState.selectedSegment, .source)
-        XCTAssertEqual(sourceState.compareLaunchTitle, "Compare")
-        XCTAssertEqual(currentState.selectedSegment, .current)
-        XCTAssertEqual(currentState.compareLaunchTitle, "Compare")
-    }
-
-    func testPreviewCompareGroupStatePromotesCompareSegmentAndWipeTitleWhenViewerIsOpen() {
-        let state = SmartFillWorkspacePreviewCompareGroupState(
-            activePreviewMode: .result,
-            compareControl: SmartFillWorkspacePreviewCompareControl(
-                title: "Compare",
+        let wipeState = SmartFillWorkspacePreviewCompareGroupState(
+            toolbarMode: .wipe,
+            viewerControl: SmartFillWorkspacePreviewCompareControl(
+                title: "Viewer",
                 value: "Wipe",
                 symbolName: "rectangle.split.2x1",
                 compareMode: .wipe
-            ),
-            isCompareViewerPresented: true
+            )
         )
 
-        XCTAssertEqual(state.selectedSegment, .compare)
-        XCTAssertEqual(state.compareLaunchTitle, "Wipe")
+        XCTAssertEqual(sourceState.selectedSegment, .source)
+        XCTAssertEqual(currentState.selectedSegment, .current)
+        XCTAssertEqual(wipeState.selectedSegment, .wipe)
+        XCTAssertEqual(wipeState.viewerControl.symbolName, "rectangle.split.2x1")
     }
 
     func testWorkspacePresentationUsesReturnActionForEditorCompletion() {

@@ -1,5 +1,45 @@
 # CODEX Thread Continuity
 
+## Ticket 046 SmartFill Pinned Preview Inline Wipe Compare Mode (2026-03-28)
+- Thread Status: phase-46 local patch is restored on a fresh GM worktree after the restart wipe, Gate A and focused parity now pass cleanly again, and the slice is ready to anchor as `SF-REBUILD-046`.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase46`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase46`
+- Working Head SHA: `07be7e1030e7bad9cd939d590c78dae12b7845b3`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Sharpen the pinned preview into a more studio-grade compare surface without adding another bar or falling back to a settings document:
+1. turn the pinned preview compare group into explicit inline `Source`, `Current`, and `Wipe` modes
+2. keep the larger compare viewer as a separate drill-in instead of overloading the inline group
+3. let pinned `Wipe` stay active directly on the main preview with a draggable divider
+4. keep playback/hold-compare behavior safe by disabling conflicting interactions while pinned wipe is active
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase46`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase46`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase46`
+  - `git rev-parse HEAD` -> `07be7e1030e7bad9cd939d590c78dae12b7845b3`
+  - `git status --porcelain` -> clean immediately after recreating the wiped worktree
+  - `git log -1 --oneline` -> `07be7e1 SF-REBUILD-045: group the pinned preview compare controls into one compact toolbar seam`
+- Truth-sync confirmed:
+  - `git -C /Users/kevinbarrett/Dev/itFactor_1.23.26_git fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Next Action
+1. `SmartFillWorkspaceView` now owns separate inline preview state for the pinned preview, so the main canvas can switch between `Source`, `Current`, and a pinned `Wipe` compare mode without always opening the larger compare viewer.
+2. The larger compare viewer remains the drill-in surface, but closing it now synchronizes its remembered mode back to the pinned preview so both compare surfaces stay consistent.
+3. Gate A PASS: `/tmp/itfactor_smartfill_phase46_gateA_rerun.log`
+4. Focused parity PASS: `/tmp/itfactor_smartfill_phase46_tests_rerun.log`
+5. xcresult: `/tmp/itfactor_smartfill_phase46_tests_rerun/Logs/Test/Test-STSiPhone-2026.03.28_15-57-54--0400.xcresult`
+
 ## Ticket 045 SmartFill Pinned Preview Grouped Compare Control (2026-03-28)
 - Thread Status: phase-45 local patch landed on a fresh GM worktree, Gate A and focused parity both pass cleanly, and the grouped compare-control slice is ready to anchor as `SF-REBUILD-045`.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

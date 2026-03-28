@@ -21,7 +21,8 @@ struct SmartFillWorkspaceView: View {
     @State private var completionBehavior: SmartFillWorkspaceCompletionBehavior
     @State private var activeTool: SmartFillWorkspaceTool = .background
     @State private var activeLookAdjustment: SmartFillWorkspaceLookAdjustment = .blur
-    @State private var previewMode: SmartFillWorkspacePreviewMode = .result
+    @State private var previewSelectionState = SmartFillWorkspaceCompareViewerSelectionState(selectedMode: .result)
+    @State private var previewPinnedWipeProgress: CGFloat = SmartFillWorkspaceCompareWipeState.defaultProgress
     @State private var previewPlaybackState = SmartFillWorkspacePreviewPlaybackState()
     @State private var isHoldingPreviewComparison = false
     @State private var compareViewerMemoryState = SmartFillWorkspaceCompareViewerMemoryState()
@@ -97,10 +98,15 @@ struct SmartFillWorkspaceView: View {
                 autoReturnWorkItem = nil
                 activeTool = .background
                 activeLookAdjustment = .blur
-                previewMode = .result
+                previewSelectionState = SmartFillWorkspaceCompareViewerSelectionState(selectedMode: .result)
+                previewPinnedWipeProgress = SmartFillWorkspaceCompareWipeState.defaultProgress
                 previewPlaybackState = SmartFillWorkspacePreviewPlaybackState()
                 compareViewerMemoryState = SmartFillWorkspaceCompareViewerMemoryState()
                 activeSheet = nil
+            }
+            .onChange(of: activeSheet) { oldValue, newValue in
+                guard oldValue == .sourcePreview, newValue != .sourcePreview else { return }
+                synchronizePreviewCompareStateFromViewer()
             }
             .onReceive(NotificationCenter.default.publisher(for: .smartFillProcessingProgress)) { notification in
                 guard coordinator.stage == .export else { return }
@@ -235,31 +241,67 @@ struct SmartFillWorkspaceView: View {
     @ViewBuilder
     private var activePreviewContent: some View {
         let compareViewerPresented = activeSheet == .sourcePreview
+        GeometryReader { geometry in
+            pinnedPreviewSurface(
+                width: geometry.size.width,
+                compareViewerPresented: compareViewerPresented
+            )
+        }
+    }
+
+    private func pinnedPreviewSurface(
+        width: CGFloat,
+        compareViewerPresented: Bool
+    ) -> some View {
         ZStack {
             SmartFillWorkspaceResultPreviewView(
                 videoURL: context.previewURL,
                 settings: settings,
                 refreshID: previewRefreshIdentity,
                 playbackState: previewPlaybackState,
-                isActive: effectivePreviewMode == .result && !compareViewerPresented,
+                shouldRender: previewSelectionState.isPinnedWipeMode || effectivePreviewMode == .result || compareViewerPresented,
+                allowPlayback: (previewSelectionState.isPinnedWipeMode || effectivePreviewMode == .result) && !compareViewerPresented,
+                shouldPublishPlaybackState: !compareViewerPresented,
+                allowsCanvasScrub: !previewSelectionState.isPinnedWipeMode,
+                allowsHoldCompare: !previewSelectionState.isPinnedWipeMode,
                 onComparePressingChanged: updatePreviewComparePressing,
                 onPlaybackStateChange: updatePreviewPlaybackState
             ) { error in
                 previewErrorMessage = error.localizedDescription
             }
-            .opacity(effectivePreviewMode == .result ? 1 : 0)
-            .allowsHitTesting(effectivePreviewMode == .result)
+            .opacity(previewSelectionState.isPinnedWipeMode || effectivePreviewMode == .result ? 1 : 0)
+            .allowsHitTesting(!previewSelectionState.isPinnedWipeMode && effectivePreviewMode == .result)
 
             SmartFillSourcePreviewView(
                 videoURL: context.previewURL,
                 playbackState: previewPlaybackState,
-                isActive: effectivePreviewMode == .source && !compareViewerPresented,
+                shouldRender: previewSelectionState.isPinnedWipeMode || effectivePreviewMode == .source || compareViewerPresented,
+                allowPlayback: (previewSelectionState.isPinnedWipeMode || effectivePreviewMode == .source) && !compareViewerPresented,
+                shouldPublishPlaybackState: !compareViewerPresented,
+                allowsCanvasScrub: !previewSelectionState.isPinnedWipeMode,
+                allowsHoldCompare: !previewSelectionState.isPinnedWipeMode,
                 onComparePressingChanged: updatePreviewComparePressing,
                 onPlaybackStateChange: updatePreviewPlaybackState
             )
-            .opacity(effectivePreviewMode == .source ? 1 : 0)
-            .allowsHitTesting(effectivePreviewMode == .source)
+            .opacity(previewSelectionState.isPinnedWipeMode ? 1 : (effectivePreviewMode == .source ? 1 : 0))
+            .allowsHitTesting(!previewSelectionState.isPinnedWipeMode && effectivePreviewMode == .source)
+            .mask(alignment: .leading) {
+                if previewSelectionState.isPinnedWipeMode {
+                    Rectangle()
+                        .frame(width: width * previewPinnedWipeProgress)
+                } else {
+                    Rectangle()
+                }
+            }
+
+            if previewSelectionState.isPinnedWipeMode {
+                sharedSplitWipeOverlay(
+                    for: SmartFillWorkspaceCompareWipeState(progress: previewPinnedWipeProgress),
+                    width: width
+                )
+            }
         }
+        .highPriorityGesture(pinnedPreviewWipeGesture(width: width))
     }
 
     private var previewToolFocusDeck: some View {
@@ -953,8 +995,9 @@ struct SmartFillWorkspaceView: View {
 
     private var previewCompareState: SmartFillWorkspacePreviewCompareState {
         SmartFillWorkspacePreviewCompareState(
-            selectedMode: previewMode,
-            isHoldingComparison: isHoldingPreviewComparison
+            selectedMode: previewSelectionState.selectedMode,
+            isHoldingComparison: isHoldingPreviewComparison,
+            isPinnedWipeMode: previewSelectionState.isPinnedWipeMode
         )
     }
 
@@ -989,9 +1032,13 @@ struct SmartFillWorkspaceView: View {
 
     private var previewCompareGroupState: SmartFillWorkspacePreviewCompareGroupState {
         SmartFillWorkspacePreviewCompareGroupState(
-            activePreviewMode: previewMode,
-            compareControl: compareViewerMemoryState.previewCompareControl,
-            isCompareViewerPresented: activeSheet == .sourcePreview
+            toolbarMode: previewSelectionState.toolbarMode,
+            viewerControl: SmartFillWorkspacePreviewCompareControl(
+                title: "Viewer",
+                value: previewSelectionState.toolbarMode.title,
+                symbolName: previewSelectionState.toolbarMode.symbolName,
+                compareMode: previewSelectionState.toolbarMode
+            )
         )
     }
 
@@ -1305,7 +1352,7 @@ struct SmartFillWorkspaceView: View {
                 symbolName: "film",
                 isSelected: state.selectedSegment == .source
             ) {
-                handlePreviewReferenceSelection(.source)
+                handlePreviewCompareModeSelection(.source)
             }
 
             previewCompareSegment(
@@ -1313,16 +1360,24 @@ struct SmartFillWorkspaceView: View {
                 symbolName: "sparkles.tv",
                 isSelected: state.selectedSegment == .current
             ) {
-                handlePreviewReferenceSelection(.result)
+                handlePreviewCompareModeSelection(.current)
             }
 
             previewCompareSegment(
-                title: state.compareLaunchTitle,
-                symbolName: state.compareControl.symbolName,
-                isSelected: state.selectedSegment == .compare,
+                title: "Wipe",
+                symbolName: "rectangle.split.2x1",
+                isSelected: state.selectedSegment == .wipe
+            ) {
+                handlePreviewCompareModeSelection(.wipe)
+            }
+
+            previewCompareSegment(
+                title: state.viewerControl.title,
+                symbolName: state.viewerControl.symbolName,
+                isSelected: false,
                 showsLaunchGlyph: true
             ) {
-                activeSheet = .sourcePreview
+                openPreviewCompareViewer()
             }
         }
         .padding(4)
@@ -1656,18 +1711,81 @@ struct SmartFillWorkspaceView: View {
         }
     }
 
-    private func handlePreviewReferenceSelection(_ mode: SmartFillWorkspacePreviewMode) {
-        if previewMode == mode {
-            if mode == .source {
-                activeSheet = .sourcePreview
-            }
-            return
+    private func handlePreviewCompareModeSelection(_ mode: SmartFillWorkspaceCompareViewerMode) {
+        previewSelectionState.selectToolbarMode(mode)
+        if mode != .wipe {
+            previewPinnedWipeProgress = compareViewerMemoryState.pinnedWipeProgress
         }
+    }
 
-        previewMode = mode
+    private func openPreviewCompareViewer() {
+        compareViewerMemoryState.selectionState = previewSelectionState
+        compareViewerMemoryState.pinnedWipeProgress = previewPinnedWipeProgress
+        activeSheet = .sourcePreview
+    }
+
+    private func synchronizePreviewCompareStateFromViewer() {
+        previewSelectionState = compareViewerMemoryState.selectionState
+        previewPinnedWipeProgress = compareViewerMemoryState.pinnedWipeProgress
+        isHoldingPreviewComparison = false
+    }
+
+    private func pinnedPreviewWipeGesture(width: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 0, coordinateSpace: .local)
+            .onChanged { value in
+                guard previewSelectionState.isPinnedWipeMode else { return }
+                previewPinnedWipeProgress = SmartFillWorkspaceCompareWipeState.clampedProgress(
+                    for: value.location.x,
+                    width: width
+                )
+            }
+    }
+
+    private func sharedSplitWipeOverlay(
+        for wipeState: SmartFillWorkspaceCompareWipeState,
+        width: CGFloat
+    ) -> some View {
+        let clampedX = min(max(width * wipeState.progress, 0), width)
+
+        return ZStack {
+            Rectangle()
+                .fill(.white.opacity(0.92))
+                .frame(width: 2)
+                .shadow(color: .black.opacity(0.22), radius: 5, x: 0, y: 0)
+                .frame(maxHeight: .infinity)
+                .offset(x: clampedX - (width / 2))
+
+            VStack {
+                HStack {
+                    compareEdgeBadge(title: "Source", alignment: .leading)
+                    Spacer()
+                    compareEdgeBadge(title: "Current", alignment: .trailing)
+                }
+                Spacer()
+            }
+            .padding(12)
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func compareEdgeBadge(
+        title: String,
+        alignment: Alignment
+    ) -> some View {
+        Text(title)
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(Color.black.opacity(0.62), in: Capsule())
+            .frame(maxWidth: .infinity, alignment: alignment)
     }
 
     private func updatePreviewComparePressing(_ isPressing: Bool) {
+        guard !previewSelectionState.isPinnedWipeMode else {
+            isHoldingPreviewComparison = false
+            return
+        }
         isHoldingPreviewComparison = isPressing
     }
 
@@ -1806,24 +1924,22 @@ struct SmartFillWorkspacePreviewCompareControl: Equatable, Identifiable {
 enum SmartFillWorkspacePreviewCompareGroupSelection: Equatable {
     case source
     case current
-    case compare
+    case wipe
 }
 
 struct SmartFillWorkspacePreviewCompareGroupState: Equatable {
-    let activePreviewMode: SmartFillWorkspacePreviewMode
-    let compareControl: SmartFillWorkspacePreviewCompareControl
-    let isCompareViewerPresented: Bool
+    let toolbarMode: SmartFillWorkspaceCompareViewerMode
+    let viewerControl: SmartFillWorkspacePreviewCompareControl
 
     var selectedSegment: SmartFillWorkspacePreviewCompareGroupSelection {
-        if isCompareViewerPresented {
-            return .compare
+        switch toolbarMode {
+        case .source:
+            return .source
+        case .current:
+            return .current
+        case .wipe:
+            return .wipe
         }
-
-        return activePreviewMode == .source ? .source : .current
-    }
-
-    var compareLaunchTitle: String {
-        compareControl.compareMode == .wipe ? "Wipe" : "Compare"
     }
 }
 
@@ -1869,9 +1985,13 @@ enum SmartFillWorkspacePreviewMode: String, CaseIterable {
 struct SmartFillWorkspacePreviewCompareState: Equatable {
     let selectedMode: SmartFillWorkspacePreviewMode
     let isHoldingComparison: Bool
+    let isPinnedWipeMode: Bool
 
     var effectiveMode: SmartFillWorkspacePreviewMode {
-        isHoldingComparison ? selectedMode.comparisonMode : selectedMode
+        if isPinnedWipeMode {
+            return selectedMode
+        }
+        return isHoldingComparison ? selectedMode.comparisonMode : selectedMode
     }
 }
 
@@ -2817,7 +2937,11 @@ private struct SmartFillWorkspaceResultPreviewView: View {
     let settings: SmartFillSettings
     let refreshID: String
     let playbackState: SmartFillWorkspacePreviewPlaybackState
-    let isActive: Bool
+    let shouldRender: Bool
+    let allowPlayback: Bool
+    let shouldPublishPlaybackState: Bool
+    let allowsCanvasScrub: Bool
+    let allowsHoldCompare: Bool
     let onComparePressingChanged: (Bool) -> Void
     let onPlaybackStateChange: (SmartFillWorkspacePreviewPlaybackState) -> Void
     let onError: (Error) -> Void
@@ -2831,6 +2955,8 @@ private struct SmartFillWorkspaceResultPreviewView: View {
             if let player {
                 SmartFillWorkspaceInteractivePreviewSurface(
                     player: player,
+                    allowsCanvasScrub: allowsCanvasScrub,
+                    allowsHoldCompare: allowsHoldCompare,
                     onComparePressingChanged: onComparePressingChanged,
                     onPlaybackStateChange: onPlaybackStateChange
                 )
@@ -2842,7 +2968,7 @@ private struct SmartFillWorkspaceResultPreviewView: View {
                 }
                 .onReceive(player.$isReady) { isReady in
                     guard isReady else { return }
-                    applyPlaybackState(playbackState, to: player, allowPlayback: isActive, force: true)
+                    applyPlaybackState(playbackState, to: player, allowPlayback: allowPlayback, force: true)
                 }
             } else {
                 ProgressView()
@@ -2856,9 +2982,16 @@ private struct SmartFillWorkspaceResultPreviewView: View {
             loadTask?.cancel()
             player?.pause()
         }
-        .onChange(of: isActive) { _, isActive in
+        .onChange(of: shouldRender) { _, shouldRender in
+            if shouldRender {
+                preparePlayer(forceReload: false)
+            } else {
+                player?.pause()
+            }
+        }
+        .onChange(of: allowPlayback) { _, allowPlayback in
             guard let player else { return }
-            applyPlaybackState(playbackState, to: player, allowPlayback: isActive, force: true)
+            applyPlaybackState(playbackState, to: player, allowPlayback: allowPlayback, force: true)
         }
         .onChange(of: videoURL) { _, _ in
             preparePlayer(forceReload: true)
@@ -2871,7 +3004,7 @@ private struct SmartFillWorkspaceResultPreviewView: View {
         }
         .onChange(of: playbackState) { _, playbackState in
             guard let player else { return }
-            applyPlaybackState(playbackState, to: player, allowPlayback: isActive)
+            applyPlaybackState(playbackState, to: player, allowPlayback: allowPlayback)
         }
     }
 
@@ -2882,9 +3015,10 @@ private struct SmartFillWorkspaceResultPreviewView: View {
             refreshID: refreshID
         )
 
+        guard shouldRender else { return }
         guard forceReload || loadedRequest != request || player == nil else {
             if let player {
-                applyPlaybackState(playbackState, to: player, allowPlayback: isActive, force: true)
+                applyPlaybackState(playbackState, to: player, allowPlayback: allowPlayback, force: true)
             }
             return
         }
@@ -2903,7 +3037,7 @@ private struct SmartFillWorkspaceResultPreviewView: View {
                 guard !Task.isCancelled else { return }
 
                 player = freshPlayer
-                applyPlaybackState(playbackState, to: freshPlayer, allowPlayback: isActive, force: true)
+                applyPlaybackState(playbackState, to: freshPlayer, allowPlayback: allowPlayback, force: true)
                 publishPlaybackState()
             } catch {
                 guard !Task.isCancelled else { return }
@@ -2913,7 +3047,7 @@ private struct SmartFillWorkspaceResultPreviewView: View {
     }
 
     private func publishPlaybackState() {
-        guard isActive, let player else { return }
+        guard shouldPublishPlaybackState, let player else { return }
         onPlaybackStateChange(
             SmartFillWorkspacePreviewPlaybackState(
                 currentTime: max(player.currentTime, 0),
@@ -2926,7 +3060,11 @@ private struct SmartFillWorkspaceResultPreviewView: View {
 private struct SmartFillSourcePreviewView: View {
     let videoURL: URL
     let playbackState: SmartFillWorkspacePreviewPlaybackState
-    let isActive: Bool
+    let shouldRender: Bool
+    let allowPlayback: Bool
+    let shouldPublishPlaybackState: Bool
+    let allowsCanvasScrub: Bool
+    let allowsHoldCompare: Bool
     let onComparePressingChanged: (Bool) -> Void
     let onPlaybackStateChange: (SmartFillWorkspacePreviewPlaybackState) -> Void
 
@@ -2938,6 +3076,8 @@ private struct SmartFillSourcePreviewView: View {
             if let player {
                 SmartFillWorkspaceInteractivePreviewSurface(
                     player: player,
+                    allowsCanvasScrub: allowsCanvasScrub,
+                    allowsHoldCompare: allowsHoldCompare,
                     onComparePressingChanged: onComparePressingChanged,
                     onPlaybackStateChange: onPlaybackStateChange
                 )
@@ -2949,7 +3089,7 @@ private struct SmartFillSourcePreviewView: View {
                 }
                 .onReceive(player.$isReady) { isReady in
                     guard isReady else { return }
-                    applyPlaybackState(playbackState, to: player, allowPlayback: isActive, force: true)
+                    applyPlaybackState(playbackState, to: player, allowPlayback: allowPlayback, force: true)
                 }
             } else {
                 ProgressView()
@@ -2957,36 +3097,39 @@ private struct SmartFillSourcePreviewView: View {
             }
         }
         .onAppear {
-            if isActive {
+            if shouldRender {
                 preparePlayer(forceReload: false)
             }
         }
         .onDisappear {
             player?.pause()
         }
-        .onChange(of: isActive) { _, isActive in
-            if isActive {
+        .onChange(of: shouldRender) { _, shouldRender in
+            if shouldRender {
                 preparePlayer(forceReload: false)
             } else {
                 player?.pause()
             }
-
-            guard let player else { return }
-            applyPlaybackState(playbackState, to: player, allowPlayback: isActive, force: true)
         }
+        .onChange(of: allowPlayback) { _, allowPlayback in
+            guard let player else { return }
+            applyPlaybackState(playbackState, to: player, allowPlayback: allowPlayback, force: true)
+        }
+
         .onChange(of: videoURL) { _, _ in
             preparePlayer(forceReload: true)
         }
         .onChange(of: playbackState) { _, playbackState in
             guard let player else { return }
-            applyPlaybackState(playbackState, to: player, allowPlayback: isActive)
+            applyPlaybackState(playbackState, to: player, allowPlayback: allowPlayback)
         }
     }
 
     private func preparePlayer(forceReload: Bool) {
+        guard shouldRender else { return }
         guard forceReload || loadedURL != videoURL || player == nil else {
             if let player {
-                applyPlaybackState(playbackState, to: player, allowPlayback: isActive, force: true)
+                applyPlaybackState(playbackState, to: player, allowPlayback: allowPlayback, force: true)
             }
             return
         }
@@ -2996,11 +3139,11 @@ private struct SmartFillSourcePreviewView: View {
         let freshPlayer = ModernSmartFillPlayer(playerItem: item)
         freshPlayer.player.actionAtItemEnd = .pause
         player = freshPlayer
-        applyPlaybackState(playbackState, to: freshPlayer, allowPlayback: isActive, force: true)
+        applyPlaybackState(playbackState, to: freshPlayer, allowPlayback: allowPlayback, force: true)
     }
 
     private func publishPlaybackState() {
-        guard isActive, let player else { return }
+        guard shouldPublishPlaybackState, let player else { return }
         onPlaybackStateChange(
             SmartFillWorkspacePreviewPlaybackState(
                 currentTime: max(player.currentTime, 0),
@@ -3055,7 +3198,8 @@ private struct SmartFillWorkspaceCompareViewer: View {
     private var compareState: SmartFillWorkspacePreviewCompareState {
         SmartFillWorkspacePreviewCompareState(
             selectedMode: selectionState.selectedMode,
-            isHoldingComparison: isHoldingComparison
+            isHoldingComparison: isHoldingComparison,
+            isPinnedWipeMode: selectionState.isPinnedWipeMode
         )
     }
 
@@ -3173,7 +3317,11 @@ private struct SmartFillWorkspaceCompareViewer: View {
                 settings: settings,
                 refreshID: refreshID,
                 playbackState: comparePlaybackState,
-                isActive: isShowingWipeCompare || effectiveMode == .result,
+                shouldRender: isShowingWipeCompare || effectiveMode == .result,
+                allowPlayback: isShowingWipeCompare || effectiveMode == .result,
+                shouldPublishPlaybackState: true,
+                allowsCanvasScrub: !isShowingWipeCompare,
+                allowsHoldCompare: !isShowingWipeCompare,
                 onComparePressingChanged: updateComparePressing,
                 onPlaybackStateChange: onPlaybackStateChange,
                 onError: onError
@@ -3184,7 +3332,11 @@ private struct SmartFillWorkspaceCompareViewer: View {
             SmartFillSourcePreviewView(
                 videoURL: videoURL,
                 playbackState: comparePlaybackState,
-                isActive: isShowingWipeCompare || effectiveMode == .source,
+                shouldRender: isShowingWipeCompare || effectiveMode == .source,
+                allowPlayback: isShowingWipeCompare || effectiveMode == .source,
+                shouldPublishPlaybackState: true,
+                allowsCanvasScrub: !isShowingWipeCompare,
+                allowsHoldCompare: !isShowingWipeCompare,
                 onComparePressingChanged: updateComparePressing,
                 onPlaybackStateChange: onPlaybackStateChange
             )
@@ -3200,7 +3352,7 @@ private struct SmartFillWorkspaceCompareViewer: View {
             }
 
             if let activeWipeState {
-                splitWipeOverlay(
+                sharedSplitWipeOverlay(
                     for: activeWipeState,
                     width: width
                 )
@@ -3344,7 +3496,7 @@ private struct SmartFillWorkspaceCompareViewer: View {
         isHoldingComparison = isPressing
     }
 
-    private func splitWipeOverlay(
+    private func sharedSplitWipeOverlay(
         for wipeState: SmartFillWorkspaceCompareWipeState,
         width: CGFloat
     ) -> some View {
@@ -3387,6 +3539,8 @@ private struct SmartFillWorkspaceCompareViewer: View {
 
 private struct SmartFillWorkspaceInteractivePreviewSurface: View {
     @ObservedObject var player: ModernSmartFillPlayer
+    let allowsCanvasScrub: Bool
+    let allowsHoldCompare: Bool
     let onComparePressingChanged: (Bool) -> Void
     let onPlaybackStateChange: (SmartFillWorkspacePreviewPlaybackState) -> Void
 
@@ -3395,15 +3549,7 @@ private struct SmartFillWorkspaceInteractivePreviewSurface: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                SmartFillWorkspaceVideoSurface(player: player.player)
-                    .contentShape(Rectangle())
-                    .highPriorityGesture(canvasScrubGesture(width: geometry.size.width))
-                    .onTapGesture {
-                        togglePlayback()
-                    }
-                    .onLongPressGesture(minimumDuration: 0.12, maximumDistance: 30, perform: { }) { isPressing in
-                        onComparePressingChanged(isPressing)
-                    }
+                interactiveVideoSurface(width: geometry.size.width)
 
                 if let canvasScrubState {
                     canvasScrubHUD(for: canvasScrubState)
@@ -3438,6 +3584,25 @@ private struct SmartFillWorkspaceInteractivePreviewSurface: View {
         .aspectRatio(16 / 9, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .background(Color.black, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    @ViewBuilder
+    private func interactiveVideoSurface(width: CGFloat) -> some View {
+        let surface = SmartFillWorkspaceVideoSurface(player: player.player)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                togglePlayback()
+            }
+            .onLongPressGesture(minimumDuration: 0.12, maximumDistance: 30, perform: { }) { isPressing in
+                guard allowsHoldCompare else { return }
+                onComparePressingChanged(isPressing)
+            }
+
+        if allowsCanvasScrub {
+            surface.highPriorityGesture(canvasScrubGesture(width: width))
+        } else {
+            surface
+        }
     }
 
     private func togglePlayback() {
