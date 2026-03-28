@@ -1,5 +1,47 @@
 # CODEX Thread Continuity
 
+## Ticket 044 SmartFill Pinned Preview Compare Launcher (2026-03-28)
+- Thread Status: phase-44 local patch landed on a fresh GM worktree, Gate A and focused parity both pass cleanly, and the slice is ready to anchor as `SF-REBUILD-044`.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase44`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase44`
+- Working Head SHA: `46577f95ba7c656b5875b47199b9d5c3aed1a9e7`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Sharpen compare speed without bloating the fixed-shell editor:
+1. add one compact preview-side `Compare` launcher chip beside the pinned preview so users can jump straight into the larger compare viewer from the same focus deck that already surfaces active tool state
+2. make that launcher always reflect the remembered compare mode (`Source`, `Current`, or `Wipe`) so the preview tells the truth about the dominant compare state before the sheet opens
+3. keep compare entry inside the existing horizontal focus deck instead of introducing another compare bar, tray row, or stacked settings slab
+4. prove the remembered compare-control mapping directly in focused parity so future standalone derivation can reuse the same compact permanent compare entry
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase44`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase44`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase44`
+  - `git rev-parse HEAD` -> `46577f95ba7c656b5875b47199b9d5c3aed1a9e7`
+  - `git status --porcelain` -> two local phase-44 edits in `SmartFillWorkspaceView.swift` and `SmartFillRebuildBridgeTests.swift`
+  - `git log -1 --oneline` -> `46577f9 SF-REBUILD-043: preserve last compare mode across viewer reopen`
+- Truth-sync confirmed:
+  - `git -C /tmp/itfactor_smartfill_phase43 fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Next Action
+1. `SmartFillWorkspaceView` now adds one compact preview-side `Compare` launcher chip inside the existing focus deck, so the pinned preview itself exposes a permanent compare entry without growing a second compare row or reviving a scroll-heavy settings shell.
+2. That launcher now reflects the remembered compare mode from `SmartFillWorkspaceCompareViewerMemoryState`, surfacing `Source`, `Current`, or `Wipe` with the matching symbol before the larger compare viewer opens.
+3. Focused parity now locks the preview-side compare-control mapping directly, so future flagship and standalone compare-entry work can reuse the same compact permanent launcher seam instead of inventing a second compare toolbar.
+4. Gate A PASS: `/tmp/itfactor_smartfill_phase44_gateA_final.log`
+5. Focused parity PASS: `/tmp/itfactor_smartfill_phase44_tests_final.log`
+6. xcresult: `/tmp/itfactor_smartfill_phase44_tests_final/Logs/Test/Test-STSiPhone-2026.03.28_13-17-36--0400.xcresult`
+7. Next best slice after this preview-side compare-entry pass: decide whether the pinned preview itself should gain a more explicit inline compare-state behavior or whether compare speed is now strong enough that the next work should stay on playback fluency and editor feel.
+
 ## Ticket 043 SmartFill Compare Viewer Last-Mode Memory (2026-03-28)
 - Thread Status: phase-43 local patch landed on a fresh GM worktree, Gate A and focused parity both pass, and the slice is ready to anchor as `SF-REBUILD-043`.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

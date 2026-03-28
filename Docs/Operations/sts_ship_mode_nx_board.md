@@ -57,6 +57,7 @@ Rules:
 - The rebuild workspace preview now also embeds its playback transport directly into the preview canvas, so play/pause, scrubbing, and paused-state affordances feel like part of the editor surface instead of a separate slab under the player.
 - The rebuild workspace preview now also supports press-and-hold momentary compare on the canvas, so users can temporarily flip between result and source without adding another compare row to the chrome.
 - The rebuild workspace preview transport now also supports frame-step nudging inside the same compact capsule, so users can make precise preview adjustments without adding a second transport row.
+- The rebuild workspace preview focus deck now also exposes one compact `Compare` launcher chip that mirrors the remembered `Source`, `Current`, or `Wipe` mode and opens the larger compare viewer directly from the pinned preview.
 - The larger compare sheet is now also a true source-versus-result viewer that shares the same playhead and disables the inline preview while it is open, so A/B inspection happens in one active preview system instead of a disconnected source-only player.
 - The larger compare sheet now also supports a temporary split-wipe gesture, so users can reveal source on one side and current on the other without adding a permanent compare bar or second viewer mode row.
 - `authority/main` now exists remotely and locally at the untouched Jan 23 baseline.
@@ -106,6 +107,7 @@ Rules:
 | 5F | SF-REBUILD-041 | Add a temporary split-wipe compare gesture inside the larger viewer | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase41_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase41_tests.log`; the larger compare sheet now supports a long-press-and-drag split-wipe with one ephemeral divider and edge badges while playback pauses and the main workspace chrome stays unchanged |
 | 5G | SF-REBUILD-042 | Compact the compare viewer into an explicit mode toolbar | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase42_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase42_tests_rerun.log`; the larger compare viewer now uses one compact grouped `Source` / `Current` / `Wipe` toolbar, lets `Wipe` stay pinned with a draggable divider, and keeps compact reference pills aligned to the dominant compare side |
 | 5H | SF-REBUILD-043 | Preserve last compare mode across viewer reopen | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase43_gateA_rerun.log`; focused parity PASS `/tmp/itfactor_smartfill_phase43_tests_rerun.log`; the larger compare viewer now reopens on the user's last `Source`, `Current`, or pinned `Wipe` state and preserves the pinned wipe divider position within the same workspace session |
+| 5I | SF-REBUILD-044 | Add a compact compare affordance beside the pinned preview | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase44_gateA_final.log`; focused parity PASS `/tmp/itfactor_smartfill_phase44_tests_final.log`; the pinned preview focus deck now includes one compact `Compare` launcher chip that reflects the remembered compare mode and opens the larger compare viewer without adding another bar or stacked compare slab |
 
 ---
 
@@ -126,6 +128,6 @@ Rules:
 ---
 
 ## Next Action
-1. Choose the next intentional workspace slice now that `SF-REBUILD-043` keeps live playback, momentary compare, precise frame-step nudging, direct canvas precision scrubbing, a true shared-playhead compare viewer, a temporary split-wipe gesture, one compact explicit compare-mode toolbar, and remembered compare-sheet state in place while the HomeScreen portrait-player SmartFill chip still opens the rebuild workspace correctly.
+1. Choose the next intentional workspace slice now that `SF-REBUILD-044` keeps live playback, momentary compare, precise frame-step nudging, direct canvas precision scrubbing, a true shared-playhead compare viewer, a temporary split-wipe gesture, one compact explicit compare-mode toolbar, remembered compare-sheet state, and one compact preview-side compare launcher in place while the HomeScreen portrait-player SmartFill chip still opens the rebuild workspace correctly.
 2. Implement that slice on GM, then rerun Gate A plus focused SmartFill parity before any promotion discussion.
 3. Keep the standalone derivation ledger in sync while future shared-workspace chrome, synchronized compare states, the true larger compare viewer, the temporary split-wipe gesture, the compact explicit compare toolbar, remembered compare-viewer state, hold-to-compare behavior, frame-step transport nudging, direct canvas scrubbing, working entry routes, and any deeper preview/live-transport work lands.

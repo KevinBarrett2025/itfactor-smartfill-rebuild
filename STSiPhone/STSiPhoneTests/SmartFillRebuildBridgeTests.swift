@@ -1031,6 +1031,28 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertEqual(reopened.pinnedWipeProgress, 0.72, accuracy: 0.0001)
     }
 
+    func testCompareViewerMemoryStateExposesPreviewCompareControlForCurrentMode() {
+        var memory = SmartFillWorkspaceCompareViewerMemoryState()
+
+        memory.selectionState.selectToolbarMode(.current)
+
+        XCTAssertEqual(memory.previewCompareControl.title, "Compare")
+        XCTAssertEqual(memory.previewCompareControl.value, "Current")
+        XCTAssertEqual(memory.previewCompareControl.symbolName, "sparkles.tv")
+        XCTAssertEqual(memory.previewCompareControl.compareMode, .current)
+    }
+
+    func testCompareViewerMemoryStateExposesPreviewCompareControlForPinnedWipe() {
+        var memory = SmartFillWorkspaceCompareViewerMemoryState()
+
+        memory.selectionState.selectToolbarMode(.wipe)
+
+        XCTAssertEqual(memory.previewCompareControl.title, "Compare")
+        XCTAssertEqual(memory.previewCompareControl.value, "Wipe")
+        XCTAssertEqual(memory.previewCompareControl.symbolName, "rectangle.split.2x1")
+        XCTAssertEqual(memory.previewCompareControl.compareMode, .wipe)
+    }
+
     func testWorkspacePresentationUsesReturnActionForEditorCompletion() {
         let context = makeWorkspaceContext(
             take: ProjectTake(filePath: "/tmp/original.mov", durationSeconds: 12),

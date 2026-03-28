@@ -300,6 +300,8 @@ struct SmartFillWorkspaceView: View {
                         previewReferenceChip(item)
                     }
 
+                    previewCompareChip(compareViewerMemoryState.previewCompareControl)
+
                     ForEach(activeToolFocusItems) { item in
                         previewFocusChip(item)
                     }
@@ -1355,6 +1357,48 @@ struct SmartFillWorkspaceView: View {
         .buttonStyle(.plain)
     }
 
+    private func previewCompareChip(_ item: SmartFillWorkspacePreviewCompareControl) -> some View {
+        let isSelected = activeSheet == .sourcePreview
+
+        return Button {
+            activeSheet = .sourcePreview
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: item.symbolName)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(isSelected ? Theme.primary : .secondary)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.title)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Text(item.value)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.textPrimary)
+                        .lineLimit(1)
+                }
+
+                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(
+                isSelected ? Theme.primary.opacity(0.14) : Color.white.opacity(0.04),
+                in: Capsule()
+            )
+            .overlay(
+                Capsule()
+                    .stroke(
+                        isSelected ? Theme.primary.opacity(0.45) : Color.white.opacity(0.08),
+                        lineWidth: 1
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
     private func toolLinkChip(
         title: String,
         subtitle: String,
@@ -1791,6 +1835,15 @@ struct SmartFillWorkspacePreviewReferenceItem: Equatable, Identifiable {
     var id: String { "\(title)|\(value)|\(symbolName)|\(previewMode.rawValue)" }
 }
 
+struct SmartFillWorkspacePreviewCompareControl: Equatable, Identifiable {
+    let title: String
+    let value: String
+    let symbolName: String
+    let compareMode: SmartFillWorkspaceCompareViewerMode
+
+    var id: String { "\(title)|\(value)|\(symbolName)|\(compareMode.title)" }
+}
+
 struct SmartFillWorkspaceDrillInDescriptor: Equatable {
     let title: String
     let value: String
@@ -2014,6 +2067,16 @@ struct SmartFillWorkspaceCompareViewerSelectionState: Equatable {
 struct SmartFillWorkspaceCompareViewerMemoryState: Equatable {
     var selectionState = SmartFillWorkspaceCompareViewerSelectionState()
     var pinnedWipeProgress: CGFloat = SmartFillWorkspaceCompareWipeState.defaultProgress
+
+    var previewCompareControl: SmartFillWorkspacePreviewCompareControl {
+        let mode = selectionState.toolbarMode
+        return SmartFillWorkspacePreviewCompareControl(
+            title: "Compare",
+            value: mode.title,
+            symbolName: mode.symbolName,
+            compareMode: mode
+        )
+    }
 }
 
 enum SmartFillWorkspaceTool: CaseIterable {
