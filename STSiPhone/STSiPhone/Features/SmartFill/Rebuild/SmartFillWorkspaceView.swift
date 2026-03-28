@@ -296,11 +296,7 @@ struct SmartFillWorkspaceView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(previewReferenceItems) { item in
-                        previewReferenceChip(item)
-                    }
-
-                    previewCompareChip(compareViewerMemoryState.previewCompareControl)
+                    previewCompareControlGroup(previewCompareGroupState)
 
                     ForEach(activeToolFocusItems) { item in
                         previewFocusChip(item)
@@ -991,23 +987,12 @@ struct SmartFillWorkspaceView: View {
         )
     }
 
-    private var previewReferenceItems: [SmartFillWorkspacePreviewReferenceItem] {
-        [
-            SmartFillWorkspacePreviewReferenceItem(
-                title: "Source",
-                value: SmartFillWorkspacePresentation.sourcePreviewTitle(for: context),
-                symbolName: "film",
-                previewMode: .source
-            ),
-            SmartFillWorkspacePreviewReferenceItem(
-                title: "Current",
-                value: SmartFillWorkspacePresentation.previewResultTitle(
-                    adoptedTakeDisplayName: coordinator.lastResult?.adoptedTakeDisplayName
-                ),
-                symbolName: "sparkles.tv",
-                previewMode: .result
-            )
-        ]
+    private var previewCompareGroupState: SmartFillWorkspacePreviewCompareGroupState {
+        SmartFillWorkspacePreviewCompareGroupState(
+            activePreviewMode: previewMode,
+            compareControl: compareViewerMemoryState.previewCompareControl,
+            isCompareViewerPresented: activeSheet == .sourcePreview
+        )
     }
 
     private var activeToolDrillIn: SmartFillWorkspaceDrillInDescriptor? {
@@ -1313,87 +1298,70 @@ struct SmartFillWorkspaceView: View {
         .background(Color.white.opacity(0.04), in: Capsule())
     }
 
-    private func previewReferenceChip(_ item: SmartFillWorkspacePreviewReferenceItem) -> some View {
-        let isSelected = effectivePreviewMode == item.previewMode
-
-        return Button {
-            handlePreviewReferenceSelection(item.previewMode)
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: item.symbolName)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(isSelected ? Theme.primary : .secondary)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(item.title)
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    Text(item.value)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Theme.textPrimary)
-                        .lineLimit(1)
-                }
-
-                if isSelected && item.previewMode == .source {
-                    Image(systemName: "arrow.up.left.and.arrow.down.right")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(.secondary)
-                }
+    private func previewCompareControlGroup(_ state: SmartFillWorkspacePreviewCompareGroupState) -> some View {
+        HStack(spacing: 4) {
+            previewCompareSegment(
+                title: "Source",
+                symbolName: "film",
+                isSelected: state.selectedSegment == .source
+            ) {
+                handlePreviewReferenceSelection(.source)
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .background(
-                isSelected ? Theme.primary.opacity(0.14) : Color.white.opacity(0.04),
-                in: Capsule()
-            )
-            .overlay(
-                Capsule()
-                    .stroke(
-                        isSelected ? Theme.primary.opacity(0.45) : Color.white.opacity(0.08),
-                        lineWidth: 1
-                    )
-            )
+
+            previewCompareSegment(
+                title: "Current",
+                symbolName: "sparkles.tv",
+                isSelected: state.selectedSegment == .current
+            ) {
+                handlePreviewReferenceSelection(.result)
+            }
+
+            previewCompareSegment(
+                title: state.compareLaunchTitle,
+                symbolName: state.compareControl.symbolName,
+                isSelected: state.selectedSegment == .compare,
+                showsLaunchGlyph: true
+            ) {
+                activeSheet = .sourcePreview
+            }
         }
-        .buttonStyle(.plain)
+        .padding(4)
+        .background(Color.white.opacity(0.04), in: Capsule())
+        .overlay(
+            Capsule()
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        )
     }
 
-    private func previewCompareChip(_ item: SmartFillWorkspacePreviewCompareControl) -> some View {
-        let isSelected = activeSheet == .sourcePreview
-
-        return Button {
-            activeSheet = .sourcePreview
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: item.symbolName)
+    private func previewCompareSegment(
+        title: String,
+        symbolName: String,
+        isSelected: Bool,
+        showsLaunchGlyph: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: symbolName)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(isSelected ? Theme.primary : .secondary)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(item.title)
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    Text(item.value)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Theme.textPrimary)
-                        .lineLimit(1)
-                }
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(isSelected ? Theme.textPrimary : .secondary)
+                    .lineLimit(1)
 
-                Image(systemName: "arrow.up.left.and.arrow.down.right")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.secondary)
+                if showsLaunchGlyph {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(isSelected ? Theme.primary.opacity(0.9) : .secondary)
+                }
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
             .background(
-                isSelected ? Theme.primary.opacity(0.14) : Color.white.opacity(0.04),
-                in: Capsule()
-            )
-            .overlay(
-                Capsule()
-                    .stroke(
-                        isSelected ? Theme.primary.opacity(0.45) : Color.white.opacity(0.08),
-                        lineWidth: 1
-                    )
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(isSelected ? Theme.primary.opacity(0.18) : Color.clear)
             )
         }
         .buttonStyle(.plain)
@@ -1826,15 +1794,6 @@ struct SmartFillWorkspaceFocusItem: Equatable, Identifiable {
     var id: String { "\(title)|\(value)|\(symbolName)" }
 }
 
-struct SmartFillWorkspacePreviewReferenceItem: Equatable, Identifiable {
-    let title: String
-    let value: String
-    let symbolName: String
-    let previewMode: SmartFillWorkspacePreviewMode
-
-    var id: String { "\(title)|\(value)|\(symbolName)|\(previewMode.rawValue)" }
-}
-
 struct SmartFillWorkspacePreviewCompareControl: Equatable, Identifiable {
     let title: String
     let value: String
@@ -1842,6 +1801,30 @@ struct SmartFillWorkspacePreviewCompareControl: Equatable, Identifiable {
     let compareMode: SmartFillWorkspaceCompareViewerMode
 
     var id: String { "\(title)|\(value)|\(symbolName)|\(compareMode.title)" }
+}
+
+enum SmartFillWorkspacePreviewCompareGroupSelection: Equatable {
+    case source
+    case current
+    case compare
+}
+
+struct SmartFillWorkspacePreviewCompareGroupState: Equatable {
+    let activePreviewMode: SmartFillWorkspacePreviewMode
+    let compareControl: SmartFillWorkspacePreviewCompareControl
+    let isCompareViewerPresented: Bool
+
+    var selectedSegment: SmartFillWorkspacePreviewCompareGroupSelection {
+        if isCompareViewerPresented {
+            return .compare
+        }
+
+        return activePreviewMode == .source ? .source : .current
+    }
+
+    var compareLaunchTitle: String {
+        compareControl.compareMode == .wipe ? "Wipe" : "Compare"
+    }
 }
 
 struct SmartFillWorkspaceDrillInDescriptor: Equatable {

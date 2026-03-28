@@ -1,5 +1,46 @@
 # CODEX Thread Continuity
 
+## Ticket 045 SmartFill Pinned Preview Grouped Compare Control (2026-03-28)
+- Thread Status: phase-45 local patch landed on a fresh GM worktree, Gate A and focused parity both pass cleanly, and the grouped compare-control slice is ready to anchor as `SF-REBUILD-045`.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase45`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase45`
+- Working Head SHA: `6cb7711f6cb63fa13a5a269fbd5e31ff9d242c07`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Make the pinned preview feel more like a studio-grade grouped toolbar and less like a row of large independent chips:
+1. replace the separate `Source`, `Current`, and `Compare` preview-side chips with one compact grouped compare control
+2. keep fast inline switching between `Source` and `Current` on the pinned preview
+3. preserve a direct launch into the larger compare viewer without adding another toolbar row, tray, or scroll-heavy surface
+4. prove the grouped control state mapping in focused parity so future flagship, standalone, and macOS derivation can reuse the same compare-entry seam
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase45`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase45`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase45`
+  - `git rev-parse HEAD` -> `6cb7711f6cb63fa13a5a269fbd5e31ff9d242c07`
+  - `git status --porcelain` -> clean before phase-45 edits
+  - `git log -1 --oneline` -> `6cb7711 SF-REBUILD-044: add a compact compare affordance beside the pinned preview`
+- Truth-sync confirmed:
+  - `git -C /tmp/itfactor_smartfill_phase45 fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Next Action
+1. `SmartFillWorkspaceView` now collapses the pinned-preview compare affordance into one grouped control that owns `Source`, `Current`, and large-viewer compare entry without growing another permanent row of chrome.
+2. That grouped control keeps the current fast source/result switching behavior while tightening the preview deck into something closer to a professional editor toolbar.
+3. Focused parity now locks the grouped compare-mode mapping directly so the fixed-shell SmartFill workspace stays scalable as more flagship and standalone features arrive.
+4. Gate A PASS: `/tmp/itfactor_smartfill_phase45_gateA.log`
+5. Focused parity PASS: `/tmp/itfactor_smartfill_phase45_tests.log`
+6. xcresult: `/tmp/itfactor_smartfill_phase45_tests/Logs/Test/Test-STSiPhone-2026.03.28_13-40-48--0400.xcresult`
+
 ## Ticket 044 SmartFill Pinned Preview Compare Launcher (2026-03-28)
 - Thread Status: phase-44 local patch landed on a fresh GM worktree, Gate A and focused parity both pass cleanly, and the slice is ready to anchor as `SF-REBUILD-044`.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

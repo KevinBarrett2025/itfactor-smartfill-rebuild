@@ -1053,6 +1053,50 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertEqual(memory.previewCompareControl.compareMode, .wipe)
     }
 
+    func testPreviewCompareGroupStateUsesActivePreviewModeWhenViewerIsClosed() {
+        let sourceState = SmartFillWorkspacePreviewCompareGroupState(
+            activePreviewMode: .source,
+            compareControl: SmartFillWorkspacePreviewCompareControl(
+                title: "Compare",
+                value: "Source",
+                symbolName: "film",
+                compareMode: .source
+            ),
+            isCompareViewerPresented: false
+        )
+        let currentState = SmartFillWorkspacePreviewCompareGroupState(
+            activePreviewMode: .result,
+            compareControl: SmartFillWorkspacePreviewCompareControl(
+                title: "Compare",
+                value: "Current",
+                symbolName: "sparkles.tv",
+                compareMode: .current
+            ),
+            isCompareViewerPresented: false
+        )
+
+        XCTAssertEqual(sourceState.selectedSegment, .source)
+        XCTAssertEqual(sourceState.compareLaunchTitle, "Compare")
+        XCTAssertEqual(currentState.selectedSegment, .current)
+        XCTAssertEqual(currentState.compareLaunchTitle, "Compare")
+    }
+
+    func testPreviewCompareGroupStatePromotesCompareSegmentAndWipeTitleWhenViewerIsOpen() {
+        let state = SmartFillWorkspacePreviewCompareGroupState(
+            activePreviewMode: .result,
+            compareControl: SmartFillWorkspacePreviewCompareControl(
+                title: "Compare",
+                value: "Wipe",
+                symbolName: "rectangle.split.2x1",
+                compareMode: .wipe
+            ),
+            isCompareViewerPresented: true
+        )
+
+        XCTAssertEqual(state.selectedSegment, .compare)
+        XCTAssertEqual(state.compareLaunchTitle, "Wipe")
+    }
+
     func testWorkspacePresentationUsesReturnActionForEditorCompletion() {
         let context = makeWorkspaceContext(
             take: ProjectTake(filePath: "/tmp/original.mov", durationSeconds: 12),

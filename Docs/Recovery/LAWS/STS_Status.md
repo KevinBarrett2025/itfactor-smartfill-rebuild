@@ -52,6 +52,7 @@ _Current rebuild working baseline:_ `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 - Workspace preview now supports press-and-hold momentary compare switching between current and source states: COMPLETE (LOCAL-GATED)
 - Workspace live preview transport now supports frame-step nudging without adding a second chrome row: COMPLETE (LOCAL-GATED)
 - Workspace preview now exposes one compact compare launcher chip beside the pinned preview: COMPLETE (LOCAL-GATED)
+- Workspace preview now uses one grouped compare control instead of separate compare-side chips: COMPLETE (LOCAL-GATED)
 - Standalone derivation ledger: ACTIVE
 
 If anything above is not true, it must be reflected here.
@@ -301,6 +302,12 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase44_gateA_final.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase44_tests_final.log`
   - xcresult: `/tmp/itfactor_smartfill_phase44_tests_final/Logs/Test/Test-STSiPhone-2026.03.28_13-17-36--0400.xcresult`
+- `SF-REBUILD-045` — group the pinned preview compare control into one compact toolbar seam — `COMPLETE (LOCAL-GATED 2026-03-28)`
+  - `SmartFillWorkspaceView` now collapses the preview-side `Source`, `Current`, and compare-launch affordances into one grouped compare control so the pinned preview reads more like a studio editor toolbar and less like three separate pills.
+  - The grouped control preserves direct source/current switching, keeps a direct large-viewer compare entry, and focused parity now locks the selected-segment and launch-title mapping directly.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase45_gateA.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase45_tests.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase45_tests/Logs/Test/Test-STSiPhone-2026.03.28_13-40-48--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -324,6 +331,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Use `SF-REBUILD-044` as the new SmartFill workspace baseline and decide whether the next compare-specific upgrade should deepen inline compare-state behavior on the pinned preview or stay focused on playback fluency, but only if the fixed-shell chrome stays tight.
+1. Use `SF-REBUILD-045` as the new SmartFill workspace baseline and decide whether the next compare-specific upgrade should deepen inline compare-state behavior on the pinned preview or stay focused on playback fluency, but only if the fixed-shell chrome stays tight.
 2. Implement that next slice on GM with Gate A and focused SmartFill parity before any promotion discussion.
-3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, inline ownership model, preview-focus deck, canvas-embedded live transport, synchronized source/result compare behavior, the true shared-playhead compare viewer, the temporary split-wipe compare gesture, the explicit compact compare-mode toolbar, remembered compare-viewer state, hold-to-compare canvas behavior, frame-step transport nudging, direct canvas precision scrubbing, working entry routing, and tray-to-sheet split for deeper tools.
+3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, inline ownership model, preview-focus deck, canvas-embedded live transport, synchronized source/result compare behavior, the true shared-playhead compare viewer, the temporary split-wipe compare gesture, the explicit compact compare-mode toolbar, remembered compare-viewer state, the grouped preview-side compare control, hold-to-compare canvas behavior, frame-step transport nudging, direct canvas precision scrubbing, working entry routing, and tray-to-sheet split for deeper tools.
