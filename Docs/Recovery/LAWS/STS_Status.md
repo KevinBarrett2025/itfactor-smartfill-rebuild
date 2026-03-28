@@ -276,6 +276,12 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase40_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase40_tests.log`
   - xcresult: `/tmp/itfactor_smartfill_phase40_tests/Logs/Test/Test-STSiPhone-2026.03.28_09-08-40--0400.xcresult`
+- `SF-REBUILD-041` — add a temporary split-wipe compare gesture inside the larger viewer — `COMPLETE (LOCAL-GATED 2026-03-28)`
+  - `SmartFillWorkspaceCompareViewer` now supports a long-press-and-drag split-wipe that temporarily reveals `Source` on the left and `Current` on the right at the same playhead without adding any new permanent compare chrome.
+  - The gesture now uses `SmartFillWorkspaceCompareWipeState` to clamp divider progress, pause playback during the wipe, and restore the normal compare view as soon as the gesture ends.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase41_gateA.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase41_tests.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase41_tests/Logs/Test/Test-STSiPhone-2026.03.28_11-26-57--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -299,6 +305,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Use `SF-REBUILD-040` as the new SmartFill workspace baseline and decide whether the next editor-quality compare upgrade should be a temporary split-wipe or another compare-only gesture inside the larger viewer, but only if it keeps the workspace chrome unchanged.
+1. Use `SF-REBUILD-041` as the new SmartFill workspace baseline and decide whether the next compare-specific upgrade should preserve and reopen the larger viewer on the user’s last dominant side, but only if it keeps the workspace chrome unchanged.
 2. Implement that next slice on GM with Gate A and focused SmartFill parity before any promotion discussion.
-3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, inline ownership model, preview-focus deck, canvas-embedded live transport, synchronized source/result compare behavior, the true shared-playhead compare viewer, hold-to-compare canvas behavior, frame-step transport nudging, direct canvas precision scrubbing, working entry routing, and tray-to-sheet split for deeper tools.
+3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, inline ownership model, preview-focus deck, canvas-embedded live transport, synchronized source/result compare behavior, the true shared-playhead compare viewer, the temporary split-wipe compare gesture, hold-to-compare canvas behavior, frame-step transport nudging, direct canvas precision scrubbing, working entry routing, and tray-to-sheet split for deeper tools.

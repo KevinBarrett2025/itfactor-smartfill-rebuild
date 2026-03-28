@@ -1930,6 +1930,30 @@ struct SmartFillWorkspacePreviewCanvasScrubState: Equatable {
     }
 }
 
+struct SmartFillWorkspaceCompareWipeState: Equatable {
+    static let defaultProgress: CGFloat = 0.5
+
+    let progress: CGFloat
+
+    static func clampedProgress(for locationX: CGFloat, width: CGFloat) -> CGFloat {
+        guard width.isFinite, width > 0 else { return defaultProgress }
+        let rawProgress = locationX / width
+        guard rawProgress.isFinite else { return defaultProgress }
+        return min(max(rawProgress, 0), 1)
+    }
+
+    static func begin(locationX: CGFloat? = nil, width: CGFloat) -> SmartFillWorkspaceCompareWipeState {
+        let progress = locationX.map { clampedProgress(for: $0, width: width) } ?? defaultProgress
+        return SmartFillWorkspaceCompareWipeState(progress: progress)
+    }
+
+    func updated(locationX: CGFloat, width: CGFloat) -> SmartFillWorkspaceCompareWipeState {
+        SmartFillWorkspaceCompareWipeState(
+            progress: Self.clampedProgress(for: locationX, width: width)
+        )
+    }
+}
+
 enum SmartFillWorkspaceTool: CaseIterable {
     case background
     case subject
@@ -2891,6 +2915,7 @@ private struct SmartFillWorkspaceCompareViewer: View {
 
     @State private var selectedMode: SmartFillWorkspacePreviewMode
     @State private var isHoldingComparison = false
+    @State private var wipeState: SmartFillWorkspaceCompareWipeState?
 
     init(
         videoURL: URL,
@@ -2926,6 +2951,20 @@ private struct SmartFillWorkspaceCompareViewer: View {
         compareState.effectiveMode
     }
 
+    private var isShowingWipeCompare: Bool {
+        wipeState != nil
+    }
+
+    private var comparePlaybackState: SmartFillWorkspacePreviewPlaybackState {
+        if isShowingWipeCompare {
+            return SmartFillWorkspacePreviewPlaybackState(
+                currentTime: playbackState.currentTime.isFinite ? max(playbackState.currentTime, 0) : 0,
+                shouldPlay: false
+            )
+        }
+        return playbackState
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             ScrollView(.horizontal, showsIndicators: false) {
@@ -2946,32 +2985,51 @@ private struct SmartFillWorkspaceCompareViewer: View {
                 .padding(.horizontal, 2)
             }
 
-            ZStack {
-                SmartFillWorkspaceResultPreviewView(
-                    videoURL: videoURL,
-                    settings: settings,
-                    refreshID: refreshID,
-                    playbackState: playbackState,
-                    isActive: effectiveMode == .result,
-                    onComparePressingChanged: updateComparePressing,
-                    onPlaybackStateChange: onPlaybackStateChange,
-                    onError: onError
-                )
-                .opacity(effectiveMode == .result ? 1 : 0)
-                .allowsHitTesting(effectiveMode == .result)
+            GeometryReader { geometry in
+                ZStack {
+                    SmartFillWorkspaceResultPreviewView(
+                        videoURL: videoURL,
+                        settings: settings,
+                        refreshID: refreshID,
+                        playbackState: comparePlaybackState,
+                        isActive: isShowingWipeCompare || effectiveMode == .result,
+                        onComparePressingChanged: updateComparePressing,
+                        onPlaybackStateChange: onPlaybackStateChange,
+                        onError: onError
+                    )
+                    .opacity(isShowingWipeCompare || effectiveMode == .result ? 1 : 0)
+                    .allowsHitTesting(!isShowingWipeCompare && effectiveMode == .result)
 
-                SmartFillSourcePreviewView(
-                    videoURL: videoURL,
-                    playbackState: playbackState,
-                    isActive: effectiveMode == .source,
-                    onComparePressingChanged: updateComparePressing,
-                    onPlaybackStateChange: onPlaybackStateChange
-                )
-                .opacity(effectiveMode == .source ? 1 : 0)
-                .allowsHitTesting(effectiveMode == .source)
+                    SmartFillSourcePreviewView(
+                        videoURL: videoURL,
+                        playbackState: comparePlaybackState,
+                        isActive: isShowingWipeCompare || effectiveMode == .source,
+                        onComparePressingChanged: updateComparePressing,
+                        onPlaybackStateChange: onPlaybackStateChange
+                    )
+                    .opacity(isShowingWipeCompare ? 1 : (effectiveMode == .source ? 1 : 0))
+                    .allowsHitTesting(!isShowingWipeCompare && effectiveMode == .source)
+                    .mask(alignment: .leading) {
+                        if let wipeState {
+                            Rectangle()
+                                .frame(width: geometry.size.width * wipeState.progress)
+                        } else {
+                            Rectangle()
+                        }
+                    }
+
+                    if let wipeState {
+                        splitWipeOverlay(
+                            for: wipeState,
+                            width: geometry.size.width
+                        )
+                    }
+                }
+                .contentShape(Rectangle())
+                .highPriorityGesture(compareWipeGesture(width: geometry.size.width))
             }
             .frame(maxWidth: .infinity)
-            .frame(maxHeight: 360)
+            .frame(height: 360)
 
             if let previewErrorMessage, effectiveMode == .result {
                 Label(previewErrorMessage, systemImage: "exclamationmark.triangle.fill")
@@ -3032,6 +3090,73 @@ private struct SmartFillWorkspaceCompareViewer: View {
 
     private func updateComparePressing(_ isPressing: Bool) {
         isHoldingComparison = isPressing
+    }
+
+    private func compareWipeGesture(width: CGFloat) -> some Gesture {
+        LongPressGesture(minimumDuration: 0.12, maximumDistance: 40)
+            .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .local))
+            .onChanged { value in
+                switch value {
+                case .first(true):
+                    if wipeState == nil {
+                        wipeState = SmartFillWorkspaceCompareWipeState.begin(width: width)
+                    }
+                case .second(true, let drag?):
+                    let baseState = wipeState ?? SmartFillWorkspaceCompareWipeState.begin(
+                        locationX: drag.location.x,
+                        width: width
+                    )
+                    wipeState = baseState.updated(
+                        locationX: drag.location.x,
+                        width: width
+                    )
+                default:
+                    break
+                }
+            }
+            .onEnded { _ in
+                wipeState = nil
+            }
+    }
+
+    private func splitWipeOverlay(
+        for wipeState: SmartFillWorkspaceCompareWipeState,
+        width: CGFloat
+    ) -> some View {
+        let clampedX = min(max(width * wipeState.progress, 0), width)
+
+        return ZStack {
+            Rectangle()
+                .fill(.white.opacity(0.92))
+                .frame(width: 2)
+                .shadow(color: .black.opacity(0.22), radius: 5, x: 0, y: 0)
+                .frame(maxHeight: .infinity)
+                .offset(x: clampedX - (width / 2))
+
+            VStack {
+                HStack {
+                    compareEdgeBadge(title: "Source", alignment: .leading)
+                    Spacer()
+                    compareEdgeBadge(title: "Current", alignment: .trailing)
+                }
+                Spacer()
+            }
+            .padding(12)
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func compareEdgeBadge(
+        title: String,
+        alignment: Alignment
+    ) -> some View {
+        Text(title)
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(Color.black.opacity(0.62), in: Capsule())
+            .frame(maxWidth: .infinity, alignment: alignment)
     }
 }
 

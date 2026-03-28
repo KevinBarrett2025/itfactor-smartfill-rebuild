@@ -1,5 +1,47 @@
 # CODEX Thread Continuity
 
+## Ticket 041 SmartFill Compare Viewer Split-Wipe Gesture (2026-03-28)
+- Thread Status: phase-41 local patch landed on a fresh GM worktree, Gate A and focused parity both pass, and the slice is ready to anchor as `SF-REBUILD-041`.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase41`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase41`
+- Working Head SHA: `c9d8d27fa906fa695149e08d46bd11439090ac4e`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Sharpen the professional compare experience without growing the chrome again:
+1. let the larger compare viewer support a temporary split-wipe inspection gesture instead of only full-source or full-result switching
+2. keep that wipe entirely inside the large compare viewer so the main workspace chrome stays unchanged
+3. pause the shared compare playback during the wipe and restore the ordinary compare state as soon as the gesture ends
+4. prove the wipe-progress clamp rules directly in focused parity so the gesture remains deterministic as compare work continues
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase41`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase41`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase41`
+  - `git rev-parse HEAD` -> `c9d8d27fa906fa695149e08d46bd11439090ac4e`
+  - `git status --porcelain` -> two local phase-41 edits in `SmartFillWorkspaceView.swift` and `SmartFillRebuildBridgeTests.swift`
+  - `git log -1 --oneline` -> `c9d8d27 SF-REBUILD-040: turn the larger source sheet into a true compare viewer`
+- Truth-sync confirmed:
+  - `git -C /tmp/itfactor_smartfill_phase40 fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Next Action
+1. `SmartFillWorkspaceCompareViewer` now supports a long-press-and-drag split-wipe gesture inside the larger compare sheet, so users can temporarily reveal `Source` on the left and `Current` on the right without adding any permanent compare chrome.
+2. The split-wipe temporarily pauses the shared compare playback state, shows one ephemeral divider plus `Source`/`Current` edge badges, and disappears immediately when the gesture ends.
+3. `SmartFillWorkspaceCompareWipeState` now locks wipe-progress clamping and center-default behavior so the compare gesture stays bounded even when the viewer width is invalid or the drag leaves the viewer edges.
+4. Gate A PASS: `/tmp/itfactor_smartfill_phase41_gateA.log`
+5. Focused parity PASS: `/tmp/itfactor_smartfill_phase41_tests.log`
+6. xcresult: `/tmp/itfactor_smartfill_phase41_tests/Logs/Test/Test-STSiPhone-2026.03.28_11-26-57--0400.xcresult`
+7. Next best slice after this split-wipe pass: evaluate whether the larger compare viewer should remember and reopen to the user’s last dominant side, but only if that improves compare speed without adding any new permanent controls.
+
 ## Ticket 040 SmartFill True Compare Viewer Sheet (2026-03-28)
 - Thread Status: phase-40 local patch landed on a fresh GM worktree, Gate A and focused parity both pass, and the slice is ready to anchor as `SF-REBUILD-040`.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

@@ -952,6 +952,35 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         )
     }
 
+    func testCompareWipeStateClampsDividerProgressToViewerBounds() {
+        XCTAssertEqual(
+            SmartFillWorkspaceCompareWipeState.clampedProgress(for: -20, width: 240),
+            0
+        )
+        XCTAssertEqual(
+            SmartFillWorkspaceCompareWipeState.clampedProgress(for: 120, width: 240),
+            0.5
+        )
+        XCTAssertEqual(
+            SmartFillWorkspaceCompareWipeState.clampedProgress(for: 400, width: 240),
+            1
+        )
+        XCTAssertEqual(
+            SmartFillWorkspaceCompareWipeState.begin(width: 0).progress,
+            0.5
+        )
+        XCTAssertEqual(
+            SmartFillWorkspaceCompareWipeState.begin(locationX: 60, width: 240).progress,
+            0.25
+        )
+        XCTAssertEqual(
+            SmartFillWorkspaceCompareWipeState.begin(width: 240)
+                .updated(locationX: 180, width: 240)
+                .progress,
+            0.75
+        )
+    }
+
     func testWorkspacePresentationUsesReturnActionForEditorCompletion() {
         let context = makeWorkspaceContext(
             take: ProjectTake(filePath: "/tmp/original.mov", durationSeconds: 12),
