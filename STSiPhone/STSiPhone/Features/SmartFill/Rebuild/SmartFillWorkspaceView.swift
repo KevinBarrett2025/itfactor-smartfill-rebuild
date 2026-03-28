@@ -240,26 +240,19 @@ struct SmartFillWorkspaceView: View {
     }
 
     private var editorChrome: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 10) {
             ScrollView(.vertical, showsIndicators: false) {
                 activeToolSurface
             }
             .frame(maxHeight: toolTrayHeight)
+            .padding(.horizontal, 2)
 
             toolRail
         }
-        .padding(.horizontal, Theme.Layout.screenPadding)
+        .padding(.horizontal, 16)
         .padding(.top, 12)
-        .padding(.bottom, 16)
-        .background(
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .fill(SmartFillWorkspacePalette.chromeFill)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        .stroke(SmartFillWorkspacePalette.chromeStroke, lineWidth: 1)
-                )
-                .ignoresSafeArea(edges: .bottom)
-        )
+        .padding(.bottom, 14)
+        .background(editorChromeBackground)
     }
 
     @ViewBuilder
@@ -398,26 +391,26 @@ struct SmartFillWorkspaceView: View {
     }
 
     private var toolRail: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             ForEach(SmartFillWorkspaceTool.allCases, id: \.self) { tool in
                 Button {
                     activeTool = tool
                 } label: {
                     VStack(spacing: 6) {
                         Image(systemName: tool.symbolName)
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.system(size: 15, weight: .semibold))
                         Text(tool.shortTitle)
                             .font(.caption2.weight(.semibold))
                     }
                     .foregroundStyle(activeTool == tool ? SmartFillWorkspacePalette.textPrimary : .secondary)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 9)
                     .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        RoundedRectangle(cornerRadius: 13, style: .continuous)
                             .fill(activeTool == tool ? SmartFillWorkspacePalette.accent.opacity(0.18) : Color.white.opacity(0.04))
                     )
                     .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        RoundedRectangle(cornerRadius: 13, style: .continuous)
                             .stroke(activeTool == tool ? SmartFillWorkspacePalette.accent.opacity(0.6) : Color.white.opacity(0.08), lineWidth: 1)
                     )
                 }
@@ -427,7 +420,7 @@ struct SmartFillWorkspaceView: View {
     }
 
     private var lookSurface: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 12) {
             toolSectionHeader("Background", value: SmartFillWorkspacePresentation.backgroundModeTitle(for: settings))
 
             compactToolGroup(title: "Mode", value: SmartFillWorkspacePresentation.backgroundModeTitle(for: settings)) {
@@ -476,11 +469,11 @@ struct SmartFillWorkspaceView: View {
                 backgroundDetailSurface(for: activeBackgroundDetail)
             }
         }
-        .padding(18)
+        .padding(.vertical, 14)
     }
 
     private var framingSurface: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             toolSectionHeader("Subject", value: String(format: "%.2f×", settings.foregroundScale))
 
             compactToolGroup(title: "Scale", value: String(format: "%.2f×", settings.foregroundScale)) {
@@ -518,11 +511,11 @@ struct SmartFillWorkspaceView: View {
                 }
             }
         }
-        .padding(18)
+        .padding(.vertical, 14)
     }
 
     private var outputSurface: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             toolSectionHeader("Output", value: "\(Int(settings.renderSize.width))×\(Int(settings.renderSize.height))")
 
             compactToolGroup(title: "Resolution", value: "\(Int(settings.renderSize.width))×\(Int(settings.renderSize.height))") {
@@ -559,7 +552,7 @@ struct SmartFillWorkspaceView: View {
                 }
             }
         }
-        .padding(18)
+        .padding(.vertical, 14)
     }
 
     private var saveSurface: some View {
@@ -647,7 +640,7 @@ struct SmartFillWorkspaceView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(18)
+        .padding(.vertical, 14)
     }
 
     @ViewBuilder
@@ -845,7 +838,7 @@ struct SmartFillWorkspaceView: View {
     }
 
     private var exportProgressPanel: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        trayInsetPanel(accented: true) {
             HStack {
                 Text("Save progress")
                     .font(.subheadline.weight(.semibold))
@@ -863,12 +856,10 @@ struct SmartFillWorkspaceView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .padding(14)
-        .background(Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private func returnControlPanel(for record: SmartFillResultBridgeRecord) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        trayInsetPanel(accented: true) {
             HStack {
                 Label("Saved and ready", systemImage: "checkmark.circle.fill")
                     .font(.subheadline.weight(.semibold))
@@ -890,12 +881,10 @@ struct SmartFillWorkspaceView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .padding(14)
-        .background(Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private func stayComparisonPanel(for record: SmartFillResultBridgeRecord) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        trayInsetPanel(accented: true) {
             Label("Saved and staying here", systemImage: "eye.fill")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(SmartFillWorkspacePalette.accent)
@@ -910,8 +899,6 @@ struct SmartFillWorkspaceView: View {
             .font(.caption)
             .foregroundStyle(.secondary)
         }
-        .padding(14)
-        .background(Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private var blurRadiusBinding: Binding<Double> {
@@ -971,6 +958,22 @@ struct SmartFillWorkspaceView: View {
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .stroke(SmartFillWorkspacePalette.panelStroke, lineWidth: 1)
             )
+    }
+
+    private var editorChromeBackground: some View {
+        UnevenRoundedRectangle(
+            cornerRadii: .init(topLeading: 28, bottomLeading: 0, bottomTrailing: 0, topTrailing: 28),
+            style: .continuous
+        )
+        .fill(SmartFillWorkspacePalette.chromeFill)
+        .overlay(
+            UnevenRoundedRectangle(
+                cornerRadii: .init(topLeading: 28, bottomLeading: 0, bottomTrailing: 0, topTrailing: 28),
+                style: .continuous
+            )
+            .stroke(SmartFillWorkspacePalette.chromeStroke, lineWidth: 1)
+        )
+        .ignoresSafeArea(edges: .bottom)
     }
 
     private var primaryActionTitle: String {
@@ -1135,7 +1138,7 @@ struct SmartFillWorkspaceView: View {
 
     @ViewBuilder
     private var saveOutcomePanel: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        trayInsetPanel {
             Text("What happens on save")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(SmartFillWorkspacePalette.textPrimary)
@@ -1177,13 +1180,11 @@ struct SmartFillWorkspaceView: View {
             .font(.caption)
             .foregroundStyle(.secondary)
         }
-        .padding(14)
-        .background(Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     @ViewBuilder
     private func latestSavedResultPanel(for record: SmartFillResultBridgeRecord) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        trayInsetPanel {
             Text(SmartFillWorkspacePresentation.destinationOutcomeTitle(for: record.adoptionMode))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(SmartFillWorkspacePalette.textPrimary)
@@ -1220,8 +1221,6 @@ struct SmartFillWorkspaceView: View {
                 .foregroundStyle(.orange)
             }
         }
-        .padding(14)
-        .background(Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private func presetTitle(for preset: SmartFillSettings.Preset) -> String {
@@ -1251,20 +1250,20 @@ struct SmartFillWorkspaceView: View {
             Text(value)
                 .foregroundStyle(.secondary)
         }
-        .font(.subheadline)
+        .font(.caption.weight(.medium))
     }
 
     private func toolSectionHeader(_ title: String, value: String) -> some View {
         HStack(spacing: 12) {
             Text(title)
-                .font(.headline)
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(SmartFillWorkspacePalette.textPrimary)
             Spacer()
             Text(value)
-                .font(.caption.weight(.semibold))
+                .font(.caption2.weight(.semibold))
                 .foregroundStyle(.secondary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
                 .background(Color.white.opacity(0.05), in: Capsule())
         }
     }
@@ -1283,7 +1282,7 @@ struct SmartFillWorkspaceView: View {
 
     @ViewBuilder
     private func compactToolGroup<Content: View>(title: String?, value: String?, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             if let title, let value {
                 toolSubheader(title, value: value)
             }
@@ -1308,11 +1307,11 @@ struct SmartFillWorkspaceView: View {
             HStack(spacing: 8) {
                 if let systemImage {
                     Image(systemName: systemImage)
-                        .font(.caption.weight(.semibold))
+                        .font(.caption2.weight(.semibold))
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.caption.weight(.semibold))
+                        .font(.caption2.weight(.semibold))
                     if let subtitle {
                         Text(subtitle)
                             .font(.caption2.weight(.medium))
@@ -1321,14 +1320,14 @@ struct SmartFillWorkspaceView: View {
                 }
             }
             .foregroundStyle(isSelected ? SmartFillWorkspacePalette.textPrimary : .secondary)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(isSelected ? SmartFillWorkspacePalette.accent.opacity(0.18) : Color.white.opacity(0.03))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .stroke(isSelected ? SmartFillWorkspacePalette.accent.opacity(0.6) : Color.white.opacity(0.10), lineWidth: 1)
             )
         }
@@ -1349,8 +1348,8 @@ struct SmartFillWorkspaceView: View {
                     .lineLimit(1)
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 7)
         .background(Color.white.opacity(0.05), in: Capsule())
     }
 
@@ -1370,8 +1369,8 @@ struct SmartFillWorkspaceView: View {
                     .lineLimit(1)
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 7)
         .background(Color.white.opacity(0.04), in: Capsule())
     }
 
@@ -1443,9 +1442,9 @@ struct SmartFillWorkspaceView: View {
                 }
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 8)
+            .padding(.vertical, 7)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(isSelected ? SmartFillWorkspacePalette.accent.opacity(0.18) : Color.clear)
             )
         }
@@ -1480,12 +1479,12 @@ struct SmartFillWorkspaceView: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 12)
-            .background(Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 10)
+            .background(Color.white.opacity(0.02), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
@@ -1500,8 +1499,8 @@ struct SmartFillWorkspaceView: View {
         value: Binding<Double>,
         range: ClosedRange<Double>,
         step: Double
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        ) -> some View {
+        trayInsetPanel {
             HStack(spacing: 10) {
                 Label(title, systemImage: icon)
                     .font(.caption.weight(.semibold))
@@ -1523,19 +1522,26 @@ struct SmartFillWorkspaceView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(12)
-        .background(Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private func toolSectionCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        trayInsetPanel {
+            content()
+        }
+    }
+
+    private func trayInsetPanel<Content: View>(
+        accented: Bool = false,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             content()
         }
-        .padding(16)
-        .background(SmartFillWorkspacePalette.panelFill, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .padding(14)
+        .background(Color.white.opacity(0.022), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(SmartFillWorkspacePalette.panelStroke, lineWidth: 1)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(accented ? SmartFillWorkspacePalette.accent.opacity(0.28) : Color.white.opacity(0.08), lineWidth: 1)
         )
     }
 

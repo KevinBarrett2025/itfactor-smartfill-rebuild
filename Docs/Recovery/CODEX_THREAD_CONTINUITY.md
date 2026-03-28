@@ -1,5 +1,68 @@
 # CODEX Thread Continuity
 
+## Ticket 052 Flatten SmartFill Tray Chrome Into A Studio Shelf (2026-03-28)
+- Thread Status: phase-52 is locally gated on a fresh GM worktree from anchored phase-51; the SmartFill workspace now flattens the remaining tray chrome into a denser studio shelf so the editor reads less like stacked mini-cards and more like a reusable master-editor module. Planner task `SMARTFILL-V3-200` completed separately and reinforces this direction: keep current SmartFill moving while shaping the shell as a future all-in-one editor seam instead of another SmartFill-only surface.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase52`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase52`
+- Working Head SHA: `ba6cca026d2608b7d248f46db73156c4838a05e1`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+1. keep the phase-51 inline expander behavior, but reduce the remaining stacked-card feel in the lower editor chrome
+2. make the fixed SmartFill tray read more like one anchored studio shelf with denser controls and flatter inset surfaces
+3. preserve the compare/save drill-in ownership from phase-51 while making the shell easier to reuse as a future master editor module
+4. keep the planner’s unified-editor direction compatible with what the flagship SmartFill shell is proving today
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase52`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase52`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase52`
+  - `git rev-parse HEAD` -> `ba6cca026d2608b7d248f46db73156c4838a05e1`
+  - `git status --porcelain` -> clean before phase-52 edits
+  - `git log -1 --oneline` -> `ba6cca0 SF-REBUILD-051: replace duplicate SmartFill sheets with inline studio expanders`
+- Truth-sync confirmed:
+  - `git -C /tmp/itfactor_smartfill_phase51 fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Planner convergence note:
+  - `SMARTFILL-V3-200` is `COMPLETE` in `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+  - the planner’s conclusion reinforces the current trajectory: keep SmartFill as the proving ground for a shared fixed-shell editor instead of spinning up more one-off tool shells
+
+### Completed This Pass
+- `SmartFillWorkspaceView` now uses a flatter anchored `editorChromeBackground` shelf with smaller control sizing so the lower workspace reads more like one editor module and less like a floating stack of cards.
+- The tray’s inset content now shares one studio `trayInsetPanel` language across treatment sliders, save outcome panels, save-progress panels, return-control panels, and other inline details instead of repeating chunkier panel styles.
+- Tool chips, compare controls, focus chips, status pills, and rail buttons are now denser, which keeps the phase-51 inline expanders but makes the shell feel more studio-grade and more reusable for a future all-in-one editor.
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase52/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase52_gateA build | tee /tmp/itfactor_smartfill_phase52_gateA.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase52_gateA.log`
+- Focused parity command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase52/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase52_tests -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test-without-building | tee /tmp/itfactor_smartfill_phase52_tests.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase52_tests.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase52_tests/Logs/Test/Test-STSiPhone-2026.03.28_19-44-46--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Next Action
+1. Anchor the studio-shelf flattening refactor as `SF-REBUILD-052` on `gm/smartfill-itfactor-phase52`.
+2. Use the anchored phase-52 branch as the next safe workspace baseline before the next device smoke, because the shell now keeps the inline edit ownership from phase-51 while reducing the remaining cardview feel.
+3. After that smoke, keep tightening only the highest-value editor seams so SmartFill remains a strong proving ground for the planner’s broader unified-editor architecture.
+
 ## Ticket 051 Inline Studio Expanders Replace Duplicate SmartFill Sheets (2026-03-28)
 - Thread Status: phase-51 is locally gated on a fresh GM worktree from anchored phase-50; the SmartFill workspace now keeps simple background, subject, and output adjustments inside inline studio expanders so the tray stays fixed-shell and stops duplicating the same controls across preview chips, chunky cards, and oversized modal sheets.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
