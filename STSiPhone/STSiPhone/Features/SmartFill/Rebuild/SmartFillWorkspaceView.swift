@@ -460,7 +460,7 @@ struct SmartFillWorkspaceView: View {
                 }
 
                 toolLinkChip(
-                    title: "Fine tune",
+                    title: "Adjust",
                     subtitle: activeLookAdjustment.valueLabel(for: settings),
                     systemImage: "slider.horizontal.3"
                 ) {
@@ -468,8 +468,8 @@ struct SmartFillWorkspaceView: View {
                 }
 
                 toolLinkChip(
-                    title: "Advanced",
-                    subtitle: "More",
+                    title: "Studio",
+                    subtitle: "Expanded",
                     systemImage: "ellipsis.circle"
                 ) {
                     activeSheet = .advancedLook
@@ -637,6 +637,8 @@ struct SmartFillWorkspaceView: View {
                 darkenAmount: darkenAmountBinding,
                 backgroundScale: backgroundScaleBinding
             )
+            .presentationDetents([.fraction(0.48), .large])
+            .presentationDragIndicator(.visible)
         case .backgroundFill:
             workspaceSheetContainer(
                 title: "Background fill",
@@ -2150,7 +2152,7 @@ enum SmartFillWorkspaceTool: CaseIterable {
     var shortTitle: String {
         switch self {
         case .background:
-            return "Look"
+            return "Background"
         case .subject:
             return "Subject"
         case .output:
@@ -2197,7 +2199,7 @@ enum SmartFillWorkspaceTool: CaseIterable {
             let finishTitle = SmartFillWorkspaceTreatmentPreset.allCases.first(where: { $0.matches(settings) })?.title ?? "Custom"
             let fillTitle = SmartFillWorkspaceBackgroundFillPreset.allCases.first(where: { $0.matches(settings.backgroundScale) })?.title ?? String(format: "%.1f×", settings.backgroundScale)
             return [
-                SmartFillWorkspaceFocusItem(title: "Mode", value: SmartFillWorkspacePresentation.backgroundModeTitle(for: settings), symbolName: "camera.filters"),
+                SmartFillWorkspaceFocusItem(title: "Background", value: SmartFillWorkspacePresentation.backgroundModeTitle(for: settings), symbolName: "camera.filters"),
                 SmartFillWorkspaceFocusItem(title: "Finish", value: finishTitle, symbolName: "sparkles"),
                 SmartFillWorkspaceFocusItem(title: "Fill", value: fillTitle, symbolName: "arrow.up.left.and.arrow.down.right")
             ]
@@ -2229,7 +2231,7 @@ enum SmartFillWorkspaceTool: CaseIterable {
         switch self {
         case .background:
             return SmartFillWorkspaceDrillInDescriptor(
-                title: "Fine tune",
+                title: "Adjust",
                 value: activeLookAdjustment.valueLabel(for: settings),
                 symbolName: "slider.horizontal.3",
                 sheet: .lookAdjustments
@@ -2915,12 +2917,15 @@ private struct SmartFillWorkspaceResultPreviewView: View {
     @State private var player: ModernSmartFillPlayer?
     @State private var loadedRequest: SmartFillWorkspaceResultPreviewRequest?
     @State private var loadTask: Task<Void, Never>?
+    @State private var posterTask: Task<Void, Never>?
+    @State private var posterImage: UIImage?
 
     var body: some View {
         VStack(spacing: 8) {
             if let player {
                 SmartFillWorkspaceInteractivePreviewSurface(
                     player: player,
+                    posterImage: posterImage,
                     allowsCanvasScrub: allowsCanvasScrub,
                     allowsHoldCompare: allowsHoldCompare,
                     onComparePressingChanged: onComparePressingChanged,
@@ -2946,6 +2951,7 @@ private struct SmartFillWorkspaceResultPreviewView: View {
         }
         .onDisappear {
             loadTask?.cancel()
+            posterTask?.cancel()
             player?.pause()
         }
         .onChange(of: shouldRender) { _, shouldRender in
@@ -2993,6 +2999,7 @@ private struct SmartFillWorkspaceResultPreviewView: View {
         loadTask?.cancel()
         player?.pause()
         player = nil
+        posterImage = nil
 
         loadTask = Task { @MainActor in
             do {
@@ -3003,11 +3010,37 @@ private struct SmartFillWorkspaceResultPreviewView: View {
                 guard !Task.isCancelled else { return }
 
                 player = freshPlayer
+                preparePosterImage(using: freshPlayer)
                 applyPlaybackState(playbackState, to: freshPlayer, allowPlayback: allowPlayback, force: true)
                 publishPlaybackState()
             } catch {
                 guard !Task.isCancelled else { return }
                 onError(error)
+            }
+        }
+    }
+
+    private func preparePosterImage(using player: ModernSmartFillPlayer) {
+        posterTask?.cancel()
+        let requestedTime = playbackState.currentTime
+        let targetSize = settings.renderSize
+
+        posterTask = Task {
+            do {
+                let image = try await SmartFillWorkspacePreviewPosterRenderer.makeResultPoster(
+                    from: player,
+                    requestedTime: requestedTime,
+                    targetSize: targetSize
+                )
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    posterImage = image
+                }
+            } catch {
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    posterImage = nil
+                }
             }
         }
     }
@@ -3036,12 +3069,15 @@ private struct SmartFillSourcePreviewView: View {
 
     @State private var player: ModernSmartFillPlayer?
     @State private var loadedURL: URL?
+    @State private var posterTask: Task<Void, Never>?
+    @State private var posterImage: UIImage?
 
     var body: some View {
         VStack(spacing: 8) {
             if let player {
                 SmartFillWorkspaceInteractivePreviewSurface(
                     player: player,
+                    posterImage: posterImage,
                     allowsCanvasScrub: allowsCanvasScrub,
                     allowsHoldCompare: allowsHoldCompare,
                     onComparePressingChanged: onComparePressingChanged,
@@ -3068,6 +3104,7 @@ private struct SmartFillSourcePreviewView: View {
             }
         }
         .onDisappear {
+            posterTask?.cancel()
             player?.pause()
         }
         .onChange(of: shouldRender) { _, shouldRender in
@@ -3101,11 +3138,36 @@ private struct SmartFillSourcePreviewView: View {
         }
 
         loadedURL = videoURL
+        posterImage = nil
         let item = AVPlayerItem(url: videoURL)
         let freshPlayer = ModernSmartFillPlayer(playerItem: item)
         freshPlayer.player.actionAtItemEnd = .pause
         player = freshPlayer
+        preparePosterImage(for: videoURL)
         applyPlaybackState(playbackState, to: freshPlayer, allowPlayback: allowPlayback, force: true)
+    }
+
+    private func preparePosterImage(for videoURL: URL) {
+        posterTask?.cancel()
+        let requestedTime = playbackState.currentTime
+
+        posterTask = Task {
+            do {
+                let image = try await SmartFillWorkspacePreviewPosterRenderer.makeSourcePoster(
+                    from: videoURL,
+                    requestedTime: requestedTime
+                )
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    posterImage = image
+                }
+            } catch {
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    posterImage = nil
+                }
+            }
+        }
     }
 
     private func publishPlaybackState() {
@@ -3505,6 +3567,7 @@ private struct SmartFillWorkspaceCompareViewer: View {
 
 private struct SmartFillWorkspaceInteractivePreviewSurface: View {
     @ObservedObject var player: ModernSmartFillPlayer
+    let posterImage: UIImage?
     let allowsCanvasScrub: Bool
     let allowsHoldCompare: Bool
     let onComparePressingChanged: (Bool) -> Void
@@ -3516,6 +3579,14 @@ private struct SmartFillWorkspaceInteractivePreviewSurface: View {
         GeometryReader { geometry in
             ZStack {
                 interactiveVideoSurface(width: geometry.size.width)
+
+                if let posterImage, shouldShowPoster {
+                    Image(uiImage: posterImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .allowsHitTesting(false)
+                }
 
                 if let canvasScrubState {
                     canvasScrubHUD(for: canvasScrubState)
@@ -3550,6 +3621,14 @@ private struct SmartFillWorkspaceInteractivePreviewSurface: View {
         .aspectRatio(16 / 9, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .background(Color.black, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private var shouldShowPoster: Bool {
+        SmartFillWorkspacePreviewPosterPolicy.shouldShowPoster(
+            currentTime: player.currentTime,
+            isPlaying: player.isPlaying,
+            frameStepSeconds: player.frameStepSeconds
+        ) && canvasScrubState == nil
     }
 
     @ViewBuilder
@@ -3721,5 +3800,95 @@ private func applyPlaybackState(
         }
     } else if player.isPlaying || force {
         player.pause()
+    }
+}
+
+enum SmartFillWorkspacePreviewPosterPolicy {
+    static func shouldShowPoster(
+        currentTime: Double,
+        isPlaying: Bool,
+        frameStepSeconds: Double
+    ) -> Bool {
+        guard isPlaying == false else { return false }
+        let threshold = max(frameStepSeconds * 1.5, 0.12)
+        return currentTime.isFinite == false || currentTime <= threshold
+    }
+
+    static func captureTime(
+        requestedTime: Double,
+        duration: Double?
+    ) -> CMTime {
+        let minimumSeconds = 0.05
+        let finiteDuration = duration.flatMap { $0.isFinite ? $0 : nil } ?? minimumSeconds
+        let upperBound = max(finiteDuration - minimumSeconds, minimumSeconds)
+        let clampedSeconds = min(max(requestedTime, minimumSeconds), upperBound)
+        return CMTime(seconds: clampedSeconds, preferredTimescale: 600)
+    }
+
+    static func maximumPosterSize(for targetSize: CGSize) -> CGSize {
+        let maxDimension = max(targetSize.width, targetSize.height)
+        let maxEdge = min(max(maxDimension, 640), 1280)
+        return CGSize(width: maxEdge, height: maxEdge)
+    }
+}
+
+private enum SmartFillWorkspacePreviewPosterRenderer {
+    static func makeResultPoster(
+        from player: ModernSmartFillPlayer,
+        requestedTime: Double,
+        targetSize: CGSize
+    ) async throws -> UIImage? {
+        guard let item = player.player.currentItem else { return nil }
+        return try await makePoster(
+            asset: item.asset,
+            videoComposition: item.videoComposition,
+            requestedTime: requestedTime,
+            targetSize: targetSize
+        )
+    }
+
+    static func makeSourcePoster(
+        from videoURL: URL,
+        requestedTime: Double
+    ) async throws -> UIImage? {
+        let asset = AVAsset(url: videoURL)
+        return try await makePoster(
+            asset: asset,
+            videoComposition: nil,
+            requestedTime: requestedTime,
+            targetSize: CGSize(width: 1920, height: 1080)
+        )
+    }
+
+    private static func makePoster(
+        asset: AVAsset,
+        videoComposition: AVVideoComposition?,
+        requestedTime: Double,
+        targetSize: CGSize
+    ) async throws -> UIImage? {
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.maximumSize = SmartFillWorkspacePreviewPosterPolicy.maximumPosterSize(for: targetSize)
+        if let videoComposition {
+            generator.videoComposition = videoComposition
+        }
+
+        let duration = try? await asset.load(.duration)
+        let captureTime = SmartFillWorkspacePreviewPosterPolicy.captureTime(
+            requestedTime: requestedTime,
+            duration: duration?.seconds
+        )
+
+        let cgImage = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<CGImage, Error>) in
+            generator.generateCGImageAsynchronously(for: captureTime) { image, _, error in
+                if let image {
+                    continuation.resume(returning: image)
+                } else {
+                    continuation.resume(throwing: error ?? SmartFillManagerError.invalidVideo)
+                }
+            }
+        }
+
+        return UIImage(cgImage: cgImage)
     }
 }

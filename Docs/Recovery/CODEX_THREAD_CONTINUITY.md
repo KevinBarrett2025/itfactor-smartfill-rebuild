@@ -1,5 +1,65 @@
 # CODEX Thread Continuity
 
+## Ticket 050 Restore Portrait Preview Visibility And Clarify Studio Tool Ownership (2026-03-28)
+- Thread Status: phase-50 is locally gated on a fresh GM worktree from anchored phase-49; the SmartFill workspace now preserves a visible poster frame for portrait preview at rest, uses clearer `Background` ownership instead of the vaguer `Look` label, and turns the advanced legacy sheet into a smaller studio-themed adjustments surface without regressing back into scroll-heavy settings chrome.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase50`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase50`
+- Working Head SHA: `647e0d43f5d7fe1861aa4016641f46988778f948`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+1. make the SmartFill preview surface visibly present portrait media at rest instead of reading as a black player until playback begins
+2. clarify the tool architecture so users can immediately understand where background versus subject controls live
+3. reduce reliance on the legacy advanced-look sheet by making its studio ownership clearer and smaller
+4. keep the workspace canvas-first and fixed-shell instead of growing back into stacked cards or long scrollviews
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase50`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase50`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase50`
+  - `git rev-parse HEAD` -> `647e0d43f5d7fe1861aa4016641f46988778f948`
+  - `git status --porcelain` -> clean before phase-50 edits
+  - `git log -1 --oneline` -> `647e0d4 SF-REBUILD-049: harden SmartFill preview ownership and simplify studio chrome`
+- Truth-sync confirmed:
+  - `git -C /Users/kevinbarrett/Dev/itFactor_1.23.26_git fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Completed This Pass
+- `SmartFillWorkspaceView` now captures and overlays poster frames for both result and source preview surfaces so a portrait take is visibly present before playback begins instead of reading like an empty black player.
+- Background tool ownership is now clearer in the fixed-shell chrome: the active tool short title now reads `Background`, the preview focus chip mirrors that ownership, and the drill-in action is now labeled `Adjust` instead of the vaguer `Fine tune`.
+- `SmartFillAdvancedSettingsView` now uses the cinematic `studioLobbyV1` shell with compact cards and explicit studio adjustment sections instead of the legacy pop-brand list surface.
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase50/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase50_gateA build | tee /tmp/itfactor_smartfill_phase50_gateA.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase50_gateA.log`
+- Focused parity command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase50/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase50_tests -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test-without-building | tee /tmp/itfactor_smartfill_phase50_tests_twb.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase50_tests_twb.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase50_tests/Logs/Test/Test-STSiPhone-2026.03.28_18-51-43--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Next Action
+1. Anchor `SF-REBUILD-050` on `gm/smartfill-itfactor-phase50`.
+2. Use the anchored phase-50 branch as the next safe device-test baseline because it restores a visible portrait preview-at-rest seam and clarifies background-versus-subject ownership without reopening the long-scroll chrome.
+3. After the next device smoke, tighten the studio shell further by reducing the remaining stacked-card feel and promoting compact background/subject controls where product evidence proves they should live inline.
+
 ## Ticket 049 Harden SmartFill Preview Ownership And Simplify Studio Chrome (2026-03-28)
 - Thread Status: phase-49 is locally gated on a fresh GM worktree from anchored phase-48, the SmartFill preview wrapper now avoids every explicit `AVPlayerItem` handoff when a unified preview `AVPlayer` already exists, duplicate bottom workspace actions are removed, and the rebuild workspace now uses the studio lobby theme instead of the pop-brand shell.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

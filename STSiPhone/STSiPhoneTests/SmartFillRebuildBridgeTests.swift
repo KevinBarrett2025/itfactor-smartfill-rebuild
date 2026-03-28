@@ -775,6 +775,8 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
             presetName: "Medium"
         )
 
+        XCTAssertEqual(SmartFillWorkspaceTool.background.shortTitle, "Background")
+
         let items = SmartFillWorkspaceTool.background.focusItems(
             settings: settings,
             completionBehavior: .returnAutomatically,
@@ -784,7 +786,7 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertEqual(
             items,
             [
-                SmartFillWorkspaceFocusItem(title: "Mode", value: "Balanced", symbolName: "camera.filters"),
+                SmartFillWorkspaceFocusItem(title: "Background", value: "Balanced", symbolName: "camera.filters"),
                 SmartFillWorkspaceFocusItem(title: "Finish", value: "Balanced", symbolName: "sparkles"),
                 SmartFillWorkspaceFocusItem(title: "Fill", value: "Default", symbolName: "arrow.up.left.and.arrow.down.right")
             ]
@@ -814,6 +816,21 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         )
 
         XCTAssertEqual(
+            SmartFillWorkspaceTool.background.drillInDescriptor(
+                settings: settings,
+                completionBehavior: .returnAutomatically,
+                savedTakeName: nil,
+                activeLookAdjustment: .blur
+            ),
+            SmartFillWorkspaceDrillInDescriptor(
+                title: "Adjust",
+                value: "24 px",
+                symbolName: "slider.horizontal.3",
+                sheet: .lookAdjustments
+            )
+        )
+
+        XCTAssertEqual(
             SmartFillWorkspaceTool.output.drillInDescriptor(
                 settings: settings,
                 completionBehavior: .returnAutomatically,
@@ -825,6 +842,40 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
                 value: "Fast",
                 symbolName: "bolt.fill",
                 sheet: .outputOptions
+            )
+        )
+    }
+
+    func testPreviewPosterPolicyShowsPosterOnlyForRestingOpeningFrames() {
+        XCTAssertTrue(
+            SmartFillWorkspacePreviewPosterPolicy.shouldShowPoster(
+                currentTime: 0,
+                isPlaying: false,
+                frameStepSeconds: 1.0 / 30.0
+            )
+        )
+
+        XCTAssertTrue(
+            SmartFillWorkspacePreviewPosterPolicy.shouldShowPoster(
+                currentTime: 0.06,
+                isPlaying: false,
+                frameStepSeconds: 1.0 / 24.0
+            )
+        )
+
+        XCTAssertFalse(
+            SmartFillWorkspacePreviewPosterPolicy.shouldShowPoster(
+                currentTime: 0.5,
+                isPlaying: false,
+                frameStepSeconds: 1.0 / 30.0
+            )
+        )
+
+        XCTAssertFalse(
+            SmartFillWorkspacePreviewPosterPolicy.shouldShowPoster(
+                currentTime: 0,
+                isPlaying: true,
+                frameStepSeconds: 1.0 / 30.0
             )
         )
     }
