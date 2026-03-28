@@ -58,6 +58,7 @@ _Current rebuild working baseline:_ `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 - SmartFill workspace preview no longer crashes by attaching one `AVPlayerItem` to two `AVPlayer` instances: COMPLETE (LOCAL-GATED)
 - SmartFill workspace now uses one top action owner and the cinematic studio shell while keeping the hardened preview-player ownership seam: COMPLETE (LOCAL-GATED)
 - SmartFill workspace now preserves visible portrait preview poster frames at rest and uses clearer studio background-tool ownership: COMPLETE (LOCAL-GATED)
+- SmartFill workspace now keeps simple background, subject, and output controls inline through studio expanders while reserving drill-ins for compare and save detail only: COMPLETE (LOCAL-GATED)
 - Standalone derivation ledger: ACTIVE
 
 If anything above is not true, it must be reflected here.
@@ -343,6 +344,12 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase50_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase50_tests_twb.log`
   - xcresult: `/tmp/itfactor_smartfill_phase50_tests/Logs/Test/Test-STSiPhone-2026.03.28_18-51-43--0400.xcresult`
+- `SF-REBUILD-051` — replace duplicate SmartFill sheets with inline studio expanders — `COMPLETE (LOCAL-GATED 2026-03-28)`
+  - `SmartFillWorkspaceView` now keeps background `Fill`, `Tune`, and `Studio` adjustments inline, and subject precision plus output processing choices now expand inside the same fixed tray instead of reopening repeated full-screen sheets for simple adjustments.
+  - Preview-side drill-in ownership is now stricter: background, subject, and output controls stay inline in the tray, while compare viewing and save details remain the only real drill-ins that still justify extra space.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase51_gateA.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase51_tests_rerun.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase51_tests/Logs/Test/Test-STSiPhone-2026.03.28_19-31-49--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -366,6 +373,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Use `SF-REBUILD-050` as the new SmartFill workspace baseline and take the next device smoke from there, because it preserves visible portrait preview-at-rest state while clarifying background-tool ownership and shrinking the legacy advanced surface into a studio drill-in.
+1. Use `SF-REBUILD-051` as the new SmartFill workspace baseline and take the next device smoke from there, because the tray now keeps simple background, subject, and output adjustments inline instead of reopening repeated sheets for them.
 2. Implement the next studio-shell tightening slice on GM with Gate A and focused SmartFill parity before any promotion discussion.
-3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, inline ownership model, preview-focus deck, canvas-embedded live transport, synchronized source/result compare behavior, visible poster-frame-at-rest preview behavior, stable single-owner action chrome, studio-grade theming, working entry routing, and tray-to-sheet split for deeper tools.
+3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, inline expander ownership model, preview-focus deck, canvas-embedded live transport, synchronized source/result compare behavior, visible poster-frame-at-rest preview behavior, stable single-owner action chrome, studio-grade theming, working entry routing, and tray-to-sheet split for deeper tools.

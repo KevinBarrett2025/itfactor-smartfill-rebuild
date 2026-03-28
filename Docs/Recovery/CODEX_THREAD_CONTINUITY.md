@@ -1,5 +1,65 @@
 # CODEX Thread Continuity
 
+## Ticket 051 Inline Studio Expanders Replace Duplicate SmartFill Sheets (2026-03-28)
+- Thread Status: phase-51 is locally gated on a fresh GM worktree from anchored phase-50; the SmartFill workspace now keeps simple background, subject, and output adjustments inside inline studio expanders so the tray stays fixed-shell and stops duplicating the same controls across preview chips, chunky cards, and oversized modal sheets.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase51`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase51`
+- Working Head SHA: `d94cdeffdc083a1535b7819d7499a99da4f53375`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+1. remove the duplicate background `Adjust` / `Fill` ownership that currently exists between the preview-side shortcut, the tray cards, and the simple modal sheets
+2. keep background, subject, and output controls inside the fixed SmartFill tray by using inline studio expanders instead of full-screen drill-ins for simple controls
+3. reduce the stacked-card feel in the lower editor chrome without regressing back into long scrollview settings surfaces
+4. preserve the compare viewer and save details as the only remaining real drill-ins where the extra space is still justified
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase51`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase51`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase51`
+  - `git rev-parse HEAD` -> `d94cdeffdc083a1535b7819d7499a99da4f53375`
+  - `git status --porcelain` -> clean before phase-51 edits
+  - `git log -1 --oneline` -> `d94cdef SF-REBUILD-050: restore visible portrait preview and clarify studio tool ownership`
+- Truth-sync confirmed:
+  - `git -C /tmp/itfactor_smartfill_phase50 fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Completed This Pass
+- `SmartFillWorkspaceView` now keeps background `Fill`, quick `Tune`, and the larger `Studio` treatment adjustments inline inside the tray instead of reopening them as separate sheets that repeated the same control inventory.
+- Subject precision scale and output processing-speed choices now expand inline inside the active tray, so the user can make common adjustments without leaving the fixed editor shell.
+- The preview/tool focus deck no longer advertises background, subject, or output drill-ins; only compare viewing and save details still use real sheets because those are the only remaining surfaces that still justify the extra space.
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase51/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase51_gateA build | tee /tmp/itfactor_smartfill_phase51_gateA.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase51_gateA.log`
+- Focused parity command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase51/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase51_tests -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test-without-building | tee /tmp/itfactor_smartfill_phase51_tests_rerun.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase51_tests_rerun.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase51_tests/Logs/Test/Test-STSiPhone-2026.03.28_19-31-49--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Next Action
+1. Anchor the inline-expander refactor as `SF-REBUILD-051` on `gm/smartfill-itfactor-phase51`.
+2. Use the anchored phase-51 branch as the next safe workspace baseline before the next device smoke, because the tray now keeps the simple editing adjustments inline instead of bouncing the user through repeated sheets.
+3. After that smoke, continue tightening the studio shell by removing remaining duplicated card behavior and only promoting more controls inline when they earn persistent tray ownership.
+
 ## Ticket 050 Restore Portrait Preview Visibility And Clarify Studio Tool Ownership (2026-03-28)
 - Thread Status: phase-50 is locally gated on a fresh GM worktree from anchored phase-49; the SmartFill workspace now preserves a visible poster frame for portrait preview at rest, uses clearer `Background` ownership instead of the vaguer `Look` label, and turns the advanced legacy sheet into a smaller studio-themed adjustments surface without regressing back into scroll-heavy settings chrome.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

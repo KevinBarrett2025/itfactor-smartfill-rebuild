@@ -52,6 +52,7 @@ These seams are the correct architectural anchors for the rebuild:
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspaceFollowUpRoute.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillReopenDestinationContext.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspacePresentation` (declared in `SmartFillWorkspaceView.swift`)
+- `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspaceBackgroundDetail` / inline background, subject, and output expander state (declared in `SmartFillWorkspaceView.swift`)
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspacePreviewCompareGroupState` / inline pinned-preview compare state (declared in `SmartFillWorkspaceView.swift`)
 - `STSiPhone/STSiPhone/Features/Editing/LightweightEditorViewController+ModularWiring.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillDefaultsView.swift`
@@ -131,3 +132,4 @@ These fields and APIs carry shipped SmartFill truth and must not be deleted duri
 39. Once both the pinned preview and the larger compare viewer expose the same compare modes, they must share one compare-selection source of truth. Do not reintroduce a second shadow-copy memory object just to hand compare mode or pinned wipe position back and forth on sheet open/close.
 40. Once the workspace already has a clear top toolbar, do not duplicate the same primary close/save actions in a second bottom bar. The rebuild workspace must keep one authoritative action owner so save/return intent stays obvious and the future standalone utility can inherit the same fixed-shell action model.
 41. When SmartFill moves deeper into a professional editor shell, its chrome must adopt the studio theme library instead of the legacy pop-brand palette. The flagship and future standalone utility should share the darker cinematic shell so preview, transport, and tool chrome feel like one system instead of a marketing surface bolted onto an editor.
+42. When background, subject, or output adjustments are small enough to fit inside the fixed tray, they should stay inline as studio expanders instead of reopening repetitive full-screen sheets. Reserve real drill-ins for compare viewing, save details, or controls whose content genuinely needs the extra space.

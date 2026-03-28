@@ -793,55 +793,52 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         )
     }
 
-    func testWorkspaceToolFocusUsesDrillInDescriptorsForSecondaryControls() {
+    func testWorkspaceToolFocusKeepsEditingToolsInlineAndReservesDrillInForSaveDetails() {
         let settings = SmartFillSettings(
             foregroundScale: 1.1,
             renderSize: CGSize(width: 1920, height: 1080),
             processingPriority: .high
         )
 
-        XCTAssertEqual(
+        XCTAssertNil(
             SmartFillWorkspaceTool.subject.drillInDescriptor(
                 settings: settings,
                 completionBehavior: .returnAutomatically,
                 savedTakeName: nil,
                 activeLookAdjustment: .blur
-            ),
-            SmartFillWorkspaceDrillInDescriptor(
-                title: "Precision",
-                value: "1.10×",
-                symbolName: "slider.horizontal.below.rectangle",
-                sheet: .subjectScale
             )
         )
 
-        XCTAssertEqual(
+        XCTAssertNil(
             SmartFillWorkspaceTool.background.drillInDescriptor(
                 settings: settings,
                 completionBehavior: .returnAutomatically,
                 savedTakeName: nil,
                 activeLookAdjustment: .blur
-            ),
-            SmartFillWorkspaceDrillInDescriptor(
-                title: "Adjust",
-                value: "24 px",
-                symbolName: "slider.horizontal.3",
-                sheet: .lookAdjustments
             )
         )
 
-        XCTAssertEqual(
+        XCTAssertNil(
             SmartFillWorkspaceTool.output.drillInDescriptor(
                 settings: settings,
                 completionBehavior: .returnAutomatically,
                 savedTakeName: nil,
                 activeLookAdjustment: .blur
+            )
+        )
+
+        XCTAssertEqual(
+            SmartFillWorkspaceTool.save.drillInDescriptor(
+                settings: settings,
+                completionBehavior: .returnAutomatically,
+                savedTakeName: "S1T1 SmartFill",
+                activeLookAdjustment: .blur
             ),
             SmartFillWorkspaceDrillInDescriptor(
-                title: "Processing",
-                value: "Fast",
-                symbolName: "bolt.fill",
-                sheet: .outputOptions
+                title: "Details",
+                value: "S1T1 SmartFill",
+                symbolName: "square.and.arrow.down.on.square",
+                sheet: .savePlan
             )
         )
     }

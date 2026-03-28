@@ -33,6 +33,9 @@ struct SmartFillWorkspaceView: View {
     @State private var completionBehavior: SmartFillWorkspaceCompletionBehavior
     @State private var activeTool: SmartFillWorkspaceTool = .background
     @State private var activeLookAdjustment: SmartFillWorkspaceLookAdjustment = .blur
+    @State private var activeBackgroundDetail: SmartFillWorkspaceBackgroundDetail?
+    @State private var isSubjectPrecisionExpanded = false
+    @State private var isOutputProcessingExpanded = false
     @State private var previewSelectionState = SmartFillWorkspaceCompareViewerSelectionState(selectedMode: .result)
     @State private var previewPinnedWipeProgress: CGFloat = SmartFillWorkspaceCompareWipeState.defaultProgress
     @State private var previewPlaybackState = SmartFillWorkspacePreviewPlaybackState()
@@ -110,6 +113,9 @@ struct SmartFillWorkspaceView: View {
                 autoReturnWorkItem = nil
                 activeTool = .background
                 activeLookAdjustment = .blur
+                activeBackgroundDetail = nil
+                isSubjectPrecisionExpanded = false
+                isOutputProcessingExpanded = false
                 previewSelectionState = SmartFillWorkspaceCompareViewerSelectionState(selectedMode: .result)
                 previewPinnedWipeProgress = SmartFillWorkspaceCompareWipeState.defaultProgress
                 previewPlaybackState = SmartFillWorkspacePreviewPlaybackState()
@@ -450,34 +456,27 @@ struct SmartFillWorkspaceView: View {
                 }
             }
 
-            compactToolGroup(title: "More", value: nil) {
-                toolLinkChip(
-                    title: "Fill",
-                    subtitle: activeFillPreset?.title ?? "Custom",
-                    systemImage: "arrow.up.left.and.arrow.down.right"
-                ) {
-                    activeSheet = .backgroundFill
+            compactToolGroup(
+                title: "Studio",
+                value: activeBackgroundDetail?.valueLabel(for: settings, activeLookAdjustment: activeLookAdjustment) ?? "Closed"
+            ) {
+                ForEach(SmartFillWorkspaceBackgroundDetail.allCases, id: \.self) { detail in
+                    compactToolChip(
+                        title: detail.title,
+                        subtitle: detail.shortValue(for: settings, activeLookAdjustment: activeLookAdjustment),
+                        systemImage: detail.symbolName,
+                        isSelected: activeBackgroundDetail == detail
+                    ) {
+                        toggleBackgroundDetail(detail)
+                    }
                 }
+            }
 
-                toolLinkChip(
-                    title: "Adjust",
-                    subtitle: activeLookAdjustment.valueLabel(for: settings),
-                    systemImage: "slider.horizontal.3"
-                ) {
-                    activeSheet = .lookAdjustments
-                }
-
-                toolLinkChip(
-                    title: "Studio",
-                    subtitle: "Expanded",
-                    systemImage: "ellipsis.circle"
-                ) {
-                    activeSheet = .advancedLook
-                }
+            if let activeBackgroundDetail {
+                backgroundDetailSurface(for: activeBackgroundDetail)
             }
         }
         .padding(18)
-        .background(panelBackground)
     }
 
     private var framingSurface: some View {
@@ -497,18 +496,29 @@ struct SmartFillWorkspaceView: View {
                 }
             }
 
-            compactToolGroup(title: "More", value: nil) {
-                toolLinkChip(
+            compactToolGroup(title: "Framing", value: isSubjectPrecisionExpanded ? String(format: "%.2f×", settings.foregroundScale) : "Closed") {
+                compactToolChip(
                     title: "Precision",
                     subtitle: String(format: "%.2f×", settings.foregroundScale),
-                    systemImage: "slider.horizontal.below.rectangle"
+                    systemImage: "slider.horizontal.below.rectangle",
+                    isSelected: isSubjectPrecisionExpanded
                 ) {
-                    activeSheet = .subjectScale
+                    isSubjectPrecisionExpanded.toggle()
+                }
+            }
+
+            if isSubjectPrecisionExpanded {
+                toolSectionCard {
+                    toolSubheader("Precision", value: String(format: "%.2f×", settings.foregroundScale))
+
+                    Slider(value: foregroundScaleBinding, in: 0.85...1.25, step: 0.05) {
+                        Text("Subject scale")
+                    }
+                    .tint(SmartFillWorkspacePalette.accent)
                 }
             }
         }
         .padding(18)
-        .background(panelBackground)
     }
 
     private var outputSurface: some View {
@@ -521,22 +531,35 @@ struct SmartFillWorkspaceView: View {
                 renderSizeChip(width: 3840, height: 2160, title: "4K", subtitle: "2160p")
             }
 
-            VStack(alignment: .leading, spacing: 10) {
-                toolSubheader("Speed", value: SmartFillWorkspacePresentation.processingPriorityTitle(for: settings.processingPriority))
+            compactToolGroup(
+                title: "Processing",
+                value: isOutputProcessingExpanded ? SmartFillWorkspacePresentation.processingPriorityTitle(for: settings.processingPriority) : "Closed"
+            ) {
+                compactToolChip(
+                    title: "Speed",
+                    subtitle: SmartFillWorkspacePresentation.processingPriorityTitle(for: settings.processingPriority),
+                    systemImage: "bolt.fill",
+                    isSelected: isOutputProcessingExpanded
+                ) {
+                    isOutputProcessingExpanded.toggle()
+                }
+            }
 
-                compactToolGroup(title: nil, value: nil) {
-                    toolLinkChip(
-                        title: "Processing",
-                        subtitle: SmartFillWorkspacePresentation.processingPriorityTitle(for: settings.processingPriority),
-                        systemImage: "bolt.fill"
-                    ) {
-                        activeSheet = .outputOptions
+            if isOutputProcessingExpanded {
+                toolSectionCard {
+                    toolSubheader("Speed", value: SmartFillWorkspacePresentation.processingPriorityTitle(for: settings.processingPriority))
+
+                    Picker("Processing speed", selection: processingPriorityBinding) {
+                        ForEach(SmartFillSettings.ProcessingPriority.allCases, id: \.self) { priority in
+                            Text(SmartFillWorkspacePresentation.processingPriorityTitle(for: priority))
+                                .tag(priority)
+                        }
                     }
+                    .pickerStyle(.segmented)
                 }
             }
         }
         .padding(18)
-        .background(panelBackground)
     }
 
     private var saveSurface: some View {
@@ -625,89 +648,11 @@ struct SmartFillWorkspaceView: View {
             }
         }
         .padding(18)
-        .background(panelBackground)
     }
 
     @ViewBuilder
     private func workspaceSheet(for sheet: SmartFillWorkspaceSheet) -> some View {
         switch sheet {
-        case .advancedLook:
-            SmartFillAdvancedSettingsView(
-                blurRadius: blurRadiusBinding,
-                darkenAmount: darkenAmountBinding,
-                backgroundScale: backgroundScaleBinding
-            )
-            .presentationDetents([.fraction(0.48), .large])
-            .presentationDragIndicator(.visible)
-        case .backgroundFill:
-            workspaceSheetContainer(
-                title: "Background fill",
-                subtitle: "Use the quick mode and finish choices in the tray, then pick the fill strength here when the frame needs more or less coverage."
-            ) {
-                compactToolGroup(title: "Fill", value: activeFillPreset?.title ?? "Custom") {
-                    ForEach(SmartFillWorkspaceBackgroundFillPreset.allCases, id: \.self) { preset in
-                        compactToolChip(
-                            title: preset.title,
-                            subtitle: String(format: "%.1f×", preset.scale),
-                            systemImage: activeFillPreset == preset ? "checkmark.circle.fill" : nil,
-                            isSelected: activeFillPreset == preset
-                        ) {
-                            applyBackgroundFillPreset(preset)
-                        }
-                    }
-                }
-            }
-        case .lookAdjustments:
-            workspaceSheetContainer(
-                title: "Fine tune",
-                subtitle: "Adjust blur, darkening, and fill without crowding the main tray."
-            ) {
-                compactToolGroup(title: "Adjust", value: activeLookAdjustment.valueLabel(for: settings)) {
-                    ForEach(SmartFillWorkspaceLookAdjustment.allCases, id: \.self) { adjustment in
-                        compactToolChip(
-                            title: adjustment.shortTitle,
-                            subtitle: adjustment.valueLabel(for: settings),
-                            systemImage: adjustment.symbolName,
-                            isSelected: activeLookAdjustment == adjustment
-                        ) {
-                            activeLookAdjustment = adjustment
-                        }
-                    }
-                }
-
-                activeLookAdjustmentControl
-            }
-        case .subjectScale:
-            workspaceSheetContainer(
-                title: "Subject scale",
-                subtitle: "Use presets in the main tray, then refine the framing here when the subject needs a tighter fit."
-            ) {
-                toolSectionCard {
-                    toolSubheader("Scale", value: String(format: "%.2f×", settings.foregroundScale))
-
-                    Slider(value: foregroundScaleBinding, in: 0.85...1.25, step: 0.05) {
-                        Text("Subject scale")
-                    }
-                    .tint(SmartFillWorkspacePalette.accent)
-                }
-            }
-        case .outputOptions:
-            workspaceSheetContainer(
-                title: "Processing options",
-                subtitle: "Keep resolution in the main tray and change processing speed here."
-            ) {
-                toolSectionCard {
-                    toolSubheader("Speed", value: SmartFillWorkspacePresentation.processingPriorityTitle(for: settings.processingPriority))
-
-                    Picker("Processing speed", selection: processingPriorityBinding) {
-                        ForEach(SmartFillSettings.ProcessingPriority.allCases, id: \.self) { priority in
-                            Text(SmartFillWorkspacePresentation.processingPriorityTitle(for: priority))
-                                .tag(priority)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                }
-            }
         case .savePlan:
             workspaceSheetContainer(
                 title: "Save details",
@@ -808,6 +753,94 @@ struct SmartFillWorkspaceView: View {
                 range: 1.0...15.0,
                 step: 0.5
             )
+        }
+    }
+
+    @ViewBuilder
+    private func backgroundDetailSurface(for detail: SmartFillWorkspaceBackgroundDetail) -> some View {
+        switch detail {
+        case .fill:
+            toolSectionCard {
+                toolSubheader("Fill", value: activeFillPreset?.title ?? "Custom")
+
+                compactToolGroup(title: nil, value: nil) {
+                    ForEach(SmartFillWorkspaceBackgroundFillPreset.allCases, id: \.self) { preset in
+                        compactToolChip(
+                            title: preset.title,
+                            subtitle: String(format: "%.1f×", preset.scale),
+                            systemImage: activeFillPreset == preset ? "checkmark.circle.fill" : nil,
+                            isSelected: activeFillPreset == preset
+                        ) {
+                            applyBackgroundFillPreset(preset)
+                        }
+                    }
+                }
+
+                treatmentSlider(
+                    icon: "arrow.up.left.and.arrow.down.right",
+                    title: "Background fill",
+                    valueLabel: SmartFillWorkspaceLookAdjustment.fill.valueLabel(for: settings),
+                    caption: backgroundScaleCaption(for: settings.backgroundScale),
+                    value: backgroundScaleBinding,
+                    range: 1.0...15.0,
+                    step: 0.5
+                )
+            }
+        case .tune:
+            toolSectionCard {
+                toolSubheader("Tune", value: activeLookAdjustment.valueLabel(for: settings))
+
+                compactToolGroup(title: nil, value: nil) {
+                    ForEach(SmartFillWorkspaceLookAdjustment.quickTuneCases, id: \.self) { adjustment in
+                        compactToolChip(
+                            title: adjustment.shortTitle,
+                            subtitle: adjustment.valueLabel(for: settings),
+                            systemImage: adjustment.symbolName,
+                            isSelected: activeLookAdjustment == adjustment
+                        ) {
+                            activeLookAdjustment = adjustment
+                        }
+                    }
+                }
+
+                activeLookAdjustmentControl
+            }
+        case .studio:
+            toolSectionCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    toolSubheader("Studio", value: "Blur • Darken • Fill")
+
+                    treatmentSlider(
+                        icon: SmartFillWorkspaceLookAdjustment.blur.symbolName,
+                        title: "Blur radius",
+                        valueLabel: SmartFillWorkspaceLookAdjustment.blur.valueLabel(for: settings),
+                        caption: blurCaption(for: settings.blurRadius),
+                        value: blurRadiusBinding,
+                        range: 8...50,
+                        step: 2
+                    )
+
+                    treatmentSlider(
+                        icon: SmartFillWorkspaceLookAdjustment.darken.symbolName,
+                        title: "Darken amount",
+                        valueLabel: SmartFillWorkspaceLookAdjustment.darken.valueLabel(for: settings),
+                        caption: darkenCaption(for: settings.darkenAmount),
+                        value: darkenAmountBinding,
+                        range: 0...0.3,
+                        step: 0.02
+                    )
+
+                    treatmentSlider(
+                        icon: SmartFillWorkspaceLookAdjustment.fill.symbolName,
+                        title: "Background fill",
+                        valueLabel: SmartFillWorkspaceLookAdjustment.fill.valueLabel(for: settings),
+                        caption: backgroundScaleCaption(for: settings.backgroundScale),
+                        value: backgroundScaleBinding,
+                        range: 1.0...15.0,
+                        step: 0.5
+                    )
+                }
+            }
         }
     }
 
@@ -1003,15 +1036,19 @@ struct SmartFillWorkspaceView: View {
         case (.compact, .save):
             return 205
         case (.compact, .background):
-            return 165
-        case (.compact, _):
-            return 135
+            return activeBackgroundDetail == .studio ? 285 : (activeBackgroundDetail == nil ? 170 : 245)
+        case (.compact, .subject):
+            return isSubjectPrecisionExpanded ? 175 : 130
+        case (.compact, .output):
+            return isOutputProcessingExpanded ? 175 : 135
         case (_, .save):
             return 235
         case (_, .background):
-            return 175
-        default:
-            return 145
+            return activeBackgroundDetail == .studio ? 315 : (activeBackgroundDetail == nil ? 180 : 265)
+        case (_, .subject):
+            return isSubjectPrecisionExpanded ? 190 : 145
+        case (_, .output):
+            return isOutputProcessingExpanded ? 190 : 150
         }
     }
 
@@ -1565,6 +1602,19 @@ struct SmartFillWorkspaceView: View {
         settings.backgroundScale = preset.scale
         settings.forceUpdateToken = UUID()
         markSettingsDirty()
+    }
+
+    private func toggleBackgroundDetail(_ detail: SmartFillWorkspaceBackgroundDetail) {
+        if activeBackgroundDetail == detail {
+            activeBackgroundDetail = nil
+            return
+        }
+
+        activeBackgroundDetail = detail
+
+        if detail == .tune, !SmartFillWorkspaceLookAdjustment.quickTuneCases.contains(activeLookAdjustment) {
+            activeLookAdjustment = .blur
+        }
     }
 
     private func applyTreatmentPreset(_ preset: SmartFillWorkspaceTreatmentPreset) {
@@ -2230,26 +2280,11 @@ enum SmartFillWorkspaceTool: CaseIterable {
     ) -> SmartFillWorkspaceDrillInDescriptor? {
         switch self {
         case .background:
-            return SmartFillWorkspaceDrillInDescriptor(
-                title: "Adjust",
-                value: activeLookAdjustment.valueLabel(for: settings),
-                symbolName: "slider.horizontal.3",
-                sheet: .lookAdjustments
-            )
+            return nil
         case .subject:
-            return SmartFillWorkspaceDrillInDescriptor(
-                title: "Precision",
-                value: String(format: "%.2f×", settings.foregroundScale),
-                symbolName: "slider.horizontal.below.rectangle",
-                sheet: .subjectScale
-            )
+            return nil
         case .output:
-            return SmartFillWorkspaceDrillInDescriptor(
-                title: "Processing",
-                value: SmartFillWorkspacePresentation.processingPriorityTitle(for: settings.processingPriority),
-                symbolName: "bolt.fill",
-                sheet: .outputOptions
-            )
+            return nil
         case .save:
             return SmartFillWorkspaceDrillInDescriptor(
                 title: "Details",
@@ -2262,21 +2297,70 @@ enum SmartFillWorkspaceTool: CaseIterable {
 }
 
 enum SmartFillWorkspaceSheet: String, Identifiable {
-    case backgroundFill
-    case lookAdjustments
-    case advancedLook
-    case subjectScale
-    case outputOptions
     case savePlan
     case sourcePreview
 
     var id: String { rawValue }
 }
 
+private enum SmartFillWorkspaceBackgroundDetail: CaseIterable {
+    case fill
+    case tune
+    case studio
+
+    var title: String {
+        switch self {
+        case .fill:
+            return "Fill"
+        case .tune:
+            return "Tune"
+        case .studio:
+            return "Studio"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .fill:
+            return "arrow.up.left.and.arrow.down.right"
+        case .tune:
+            return "slider.horizontal.3"
+        case .studio:
+            return "dial.medium"
+        }
+    }
+
+    func shortValue(for settings: SmartFillSettings, activeLookAdjustment: SmartFillWorkspaceLookAdjustment) -> String {
+        switch self {
+        case .fill:
+            return SmartFillWorkspaceBackgroundFillPreset.allCases.first(where: { $0.matches(settings.backgroundScale) })?.title ?? "Custom"
+        case .tune:
+            return activeLookAdjustment.valueLabel(for: settings)
+        case .studio:
+            return "Deep"
+        }
+    }
+
+    func valueLabel(for settings: SmartFillSettings, activeLookAdjustment: SmartFillWorkspaceLookAdjustment) -> String {
+        switch self {
+        case .fill:
+            return shortValue(for: settings, activeLookAdjustment: activeLookAdjustment)
+        case .tune:
+            return "\(activeLookAdjustment.shortTitle) • \(activeLookAdjustment.valueLabel(for: settings))"
+        case .studio:
+            return "Expanded"
+        }
+    }
+}
+
 enum SmartFillWorkspaceLookAdjustment: CaseIterable {
     case blur
     case darken
     case fill
+
+    static var quickTuneCases: [SmartFillWorkspaceLookAdjustment] {
+        [.blur, .darken]
+    }
 
     var shortTitle: String {
         switch self {

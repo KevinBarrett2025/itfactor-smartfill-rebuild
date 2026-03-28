@@ -64,6 +64,7 @@ Rules:
 - The pinned preview and the larger compare viewer now also share one compare-selection seam directly, so compare mode and pinned wipe position no longer rely on a second shadow-copy object during sheet open/close.
 - The SmartFill preview wrapper now also avoids every explicit `AVPlayerItem` handoff when a unified preview `AVPlayer` already exists, and the workspace now removes the duplicate bottom save bar while shifting into the darker `studioLobbyV1` shell.
 - The SmartFill workspace now also preserves a visible poster frame for portrait media at rest, uses clearer `Background` ownership in the fixed-shell chrome, and turns the old advanced sheet into a smaller studio adjustments drill-in.
+- The SmartFill workspace now also keeps simple background, subject, and output adjustments inline through compact studio expanders, so only compare viewing and save details still open as real drill-ins.
 - `authority/main` now exists remotely and locally at the untouched Jan 23 baseline.
 
 ---
@@ -118,6 +119,7 @@ Rules:
 | 5M | SF-REBUILD-048 | Stop the SmartFill preview `AVPlayerItem` reuse crash | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase48_gateA_rerun.log`; focused parity PASS `/tmp/itfactor_smartfill_phase48_tests_rerun.log`; the unified preview `AVPlayer` now stays authoritative instead of being re-wrapped around the same `AVPlayerItem` inside `ModernSmartFillPlayer` |
 | 5N | SF-REBUILD-049 | Harden SmartFill preview ownership and simplify studio chrome | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase49_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase49_tests_rerun.log`; the preview wrapper now keeps one authoritative `AVPlayer` with no explicit item handoff, the duplicate bottom save bar is removed, and the workspace now uses the cinematic `studioLobbyV1` shell |
 | 5O | SF-REBUILD-050 | Restore visible portrait preview and clarify studio tool ownership | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase50_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase50_tests_twb.log`; the workspace now shows a visible poster frame for portrait media at rest, uses clearer `Background` ownership in the preview/tray chrome, and shrinks the old advanced sheet into a studio adjustments drill-in |
+| 5P | SF-REBUILD-051 | Replace duplicate SmartFill sheets with inline studio expanders | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase51_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase51_tests_rerun.log`; the workspace now keeps fill/tune/studio background adjustments plus subject precision and output processing inline in the tray, so compare viewing and save details are the only remaining real drill-ins |
 
 ---
 
@@ -138,6 +140,6 @@ Rules:
 ---
 
 ## Next Action
-1. Use `SF-REBUILD-050` as the next safe workspace baseline for a device smoke before choosing the next intentional studio-shell tightening slice. The current shell now keeps live playback, momentary compare, precise frame-step nudging, direct canvas precision scrubbing, one shared compare-selection seam, one top action owner, the cinematic studio shell, and a visible portrait poster frame at rest instead of a black preview.
+1. Use `SF-REBUILD-051` as the next safe workspace baseline for a device smoke before choosing the next intentional studio-shell tightening slice. The current shell now keeps live playback, momentary compare, precise frame-step nudging, direct canvas precision scrubbing, one shared compare-selection seam, one top action owner, the cinematic studio shell, a visible portrait poster frame at rest, and inline studio expanders for simple adjustments instead of repeated sheets.
 2. Implement that slice on GM, then rerun Gate A plus focused SmartFill parity before any promotion discussion.
-3. Keep the standalone derivation ledger in sync while future shared-workspace chrome, visible preview-at-rest behavior, clearer background/subject ownership, synchronized compare states, and any deeper preview/live-transport work lands.
+3. Keep the standalone derivation ledger in sync while future shared-workspace chrome, visible preview-at-rest behavior, clearer background/subject ownership, inline studio expander ownership, synchronized compare states, and any deeper preview/live-transport work lands.
