@@ -1,5 +1,47 @@
 # CODEX Thread Continuity
 
+## Ticket 043 SmartFill Compare Viewer Last-Mode Memory (2026-03-28)
+- Thread Status: phase-43 local patch landed on a fresh GM worktree, Gate A and focused parity both pass, and the slice is ready to anchor as `SF-REBUILD-043`.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase43`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase43`
+- Working Head SHA: `385d40f3a114617240040d14966d63ef31e2c440`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Sharpen the professional compare experience without adding more chrome:
+1. keep the larger compare viewer on the user's last chosen compare mode when the sheet closes and reopens
+2. preserve the pinned wipe divider position when the user intentionally leaves the compare viewer in `Wipe` mode
+3. reset that memory only when a brand-new SmartFill workspace session starts so compare work remains fast inside one editing session
+4. prove the remembered compare-state seam directly in focused parity so future standalone derivation can reuse the same behavior
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase43`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase43`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase43`
+  - `git rev-parse HEAD` -> `385d40f3a114617240040d14966d63ef31e2c440`
+  - `git status --porcelain` -> two local phase-43 edits in `SmartFillWorkspaceView.swift` and `SmartFillRebuildBridgeTests.swift`
+  - `git log -1 --oneline` -> `385d40f SF-REBUILD-042: compact the compare viewer into an explicit mode toolbar`
+- Truth-sync confirmed:
+  - `git -C /tmp/itfactor_smartfill_phase42 fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Next Action
+1. `SmartFillWorkspaceView` now owns one explicit compare-viewer memory seam, so closing and reopening the larger compare sheet restores the user's last `Source`, `Current`, or pinned `Wipe` state instead of snapping back to the default compare mode.
+2. The pinned wipe divider position now survives sheet reopen within the same SmartFill workspace session, while a brand-new workspace session still resets the compare memory to a clean default.
+3. Focused parity now locks that remembered compare-state seam directly so future workspace and standalone derivation work can reuse it without drifting back into ephemeral sheet-local state.
+4. Gate A PASS: `/tmp/itfactor_smartfill_phase43_gateA_rerun.log`
+5. Focused parity PASS: `/tmp/itfactor_smartfill_phase43_tests_rerun.log`
+6. xcresult: `/tmp/itfactor_smartfill_phase43_tests_rerun/Logs/Test/Test-STSiPhone-2026.03.28_12-49-42--0400.xcresult`
+7. Next best slice after this compare-memory pass: decide whether the pinned preview itself needs one equally compact compare affordance or whether compare speed is now better served by richer live-state behavior inside the existing preview surface.
+
 ## Ticket 042 SmartFill Compare Viewer Explicit Mode Toolbar (2026-03-28)
 - Thread Status: phase-42 local patch landed on a fresh GM worktree, Gate A and focused parity both pass, and the slice is ready to anchor as `SF-REBUILD-042`.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

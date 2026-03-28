@@ -24,6 +24,7 @@ struct SmartFillWorkspaceView: View {
     @State private var previewMode: SmartFillWorkspacePreviewMode = .result
     @State private var previewPlaybackState = SmartFillWorkspacePreviewPlaybackState()
     @State private var isHoldingPreviewComparison = false
+    @State private var compareViewerMemoryState = SmartFillWorkspaceCompareViewerMemoryState()
 
     private let workspaceDefaults: SmartFillWorkspaceDefaults
 
@@ -98,6 +99,7 @@ struct SmartFillWorkspaceView: View {
                 activeLookAdjustment = .blur
                 previewMode = .result
                 previewPlaybackState = SmartFillWorkspacePreviewPlaybackState()
+                compareViewerMemoryState = SmartFillWorkspaceCompareViewerMemoryState()
                 activeSheet = nil
             }
             .onReceive(NotificationCenter.default.publisher(for: .smartFillProcessingProgress)) { notification in
@@ -698,6 +700,8 @@ struct SmartFillWorkspaceView: View {
                     settings: settings,
                     refreshID: previewRefreshIdentity,
                     playbackState: previewPlaybackState,
+                    selectionState: $compareViewerMemoryState.selectionState,
+                    pinnedWipeProgress: $compareViewerMemoryState.pinnedWipeProgress,
                     sourceTitle: SmartFillWorkspacePresentation.sourcePreviewTitle(for: context),
                     resultTitle: SmartFillWorkspacePresentation.previewResultTitle(
                         adoptedTakeDisplayName: coordinator.lastResult?.adoptedTakeDisplayName
@@ -2007,6 +2011,11 @@ struct SmartFillWorkspaceCompareViewerSelectionState: Equatable {
     }
 }
 
+struct SmartFillWorkspaceCompareViewerMemoryState: Equatable {
+    var selectionState = SmartFillWorkspaceCompareViewerSelectionState()
+    var pinnedWipeProgress: CGFloat = SmartFillWorkspaceCompareWipeState.defaultProgress
+}
+
 enum SmartFillWorkspaceTool: CaseIterable {
     case background
     case subject
@@ -2960,22 +2969,24 @@ private struct SmartFillWorkspaceCompareViewer: View {
     let settings: SmartFillSettings
     let refreshID: String
     let playbackState: SmartFillWorkspacePreviewPlaybackState
+    @Binding var selectionState: SmartFillWorkspaceCompareViewerSelectionState
+    @Binding var pinnedWipeProgress: CGFloat
     let sourceTitle: String
     let resultTitle: String
     let previewErrorMessage: String?
     let onPlaybackStateChange: (SmartFillWorkspacePreviewPlaybackState) -> Void
     let onError: (Error) -> Void
 
-    @State private var selectionState = SmartFillWorkspaceCompareViewerSelectionState()
     @State private var isHoldingComparison = false
     @State private var temporaryWipeState: SmartFillWorkspaceCompareWipeState?
-    @State private var pinnedWipeProgress: CGFloat = SmartFillWorkspaceCompareWipeState.defaultProgress
 
     init(
         videoURL: URL,
         settings: SmartFillSettings,
         refreshID: String,
         playbackState: SmartFillWorkspacePreviewPlaybackState,
+        selectionState: Binding<SmartFillWorkspaceCompareViewerSelectionState>,
+        pinnedWipeProgress: Binding<CGFloat>,
         sourceTitle: String,
         resultTitle: String,
         previewErrorMessage: String?,
@@ -2986,6 +2997,8 @@ private struct SmartFillWorkspaceCompareViewer: View {
         self.settings = settings
         self.refreshID = refreshID
         self.playbackState = playbackState
+        self._selectionState = selectionState
+        self._pinnedWipeProgress = pinnedWipeProgress
         self.sourceTitle = sourceTitle
         self.resultTitle = resultTitle
         self.previewErrorMessage = previewErrorMessage

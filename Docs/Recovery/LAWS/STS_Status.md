@@ -288,6 +288,12 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase42_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase42_tests_rerun.log`
   - xcresult: `/tmp/itfactor_smartfill_phase42_tests_rerun/Logs/Test/Test-STSiPhone-2026.03.28_12-22-13--0400.xcresult`
+- `SF-REBUILD-043` — preserve last compare mode across viewer reopen — `COMPLETE (LOCAL-GATED 2026-03-28)`
+  - `SmartFillWorkspaceView` now owns one explicit compare-viewer memory seam, so the larger compare sheet restores the user's last `Source`, `Current`, or pinned `Wipe` state instead of resetting every time the sheet is reopened.
+  - The pinned wipe divider position now survives compare-sheet reopen within the same workspace session, and focused parity locks that remembered compare-state behavior directly.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase43_gateA_rerun.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase43_tests_rerun.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase43_tests_rerun/Logs/Test/Test-STSiPhone-2026.03.28_12-49-42--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -311,6 +317,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Use `SF-REBUILD-042` as the new SmartFill workspace baseline and decide whether the next compare-specific upgrade should preserve and reopen the larger viewer on the user’s last dominant mode or surface one equally compact compare affordance beside the pinned preview, but only if the fixed-shell chrome stays tight.
+1. Use `SF-REBUILD-043` as the new SmartFill workspace baseline and decide whether the next compare-specific upgrade should surface one equally compact compare affordance beside the pinned preview or deepen live-state compare behavior inside the existing preview surface, but only if the fixed-shell chrome stays tight.
 2. Implement that next slice on GM with Gate A and focused SmartFill parity before any promotion discussion.
-3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, inline ownership model, preview-focus deck, canvas-embedded live transport, synchronized source/result compare behavior, the true shared-playhead compare viewer, the temporary split-wipe compare gesture, the explicit compact compare-mode toolbar, hold-to-compare canvas behavior, frame-step transport nudging, direct canvas precision scrubbing, working entry routing, and tray-to-sheet split for deeper tools.
+3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, inline ownership model, preview-focus deck, canvas-embedded live transport, synchronized source/result compare behavior, the true shared-playhead compare viewer, the temporary split-wipe compare gesture, the explicit compact compare-mode toolbar, remembered compare-viewer state, hold-to-compare canvas behavior, frame-step transport nudging, direct canvas precision scrubbing, working entry routing, and tray-to-sheet split for deeper tools.

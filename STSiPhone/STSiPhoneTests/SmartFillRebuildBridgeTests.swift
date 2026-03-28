@@ -1016,6 +1016,21 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertTrue(state.isPinnedWipeMode)
     }
 
+    func testCompareViewerMemoryStatePreservesLastModeAndPinnedDividerAcrossReopen() {
+        var memory = SmartFillWorkspaceCompareViewerMemoryState()
+
+        memory.selectionState.selectToolbarMode(.current)
+        memory.selectionState.selectToolbarMode(.wipe)
+        memory.pinnedWipeProgress = 0.72
+
+        let reopened = memory
+
+        XCTAssertEqual(reopened.selectionState.selectedMode, .result)
+        XCTAssertEqual(reopened.selectionState.toolbarMode, .wipe)
+        XCTAssertTrue(reopened.selectionState.isPinnedWipeMode)
+        XCTAssertEqual(reopened.pinnedWipeProgress, 0.72, accuracy: 0.0001)
+    }
+
     func testWorkspacePresentationUsesReturnActionForEditorCompletion() {
         let context = makeWorkspaceContext(
             take: ProjectTake(filePath: "/tmp/original.mov", durationSeconds: 12),
