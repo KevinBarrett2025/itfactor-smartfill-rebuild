@@ -232,13 +232,14 @@ struct SmartFillWorkspaceView: View {
 
     @ViewBuilder
     private var activePreviewContent: some View {
+        let compareViewerPresented = activeSheet == .sourcePreview
         ZStack {
             SmartFillWorkspaceResultPreviewView(
                 videoURL: context.previewURL,
                 settings: settings,
                 refreshID: previewRefreshIdentity,
                 playbackState: previewPlaybackState,
-                isActive: effectivePreviewMode == .result,
+                isActive: effectivePreviewMode == .result && !compareViewerPresented,
                 onComparePressingChanged: updatePreviewComparePressing,
                 onPlaybackStateChange: updatePreviewPlaybackState
             ) { error in
@@ -250,7 +251,7 @@ struct SmartFillWorkspaceView: View {
             SmartFillSourcePreviewView(
                 videoURL: context.previewURL,
                 playbackState: previewPlaybackState,
-                isActive: effectivePreviewMode == .source,
+                isActive: effectivePreviewMode == .source && !compareViewerPresented,
                 onComparePressingChanged: updatePreviewComparePressing,
                 onPlaybackStateChange: updatePreviewPlaybackState
             )
@@ -686,41 +687,25 @@ struct SmartFillWorkspaceView: View {
             }
         case .sourcePreview:
             workspaceSheetContainer(
-                title: "Original source",
-                subtitle: SmartFillWorkspacePresentation.sourcePreviewMessage(
+                title: "Compare",
+                subtitle: SmartFillWorkspacePresentation.compareViewerMessage(
                     for: context,
-                    adoptedTakeDisplayName: coordinator.lastResult?.adoptedTakeDisplayName,
-                    previewMode: previewMode
+                    adoptedTakeDisplayName: coordinator.lastResult?.adoptedTakeDisplayName
                 )
             ) {
-                toolSectionCard {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            statusPill(
-                                icon: "film",
-                                title: "Source",
-                                value: SmartFillWorkspacePresentation.sourcePreviewTitle(for: context)
-                            )
-                            statusPill(
-                                icon: "sparkles.tv",
-                                title: "Current",
-                                value: SmartFillWorkspacePresentation.previewResultTitle(
-                                    adoptedTakeDisplayName: coordinator.lastResult?.adoptedTakeDisplayName
-                                )
-                            )
-                        }
-                        .padding(.horizontal, 2)
-                    }
-
-                    SmartFillSourcePreviewView(
-                        videoURL: context.previewURL,
-                        playbackState: previewPlaybackState,
-                        isActive: true,
-                        onComparePressingChanged: { _ in },
-                        onPlaybackStateChange: updatePreviewPlaybackState
-                    )
-                        .frame(maxWidth: .infinity)
-                        .frame(maxHeight: 360)
+                SmartFillWorkspaceCompareViewer(
+                    videoURL: context.previewURL,
+                    settings: settings,
+                    refreshID: previewRefreshIdentity,
+                    playbackState: previewPlaybackState,
+                    sourceTitle: SmartFillWorkspacePresentation.sourcePreviewTitle(for: context),
+                    resultTitle: SmartFillWorkspacePresentation.previewResultTitle(
+                        adoptedTakeDisplayName: coordinator.lastResult?.adoptedTakeDisplayName
+                    ),
+                    previewErrorMessage: previewErrorMessage,
+                    onPlaybackStateChange: updatePreviewPlaybackState
+                ) { error in
+                    previewErrorMessage = error.localizedDescription
                 }
             }
         }
@@ -2504,6 +2489,14 @@ enum SmartFillWorkspacePresentation {
         adoptedTakeDisplayName ?? "Live SmartFill"
     }
 
+    static func compareViewerMessage(
+        for context: SmartFillSettingsContext,
+        adoptedTakeDisplayName: String? = nil
+    ) -> String {
+        let resultTitle = previewResultTitle(adoptedTakeDisplayName: adoptedTakeDisplayName)
+        return "Inspect the untouched source clip for “\(context.displayName)” and \(resultTitle) in a larger compare viewer at the same playhead."
+    }
+
     static func sourcePreviewMessage(
         for context: SmartFillSettingsContext,
         adoptedTakeDisplayName: String? = nil,
@@ -2882,6 +2875,163 @@ private struct SmartFillSourcePreviewView: View {
                 shouldPlay: player.isPlaying
             )
         )
+    }
+}
+
+private struct SmartFillWorkspaceCompareViewer: View {
+    let videoURL: URL
+    let settings: SmartFillSettings
+    let refreshID: String
+    let playbackState: SmartFillWorkspacePreviewPlaybackState
+    let sourceTitle: String
+    let resultTitle: String
+    let previewErrorMessage: String?
+    let onPlaybackStateChange: (SmartFillWorkspacePreviewPlaybackState) -> Void
+    let onError: (Error) -> Void
+
+    @State private var selectedMode: SmartFillWorkspacePreviewMode
+    @State private var isHoldingComparison = false
+
+    init(
+        videoURL: URL,
+        settings: SmartFillSettings,
+        refreshID: String,
+        playbackState: SmartFillWorkspacePreviewPlaybackState,
+        sourceTitle: String,
+        resultTitle: String,
+        previewErrorMessage: String?,
+        onPlaybackStateChange: @escaping (SmartFillWorkspacePreviewPlaybackState) -> Void,
+        onError: @escaping (Error) -> Void
+    ) {
+        self.videoURL = videoURL
+        self.settings = settings
+        self.refreshID = refreshID
+        self.playbackState = playbackState
+        self.sourceTitle = sourceTitle
+        self.resultTitle = resultTitle
+        self.previewErrorMessage = previewErrorMessage
+        self.onPlaybackStateChange = onPlaybackStateChange
+        self.onError = onError
+        _selectedMode = State(initialValue: .source)
+    }
+
+    private var compareState: SmartFillWorkspacePreviewCompareState {
+        SmartFillWorkspacePreviewCompareState(
+            selectedMode: selectedMode,
+            isHoldingComparison: isHoldingComparison
+        )
+    }
+
+    private var effectiveMode: SmartFillWorkspacePreviewMode {
+        compareState.effectiveMode
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    compareModeChip(
+                        title: "Source",
+                        value: sourceTitle,
+                        symbolName: "film",
+                        mode: .source
+                    )
+                    compareModeChip(
+                        title: "Current",
+                        value: resultTitle,
+                        symbolName: "sparkles.tv",
+                        mode: .result
+                    )
+                }
+                .padding(.horizontal, 2)
+            }
+
+            ZStack {
+                SmartFillWorkspaceResultPreviewView(
+                    videoURL: videoURL,
+                    settings: settings,
+                    refreshID: refreshID,
+                    playbackState: playbackState,
+                    isActive: effectiveMode == .result,
+                    onComparePressingChanged: updateComparePressing,
+                    onPlaybackStateChange: onPlaybackStateChange,
+                    onError: onError
+                )
+                .opacity(effectiveMode == .result ? 1 : 0)
+                .allowsHitTesting(effectiveMode == .result)
+
+                SmartFillSourcePreviewView(
+                    videoURL: videoURL,
+                    playbackState: playbackState,
+                    isActive: effectiveMode == .source,
+                    onComparePressingChanged: updateComparePressing,
+                    onPlaybackStateChange: onPlaybackStateChange
+                )
+                .opacity(effectiveMode == .source ? 1 : 0)
+                .allowsHitTesting(effectiveMode == .source)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(maxHeight: 360)
+
+            if let previewErrorMessage, effectiveMode == .result {
+                Label(previewErrorMessage, systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+        }
+        .padding(16)
+        .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.white.opacity(0.10), lineWidth: 1)
+        )
+    }
+
+    private func compareModeChip(
+        title: String,
+        value: String,
+        symbolName: String,
+        mode: SmartFillWorkspacePreviewMode
+    ) -> some View {
+        let isSelected = selectedMode == mode
+
+        return Button {
+            selectedMode = mode
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: symbolName)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(isSelected ? Theme.primary : .secondary)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Text(value)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.textPrimary)
+                        .lineLimit(1)
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(
+                isSelected ? Theme.primary.opacity(0.14) : Color.white.opacity(0.04),
+                in: Capsule()
+            )
+            .overlay(
+                Capsule()
+                    .stroke(
+                        isSelected ? Theme.primary.opacity(0.45) : Color.white.opacity(0.08),
+                        lineWidth: 1
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func updateComparePressing(_ isPressing: Bool) {
+        isHoldingComparison = isPressing
     }
 }
 

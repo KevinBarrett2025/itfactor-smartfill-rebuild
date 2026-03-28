@@ -1,6 +1,6 @@
 # SmartFill itFactor Rebuild Audit
 
-Date: 2026-03-27
+Date: 2026-03-28
 Repo: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
 Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only)
 
@@ -118,3 +118,4 @@ These fields and APIs carry shipped SmartFill truth and must not be deleted duri
 28. Live playback transport should feel attached to the preview canvas itself. When the workspace already has a pinned preview, play/pause, scrubbing, and paused-state affordances should stay embedded in that canvas instead of appearing as a disconnected slab beneath it.
 29. Preview comparison should stay low-chrome and gesture-friendly. When source and result previews already share one playback seam, the workspace should support momentary hold-to-compare on the canvas instead of growing another persistent compare row.
 30. Once the preview already owns live transport, the next seek refinement should also stay on the canvas. Precision scrubbing belongs to direct preview gestures with temporary HUD feedback and preserved play/resume intent, not another permanent transport row or a detached timing panel.
+31. When the workspace opens a larger compare surface, it must still behave like one compare system. The larger viewer should switch between source and result at the same shared playhead and temporarily deactivate the inline preview underneath it instead of opening a disconnected source-only player with its own independent playback state.

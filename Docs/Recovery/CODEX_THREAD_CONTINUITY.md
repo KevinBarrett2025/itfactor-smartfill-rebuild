@@ -1,5 +1,47 @@
 # CODEX Thread Continuity
 
+## Ticket 040 SmartFill True Compare Viewer Sheet (2026-03-28)
+- Thread Status: phase-40 local patch landed on a fresh GM worktree, Gate A and focused parity both pass, and the slice is ready to anchor as `SF-REBUILD-040`.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase40`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase40`
+- Working Head SHA: `457dab768b2aea99123a44bad4dacd31e575b49f`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Sharpen the professional compare experience without growing the chrome again:
+1. turn the larger `Original` sheet into a true source-vs-result compare viewer instead of a disconnected source-only player
+2. keep source and result on the same shared playhead so A/B inspection feels intentional and editor-grade
+3. deactivate the inline pinned preview while the larger compare viewer is open so there is only one active playback surface at a time
+4. prove the compare-viewer language and shared-playhead rules directly in focused parity so future compare work does not drift back into duplicate preview behavior
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase40`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase40`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase40`
+  - `git rev-parse HEAD` -> `457dab768b2aea99123a44bad4dacd31e575b49f`
+  - `git status --porcelain` -> two local phase-40 edits in `SmartFillWorkspaceView.swift` and `SmartFillRebuildBridgeTests.swift`
+  - `git log -1 --oneline` -> `457dab7 SF-REBUILD-039: add precision scrub gestures to the live preview canvas`
+- Truth-sync confirmed:
+  - `git -C /tmp/itfactor_smartfill_phase40 fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Next Action
+1. `SmartFillWorkspaceView` now routes `.sourcePreview` through one `SmartFillWorkspaceCompareViewer`, so the larger compare sheet can switch between `Source` and `Current` while reusing the shared playback state and the existing hold-to-compare behavior.
+2. The pinned preview now goes inactive whenever that compare sheet is open, so the larger viewer owns the active playback session instead of competing with the canvas underneath it.
+3. `SmartFillWorkspacePresentation.compareViewerMessage(...)` now names the larger compare viewer explicitly and keeps adopted-take naming honest when a saved SmartFill result already exists.
+4. Gate A PASS: `/tmp/itfactor_smartfill_phase40_gateA.log`
+5. Focused parity PASS: `/tmp/itfactor_smartfill_phase40_tests.log`
+6. xcresult: `/tmp/itfactor_smartfill_phase40_tests/Logs/Test/Test-STSiPhone-2026.03.28_09-08-40--0400.xcresult`
+7. Next best slice after this compare-viewer pass: evaluate a temporary split-wipe or similarly precise compare-only gesture inside the larger viewer, but only if it improves A/B judgment without adding any permanent chrome to the workspace.
+
 ## Ticket 039 SmartFill Canvas Precision Scrubbing (2026-03-27)
 - Thread Status: phase-39 local patch landed on a fresh GM worktree, Gate A and focused parity both pass, and the slice is ready to anchor as `SF-REBUILD-039`.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

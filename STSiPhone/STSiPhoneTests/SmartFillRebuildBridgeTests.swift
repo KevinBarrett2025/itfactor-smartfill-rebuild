@@ -921,6 +921,10 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
             "Scrub the untouched source clip for “S1T1” here while the main editor keeps showing Live SmartFill."
         )
         XCTAssertEqual(
+            SmartFillWorkspacePresentation.compareViewerMessage(for: context),
+            "Inspect the untouched source clip for “S1T1” and Live SmartFill in a larger compare viewer at the same playhead."
+        )
+        XCTAssertEqual(
             SmartFillWorkspacePresentation.previewResultTitle(adoptedTakeDisplayName: "S1T1 SmartFill"),
             "S1T1 SmartFill"
         )
@@ -938,6 +942,13 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
                 previewMode: .source
             ),
             "Open the untouched source clip for “S1T1” in a larger viewer while the main editor stays on the original comparison state."
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.compareViewerMessage(
+                for: context,
+                adoptedTakeDisplayName: "S1T1 SmartFill"
+            ),
+            "Inspect the untouched source clip for “S1T1” and S1T1 SmartFill in a larger compare viewer at the same playhead."
         )
     }
 

@@ -13,7 +13,7 @@ Rules:
 
 ---
 
-## Board State (2026-03-27)
+## Board State (2026-03-28)
 - Shipped shell truth comes from `/Users/kevinbarrett/Dev/SelfTapeStudio` and is read-only.
 - Writable flagship integration truth lives in `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`.
 - Remote rebuild truth lives at `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`.
@@ -57,6 +57,7 @@ Rules:
 - The rebuild workspace preview now also embeds its playback transport directly into the preview canvas, so play/pause, scrubbing, and paused-state affordances feel like part of the editor surface instead of a separate slab under the player.
 - The rebuild workspace preview now also supports press-and-hold momentary compare on the canvas, so users can temporarily flip between result and source without adding another compare row to the chrome.
 - The rebuild workspace preview transport now also supports frame-step nudging inside the same compact capsule, so users can make precise preview adjustments without adding a second transport row.
+- The larger compare sheet is now also a true source-versus-result viewer that shares the same playhead and disables the inline preview while it is open, so A/B inspection happens in one active preview system instead of a disconnected source-only player.
 - `authority/main` now exists remotely and locally at the untouched Jan 23 baseline.
 
 ---
@@ -100,6 +101,7 @@ Rules:
 | 5B | SF-REBUILD-037 | Add hold-to-compare preview switching on the live canvas | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase37_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase37_tests.log`; preview now temporarily flips between current and source while pressed without adding another compare row to the editor chrome |
 | 5C | SF-REBUILD-038 | Add frame-step nudging to the live preview transport | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase38_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase38_tests.log`; the compact preview transport now supports frame-back and frame-forward nudging based on real track timing, with a deterministic 30 fps fallback when metadata is missing |
 | 5D | SF-REBUILD-039 | Add precision scrub gestures to the live preview canvas | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase39_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase39_tests.log`; the pinned preview now supports bounded horizontal precision scrubbing with a temporary HUD and play/resume intent preservation instead of relying only on the transport capsule |
+| 5E | SF-REBUILD-040 | Turn the larger source sheet into a true compare viewer | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase40_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase40_tests.log`; the larger compare sheet now switches between `Source` and `Current` at the same shared playhead while the inline preview goes inactive so only one active preview surface owns playback |
 
 ---
 
@@ -120,6 +122,6 @@ Rules:
 ---
 
 ## Next Action
-1. Choose the next intentional workspace slice now that `SF-REBUILD-039` keeps live playback, momentary compare, precise frame-step nudging, and direct canvas precision scrubbing directly on the preview canvas while the HomeScreen portrait-player SmartFill chip still opens the rebuild workspace correctly.
+1. Choose the next intentional workspace slice now that `SF-REBUILD-040` keeps live playback, momentary compare, precise frame-step nudging, direct canvas precision scrubbing, and a true shared-playhead compare viewer in place while the HomeScreen portrait-player SmartFill chip still opens the rebuild workspace correctly.
 2. Implement that slice on GM, then rerun Gate A plus focused SmartFill parity before any promotion discussion.
-3. Keep the standalone derivation ledger in sync while future shared-workspace chrome, synchronized compare states, hold-to-compare behavior, frame-step transport nudging, direct canvas scrubbing, working entry routes, and any deeper preview/live-transport work lands.
+3. Keep the standalone derivation ledger in sync while future shared-workspace chrome, synchronized compare states, the true larger compare viewer, hold-to-compare behavior, frame-step transport nudging, direct canvas scrubbing, working entry routes, and any deeper preview/live-transport work lands.
