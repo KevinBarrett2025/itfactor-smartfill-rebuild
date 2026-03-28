@@ -25,7 +25,6 @@ struct SmartFillWorkspaceView: View {
     @State private var previewPinnedWipeProgress: CGFloat = SmartFillWorkspaceCompareWipeState.defaultProgress
     @State private var previewPlaybackState = SmartFillWorkspacePreviewPlaybackState()
     @State private var isHoldingPreviewComparison = false
-    @State private var compareViewerMemoryState = SmartFillWorkspaceCompareViewerMemoryState()
 
     private let workspaceDefaults: SmartFillWorkspaceDefaults
 
@@ -101,12 +100,11 @@ struct SmartFillWorkspaceView: View {
                 previewSelectionState = SmartFillWorkspaceCompareViewerSelectionState(selectedMode: .result)
                 previewPinnedWipeProgress = SmartFillWorkspaceCompareWipeState.defaultProgress
                 previewPlaybackState = SmartFillWorkspacePreviewPlaybackState()
-                compareViewerMemoryState = SmartFillWorkspaceCompareViewerMemoryState()
                 activeSheet = nil
             }
             .onChange(of: activeSheet) { oldValue, newValue in
                 guard oldValue == .sourcePreview, newValue != .sourcePreview else { return }
-                synchronizePreviewCompareStateFromViewer()
+                isHoldingPreviewComparison = false
             }
             .onReceive(NotificationCenter.default.publisher(for: .smartFillProcessingProgress)) { notification in
                 guard coordinator.stage == .export else { return }
@@ -740,8 +738,8 @@ struct SmartFillWorkspaceView: View {
                     settings: settings,
                     refreshID: previewRefreshIdentity,
                     playbackState: previewPlaybackState,
-                    selectionState: $compareViewerMemoryState.selectionState,
-                    pinnedWipeProgress: $compareViewerMemoryState.pinnedWipeProgress,
+                    selectionState: $previewSelectionState,
+                    pinnedWipeProgress: $previewPinnedWipeProgress,
                     sourceTitle: SmartFillWorkspacePresentation.sourcePreviewTitle(for: context),
                     resultTitle: SmartFillWorkspacePresentation.previewResultTitle(
                         adoptedTakeDisplayName: coordinator.lastResult?.adoptedTakeDisplayName
@@ -1712,22 +1710,13 @@ struct SmartFillWorkspaceView: View {
     }
 
     private func handlePreviewCompareModeSelection(_ mode: SmartFillWorkspaceCompareViewerMode) {
+        isHoldingPreviewComparison = false
         previewSelectionState.selectToolbarMode(mode)
-        if mode != .wipe {
-            previewPinnedWipeProgress = compareViewerMemoryState.pinnedWipeProgress
-        }
     }
 
     private func openPreviewCompareViewer() {
-        compareViewerMemoryState.selectionState = previewSelectionState
-        compareViewerMemoryState.pinnedWipeProgress = previewPinnedWipeProgress
-        activeSheet = .sourcePreview
-    }
-
-    private func synchronizePreviewCompareStateFromViewer() {
-        previewSelectionState = compareViewerMemoryState.selectionState
-        previewPinnedWipeProgress = compareViewerMemoryState.pinnedWipeProgress
         isHoldingPreviewComparison = false
+        activeSheet = .sourcePreview
     }
 
     private func pinnedPreviewWipeGesture(width: CGFloat) -> some Gesture {
@@ -2164,21 +2153,6 @@ struct SmartFillWorkspaceCompareViewerSelectionState: Equatable {
         case .wipe:
             isPinnedWipeMode = true
         }
-    }
-}
-
-struct SmartFillWorkspaceCompareViewerMemoryState: Equatable {
-    var selectionState = SmartFillWorkspaceCompareViewerSelectionState()
-    var pinnedWipeProgress: CGFloat = SmartFillWorkspaceCompareWipeState.defaultProgress
-
-    var previewCompareControl: SmartFillWorkspacePreviewCompareControl {
-        let mode = selectionState.toolbarMode
-        return SmartFillWorkspacePreviewCompareControl(
-            title: "Compare",
-            value: mode.title,
-            symbolName: mode.symbolName,
-            compareMode: mode
-        )
     }
 }
 

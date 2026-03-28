@@ -54,6 +54,7 @@ _Current rebuild working baseline:_ `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 - Workspace preview now exposes one compact compare launcher chip beside the pinned preview: COMPLETE (LOCAL-GATED)
 - Workspace preview now uses one grouped compare control instead of separate compare-side chips: COMPLETE (LOCAL-GATED)
 - Workspace pinned preview now supports inline `Source`, `Current`, and pinned `Wipe` compare modes: COMPLETE (LOCAL-GATED)
+- Workspace pinned preview and larger compare viewer now share one compare-selection seam instead of shadow-copying mode on sheet close: COMPLETE (LOCAL-GATED)
 - Standalone derivation ledger: ACTIVE
 
 If anything above is not true, it must be reflected here.
@@ -292,14 +293,14 @@ If anything above is not true, it must be reflected here.
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase42_tests_rerun.log`
   - xcresult: `/tmp/itfactor_smartfill_phase42_tests_rerun/Logs/Test/Test-STSiPhone-2026.03.28_12-22-13--0400.xcresult`
 - `SF-REBUILD-043` — preserve last compare mode across viewer reopen — `COMPLETE (LOCAL-GATED 2026-03-28)`
-  - `SmartFillWorkspaceView` now owns one explicit compare-viewer memory seam, so the larger compare sheet restores the user's last `Source`, `Current`, or pinned `Wipe` state instead of resetting every time the sheet is reopened.
+  - `SmartFillWorkspaceView` now preserves the user's last `Source`, `Current`, or pinned `Wipe` state inside the active workspace session, so the larger compare sheet reopens where the user left it instead of resetting every time.
   - The pinned wipe divider position now survives compare-sheet reopen within the same workspace session, and focused parity locks that remembered compare-state behavior directly.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase43_gateA_rerun.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase43_tests_rerun.log`
   - xcresult: `/tmp/itfactor_smartfill_phase43_tests_rerun/Logs/Test/Test-STSiPhone-2026.03.28_12-49-42--0400.xcresult`
 - `SF-REBUILD-044` — add a compact compare affordance beside the pinned preview — `COMPLETE (LOCAL-GATED 2026-03-28)`
   - `SmartFillWorkspaceView` now adds one compact `Compare` launcher chip in the preview focus deck, so the pinned preview itself exposes a permanent compare entry without adding a second compare bar or another settings slab.
-  - That launcher now mirrors the remembered compare mode (`Source`, `Current`, or `Wipe`) through the same compare-viewer memory seam, and focused parity locks the preview-side compare-control mapping directly.
+  - That launcher now mirrors the remembered compare mode (`Source`, `Current`, or `Wipe`) through the shared compare-selection seam, and focused parity locks the preview-side compare-control mapping directly.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase44_gateA_final.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase44_tests_final.log`
   - xcresult: `/tmp/itfactor_smartfill_phase44_tests_final/Logs/Test/Test-STSiPhone-2026.03.28_13-17-36--0400.xcresult`
@@ -311,10 +312,16 @@ If anything above is not true, it must be reflected here.
   - xcresult: `/tmp/itfactor_smartfill_phase45_tests/Logs/Test/Test-STSiPhone-2026.03.28_13-40-48--0400.xcresult`
 - `SF-REBUILD-046` — add inline pinned-preview wipe compare mode — `COMPLETE (LOCAL-GATED 2026-03-28)`
   - `SmartFillWorkspaceView` now owns separate inline preview compare state, so the pinned canvas can switch between `Source`, `Current`, and a pinned `Wipe` mode without immediately opening the larger compare viewer.
-  - Closing the larger compare viewer now synchronizes its remembered compare mode and pinned divider position back to the pinned preview, and focused parity locks the new grouped-toolbar semantics directly.
+  - The pinned preview now keeps that grouped compare ownership directly on the canvas, and focused parity locks the new grouped-toolbar semantics directly.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase46_gateA_rerun.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase46_tests_rerun.log`
   - xcresult: `/tmp/itfactor_smartfill_phase46_tests_rerun/Logs/Test/Test-STSiPhone-2026.03.28_15-57-54--0400.xcresult`
+- `SF-REBUILD-047` — share compare state between the pinned preview and the larger compare viewer — `COMPLETE (LOCAL-GATED 2026-03-28)`
+  - `SmartFillWorkspaceView` now lets the pinned preview and the larger compare viewer bind to the same compare-selection and pinned-divider state instead of shadow-copying viewer mode through a second memory object on open/close.
+  - Closing the larger compare viewer now only clears transient hold-compare state, which makes compare/playback handoff less brittle before the next device pass.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase47_gateA.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase47_tests.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase47_tests/Logs/Test/Test-STSiPhone-2026.03.28_16-11-40--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -338,6 +345,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Use `SF-REBUILD-046` as the new SmartFill workspace baseline and decide whether the next compare-specific upgrade should deepen playback fluency or comparison precision without turning the pinned preview back into another row of oversized controls.
+1. Use `SF-REBUILD-047` as the new SmartFill workspace baseline and take the next device smoke from there before deciding whether the next compare-specific upgrade should deepen playback fluency or comparison precision.
 2. Implement that next slice on GM with Gate A and focused SmartFill parity before any promotion discussion.
-3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, inline ownership model, preview-focus deck, canvas-embedded live transport, synchronized source/result compare behavior, the true shared-playhead compare viewer, the temporary split-wipe compare gesture, the explicit compact compare-mode toolbar, remembered compare-viewer state, the grouped preview-side compare control, hold-to-compare canvas behavior, frame-step transport nudging, direct canvas precision scrubbing, working entry routing, and tray-to-sheet split for deeper tools.
+3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, inline ownership model, preview-focus deck, canvas-embedded live transport, synchronized source/result compare behavior, the true shared-playhead compare viewer, the temporary split-wipe compare gesture, the explicit compact compare-mode toolbar, shared compare-selection state, the grouped preview-side compare control, hold-to-compare canvas behavior, frame-step transport nudging, direct canvas precision scrubbing, working entry routing, and tray-to-sheet split for deeper tools.

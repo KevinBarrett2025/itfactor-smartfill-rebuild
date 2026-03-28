@@ -1,5 +1,67 @@
 # CODEX Thread Continuity
 
+## Ticket 047 Shared Compare State Across Pinned And Drill-In Preview (2026-03-28)
+- Thread Status: phase-47 is locally gated on a fresh GM worktree from the anchored phase-46 baseline, the pinned preview and larger compare viewer now share one compare-selection seam directly, and this slice is ready to anchor as `SF-REBUILD-047`.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase47`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase47`
+- Working Head SHA: `cd65028da7ce50fed58cb1b352ffdf271bf4e368`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Stabilize compare/playback ownership between the pinned preview and the larger compare viewer:
+1. remove the extra viewer-memory shadow state so both compare surfaces share one compare-selection truth
+2. preserve the same dominant compare mode and pinned wipe divider when users move between the pinned preview and the drill-in viewer
+3. clear only transient hold-compare state when the drill-in viewer closes instead of copying compare state back after the fact
+4. keep the editor canvas-first and avoid adding more bars, trays, or scroll-heavy chrome while improving the next device-test readiness
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase47`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase47`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase47`
+  - `git rev-parse HEAD` -> `cd65028da7ce50fed58cb1b352ffdf271bf4e368`
+  - `git status --porcelain` -> clean before phase-47 edits
+  - `git log -1 --oneline` -> `cd65028 SF-REBUILD-046: add inline pinned-preview wipe compare mode`
+- Truth-sync confirmed:
+  - `git -C /Users/kevinbarrett/Dev/itFactor_1.23.26_git fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Completed This Pass
+- `SmartFillWorkspaceView` no longer shadow-copies compare mode through a separate compare-viewer memory object.
+- The pinned preview and the larger compare viewer now bind to the same compare-selection and pinned-divider state directly.
+- Closing the larger compare viewer now only clears transient hold-compare state instead of copying mode back after the fact.
+- The focused parity suite now reflects the simpler shared-state seam by removing the obsolete compare-viewer-memory tests.
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase47/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase47_gateA build | tee /tmp/itfactor_smartfill_phase47_gateA.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase47_gateA.log`
+- Focused parity command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase47/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase47_tests -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase47_tests.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase47_tests.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase47_tests/Logs/Test/Test-STSiPhone-2026.03.28_16-11-40--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Next Action
+1. Anchor `SF-REBUILD-047` on `gm/smartfill-itfactor-phase47`.
+2. Use the anchored phase-47 branch as the next safe device-test baseline.
+3. Only after that device smoke, decide whether the next preview slice should deepen playback fluency or compare precision.
+
 ## Ticket 046 SmartFill Pinned Preview Inline Wipe Compare Mode (2026-03-28)
 - Thread Status: phase-46 local patch is restored on a fresh GM worktree after the restart wipe, Gate A and focused parity now pass cleanly again, and the slice is ready to anchor as `SF-REBUILD-046`.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
