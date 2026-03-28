@@ -193,7 +193,7 @@ public final class SmartFillManager: ObservableObject {
     ) async throws -> ModernSmartFillPlayer {
         
         
-        logger.info("🎬 Creating SAFE SmartFill preview player via unified interface")
+        logger.info("🎬 SF-REBUILD-049: Creating hardened SmartFill preview player via unified interface")
 
         do {
             // 🚨 CRITICAL: Use unified interface which routes to SmartFillPreviewCompositor
@@ -204,14 +204,13 @@ public final class SmartFillManager: ObservableObject {
                 modalFriendly: true // Enable modal-friendly mode for better stability
             )
 
-            // Extract the player item from the AVPlayer
-            guard let playerItem = avPlayer.currentItem else {
+            guard avPlayer.currentItem != nil else {
                 throw SmartFillManagerError.invalidVideo
             }
 
 
-            logger.info("✅ Created SAFE preview player using unified interface")
-            return ModernSmartFillPlayer(player: avPlayer, playerItem: playerItem)
+            logger.info("✅ SF-REBUILD-049: Created hardened preview player without AVPlayerItem handoff")
+            return ModernSmartFillPlayer(player: avPlayer)
             
         } catch {
             throw error
@@ -261,16 +260,14 @@ public final class ModernSmartFillPlayer: ObservableObject {
     
     // MARK: - Properties
     public let player: AVPlayer
-    private let playerItem: AVPlayerItem
     private var cancellables = Set<AnyCancellable>()
     private let logger = Logger(subsystem: "SelfTapeStudio", category: "SmartFillPreview")
     
     convenience init(playerItem: AVPlayerItem) {
-        self.init(player: AVPlayer(playerItem: playerItem), playerItem: playerItem)
+        self.init(player: AVPlayer(playerItem: playerItem))
     }
 
-    init(player: AVPlayer, playerItem: AVPlayerItem) {
-        self.playerItem = playerItem
+    init(player: AVPlayer) {
         self.player = player
 
         setupObservation()
@@ -322,7 +319,7 @@ public final class ModernSmartFillPlayer: ObservableObject {
                 self.isReady = (status == .readyToPlay)
                 
                 if status == .readyToPlay {
-                    let asset = self.playerItem.asset
+                    guard let asset = self.player.currentItem?.asset else { return }
                     // FIXED: Use modern async duration loading
                     Task { [weak self] in
                         do {
@@ -358,7 +355,7 @@ public final class ModernSmartFillPlayer: ObservableObject {
         // End time notification
         NotificationCenter.default.publisher(for: .AVPlayerItemDidPlayToEndTime)
             .filter { [weak self] notification in
-                notification.object as? AVPlayerItem === self?.playerItem
+                notification.object as? AVPlayerItem === self?.player.currentItem
             }
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in

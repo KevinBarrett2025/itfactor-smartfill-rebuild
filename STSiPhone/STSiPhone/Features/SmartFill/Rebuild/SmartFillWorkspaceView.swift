@@ -2,6 +2,18 @@ import AVKit
 import Combine
 import SwiftUI
 
+private enum SmartFillWorkspacePalette {
+    static let theme = STSThemeLibrary.theme(for: .studioLobbyV1)
+    static let accent = theme.primaryAccent
+    static let textPrimary = theme.textPrimary
+    static let textSecondary = theme.textSecondary
+    static let background = theme.backgroundGradient
+    static let panelFill = Color.white.opacity(0.07)
+    static let panelStroke = Color.white.opacity(0.08)
+    static let chromeFill = Color(red: 0.03, green: 0.04, blue: 0.08).opacity(0.96)
+    static let chromeStroke = Color.white.opacity(0.06)
+}
+
 struct SmartFillWorkspaceView: View {
     let context: SmartFillSettingsContext
     let onQueueSmartFill: (SmartFillSettings) -> Void
@@ -49,7 +61,7 @@ struct SmartFillWorkspaceView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                BrandBackground()
+                SmartFillWorkspacePalette.background
                     .ignoresSafeArea()
 
                 VStack(spacing: 14) {
@@ -76,6 +88,7 @@ struct SmartFillWorkspaceView: View {
                     .disabled(isPrimaryActionDisabled)
                 }
             }
+            .tint(SmartFillWorkspacePalette.accent)
             .safeAreaInset(edge: .bottom) {
                 editorChrome
             }
@@ -165,7 +178,7 @@ struct SmartFillWorkspaceView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(SmartFillWorkspacePresentation.headerTitle(for: context))
                         .font(.title3.weight(.bold))
-                        .foregroundStyle(Theme.textPrimary)
+                        .foregroundStyle(SmartFillWorkspacePalette.textPrimary)
                         .lineLimit(1)
 
                     Text(context.displayName)
@@ -195,11 +208,11 @@ struct SmartFillWorkspaceView: View {
 
                 Label(effectivePreviewMode.shortTitle, systemImage: effectivePreviewMode.symbolName)
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(effectivePreviewMode == .result ? Theme.primary : Theme.textPrimary)
+                    .foregroundStyle(effectivePreviewMode == .result ? SmartFillWorkspacePalette.accent : SmartFillWorkspacePalette.textPrimary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .background(
-                        (effectivePreviewMode == .result ? Theme.primary.opacity(0.12) : Color.white.opacity(0.05)),
+                        (effectivePreviewMode == .result ? SmartFillWorkspacePalette.accent.opacity(0.12) : Color.white.opacity(0.05)),
                         in: Capsule()
                     )
             }
@@ -228,12 +241,19 @@ struct SmartFillWorkspaceView: View {
             .frame(maxHeight: toolTrayHeight)
 
             toolRail
-            actionBar
         }
         .padding(.horizontal, Theme.Layout.screenPadding)
         .padding(.top, 12)
         .padding(.bottom, 16)
-        .background(.ultraThinMaterial)
+        .background(
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(SmartFillWorkspacePalette.chromeFill)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        .stroke(SmartFillWorkspacePalette.chromeStroke, lineWidth: 1)
+                )
+                .ignoresSafeArea(edges: .bottom)
+        )
     }
 
     @ViewBuilder
@@ -307,7 +327,7 @@ struct SmartFillWorkspaceView: View {
             HStack(spacing: 10) {
                 Label(activeTool.shortTitle, systemImage: activeTool.symbolName)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.textPrimary)
+                    .foregroundStyle(SmartFillWorkspacePalette.textPrimary)
 
                 Spacer()
 
@@ -325,7 +345,7 @@ struct SmartFillWorkspaceView: View {
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
                         }
-                        .foregroundStyle(Theme.textPrimary)
+                        .foregroundStyle(SmartFillWorkspacePalette.textPrimary)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 8)
                         .background(Color.white.opacity(0.05), in: Capsule())
@@ -383,16 +403,16 @@ struct SmartFillWorkspaceView: View {
                         Text(tool.shortTitle)
                             .font(.caption2.weight(.semibold))
                     }
-                    .foregroundStyle(activeTool == tool ? Theme.textPrimary : .secondary)
+                    .foregroundStyle(activeTool == tool ? SmartFillWorkspacePalette.textPrimary : .secondary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
                     .background(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(activeTool == tool ? Theme.primary.opacity(0.18) : Color.white.opacity(0.04))
+                            .fill(activeTool == tool ? SmartFillWorkspacePalette.accent.opacity(0.18) : Color.white.opacity(0.04))
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(activeTool == tool ? Theme.primary.opacity(0.6) : Color.white.opacity(0.08), lineWidth: 1)
+                            .stroke(activeTool == tool ? SmartFillWorkspacePalette.accent.opacity(0.6) : Color.white.opacity(0.08), lineWidth: 1)
                     )
                 }
                 .buttonStyle(.plain)
@@ -553,7 +573,7 @@ struct SmartFillWorkspaceView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("After save")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Theme.textPrimary)
+                        .foregroundStyle(SmartFillWorkspacePalette.textPrimary)
 
                     Picker("After save", selection: $completionBehavior) {
                         ForEach(SmartFillWorkspaceCompletionBehavior.allCases, id: \.self) { behavior in
@@ -666,7 +686,7 @@ struct SmartFillWorkspaceView: View {
                     Slider(value: foregroundScaleBinding, in: 0.85...1.25, step: 0.05) {
                         Text("Subject scale")
                     }
-                    .tint(Theme.primary)
+                    .tint(SmartFillWorkspacePalette.accent)
                 }
             }
         case .outputOptions:
@@ -695,7 +715,7 @@ struct SmartFillWorkspaceView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("After save")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Theme.textPrimary)
+                            .foregroundStyle(SmartFillWorkspacePalette.textPrimary)
 
                         Picker("After save", selection: $completionBehavior) {
                             ForEach(SmartFillWorkspaceCompletionBehavior.allCases, id: \.self) { behavior in
@@ -789,37 +809,20 @@ struct SmartFillWorkspaceView: View {
         }
     }
 
-    private var actionBar: some View {
-        HStack(spacing: 12) {
-            Button(secondaryActionTitle) {
-                handleSecondaryAction()
-            }
-            .buttonStyle(.bordered)
-            .disabled(isCloseDisabled)
-
-            Button(primaryActionTitle) {
-                handlePrimaryAction()
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(Theme.primary)
-            .disabled(isPrimaryActionDisabled)
-        }
-    }
-
     private var exportProgressPanel: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("Save progress")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.textPrimary)
+                    .foregroundStyle(SmartFillWorkspacePalette.textPrimary)
                 Spacer()
                 Text("\(Int((processingProgress * 100).rounded()))%")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.primary)
+                    .foregroundStyle(SmartFillWorkspacePalette.accent)
             }
 
             ProgressView(value: processingProgress)
-                .tint(Theme.primary)
+                .tint(SmartFillWorkspacePalette.accent)
 
             Text("SmartFill is rendering the landscape version and preparing the return to \(SmartFillWorkspacePresentation.returnTargetTitle(for: context).lowercased()).")
                 .font(.caption)
@@ -860,7 +863,7 @@ struct SmartFillWorkspaceView: View {
         VStack(alignment: .leading, spacing: 10) {
             Label("Saved and staying here", systemImage: "eye.fill")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.primary)
+                .foregroundStyle(SmartFillWorkspacePalette.accent)
 
             Text(
                 SmartFillWorkspacePresentation.stayComparisonMessage(
@@ -928,10 +931,10 @@ struct SmartFillWorkspaceView: View {
 
     private var panelBackground: some View {
         RoundedRectangle(cornerRadius: 22, style: .continuous)
-            .fill(Color.white.opacity(0.06))
+            .fill(SmartFillWorkspacePalette.panelFill)
             .overlay(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                    .stroke(SmartFillWorkspacePalette.panelStroke, lineWidth: 1)
             )
     }
 
@@ -943,16 +946,6 @@ struct SmartFillWorkspaceView: View {
             hasUnsavedChanges: hasUnsavedChangesSinceLastSave,
             adoptedTakeDisplayName: coordinator.lastResult?.adoptedTakeDisplayName
         )
-    }
-
-    private var secondaryActionTitle: String {
-        if hasPendingAutoReturn {
-            return "Stay Here"
-        }
-        if effectiveStage == .completed {
-            return "Close"
-        }
-        return "Cancel"
     }
 
     private var isPrimaryActionDisabled: Bool {
@@ -1075,7 +1068,7 @@ struct SmartFillWorkspaceView: View {
     private var stageColor: Color {
         switch effectiveStage {
         case .completed: return .green
-        case .export: return Theme.primary
+        case .export: return SmartFillWorkspacePalette.accent
         case .preview where hasUnsavedChangesSinceLastSave: return .orange
         default: return .secondary
         }
@@ -1106,7 +1099,7 @@ struct SmartFillWorkspaceView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("What happens on save")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.textPrimary)
+                .foregroundStyle(SmartFillWorkspacePalette.textPrimary)
 
             summaryRow(
                 icon: "film",
@@ -1154,7 +1147,7 @@ struct SmartFillWorkspaceView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(SmartFillWorkspacePresentation.destinationOutcomeTitle(for: record.adoptionMode))
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.textPrimary)
+                .foregroundStyle(SmartFillWorkspacePalette.textPrimary)
 
             Text(record.destinationSummary)
                 .font(.caption)
@@ -1212,9 +1205,9 @@ struct SmartFillWorkspaceView: View {
     private func summaryRow(icon: String, title: String, value: String) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .foregroundStyle(Theme.primary)
+                .foregroundStyle(SmartFillWorkspacePalette.accent)
             Text(title)
-                .foregroundStyle(Theme.textPrimary)
+                .foregroundStyle(SmartFillWorkspacePalette.textPrimary)
             Spacer()
             Text(value)
                 .foregroundStyle(.secondary)
@@ -1226,7 +1219,7 @@ struct SmartFillWorkspaceView: View {
         HStack(spacing: 12) {
             Text(title)
                 .font(.headline)
-                .foregroundStyle(Theme.textPrimary)
+                .foregroundStyle(SmartFillWorkspacePalette.textPrimary)
             Spacer()
             Text(value)
                 .font(.caption.weight(.semibold))
@@ -1241,7 +1234,7 @@ struct SmartFillWorkspaceView: View {
         HStack {
             Text(title)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.textPrimary)
+                .foregroundStyle(SmartFillWorkspacePalette.textPrimary)
             Spacer()
             Text(value)
                 .font(.caption.weight(.semibold))
@@ -1284,20 +1277,20 @@ struct SmartFillWorkspaceView: View {
                     if let subtitle {
                         Text(subtitle)
                             .font(.caption2.weight(.medium))
-                            .foregroundStyle(isSelected ? Theme.textPrimary.opacity(0.88) : .secondary)
+                            .foregroundStyle(isSelected ? SmartFillWorkspacePalette.textPrimary.opacity(0.88) : .secondary)
                     }
                 }
             }
-            .foregroundStyle(isSelected ? Theme.textPrimary : .secondary)
+            .foregroundStyle(isSelected ? SmartFillWorkspacePalette.textPrimary : .secondary)
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(isSelected ? Theme.primary.opacity(0.18) : Color.white.opacity(0.03))
+                    .fill(isSelected ? SmartFillWorkspacePalette.accent.opacity(0.18) : Color.white.opacity(0.03))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(isSelected ? Theme.primary.opacity(0.6) : Color.white.opacity(0.10), lineWidth: 1)
+                    .stroke(isSelected ? SmartFillWorkspacePalette.accent.opacity(0.6) : Color.white.opacity(0.10), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
@@ -1306,14 +1299,14 @@ struct SmartFillWorkspaceView: View {
     private func statusPill(icon: String, title: String, value: String) -> some View {
         HStack(spacing: 8) {
             Image(systemName: icon)
-                .foregroundStyle(Theme.primary)
+                .foregroundStyle(SmartFillWorkspacePalette.accent)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.secondary)
                 Text(value)
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.textPrimary)
+                    .foregroundStyle(SmartFillWorkspacePalette.textPrimary)
                     .lineLimit(1)
             }
         }
@@ -1326,7 +1319,7 @@ struct SmartFillWorkspaceView: View {
         HStack(spacing: 8) {
             Image(systemName: item.symbolName)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(Theme.primary)
+                .foregroundStyle(SmartFillWorkspacePalette.accent)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title)
@@ -1334,7 +1327,7 @@ struct SmartFillWorkspaceView: View {
                     .foregroundStyle(.secondary)
                 Text(item.value)
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.textPrimary)
+                    .foregroundStyle(SmartFillWorkspacePalette.textPrimary)
                     .lineLimit(1)
             }
         }
@@ -1397,24 +1390,24 @@ struct SmartFillWorkspaceView: View {
             HStack(spacing: 6) {
                 Image(systemName: symbolName)
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(isSelected ? Theme.primary : .secondary)
+                    .foregroundStyle(isSelected ? SmartFillWorkspacePalette.accent : .secondary)
 
                 Text(title)
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(isSelected ? Theme.textPrimary : .secondary)
+                    .foregroundStyle(isSelected ? SmartFillWorkspacePalette.textPrimary : .secondary)
                     .lineLimit(1)
 
                 if showsLaunchGlyph {
                     Image(systemName: "arrow.up.left.and.arrow.down.right")
                         .font(.caption2.weight(.bold))
-                        .foregroundStyle(isSelected ? Theme.primary.opacity(0.9) : .secondary)
+                        .foregroundStyle(isSelected ? SmartFillWorkspacePalette.accent.opacity(0.9) : .secondary)
                 }
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(isSelected ? Theme.primary.opacity(0.18) : Color.clear)
+                    .fill(isSelected ? SmartFillWorkspacePalette.accent.opacity(0.18) : Color.clear)
             )
         }
         .buttonStyle(.plain)
@@ -1429,7 +1422,7 @@ struct SmartFillWorkspaceView: View {
         Button(action: action) {
             HStack(spacing: 10) {
                 Image(systemName: systemImage)
-                    .foregroundStyle(Theme.primary)
+                    .foregroundStyle(SmartFillWorkspacePalette.accent)
                     .font(.subheadline.weight(.semibold))
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -1438,7 +1431,7 @@ struct SmartFillWorkspaceView: View {
                         .foregroundStyle(.secondary)
                     Text(subtitle)
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(Theme.textPrimary)
+                        .foregroundStyle(SmartFillWorkspacePalette.textPrimary)
                         .lineLimit(1)
                 }
 
@@ -1477,13 +1470,13 @@ struct SmartFillWorkspaceView: View {
                 Spacer()
                 Text(valueLabel)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.textPrimary)
+                    .foregroundStyle(SmartFillWorkspacePalette.textPrimary)
             }
 
             Slider(value: value, in: range, step: step) {
                 Text(title)
             }
-            .tint(Theme.primary)
+            .tint(SmartFillWorkspacePalette.accent)
 
             if !caption.isEmpty {
                 Text(caption)
@@ -1500,10 +1493,10 @@ struct SmartFillWorkspaceView: View {
             content()
         }
         .padding(16)
-        .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(SmartFillWorkspacePalette.panelFill, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                .stroke(SmartFillWorkspacePalette.panelStroke, lineWidth: 1)
         )
     }
 
@@ -1514,7 +1507,7 @@ struct SmartFillWorkspaceView: View {
     ) -> some View {
         NavigationStack {
             ZStack {
-                BrandBackground()
+                SmartFillWorkspacePalette.background
                     .ignoresSafeArea()
 
                 ScrollView(.vertical, showsIndicators: false) {
@@ -1530,6 +1523,7 @@ struct SmartFillWorkspaceView: View {
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
+            .tint(SmartFillWorkspacePalette.accent)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") {
@@ -1783,15 +1777,6 @@ struct SmartFillWorkspaceView: View {
             return
         }
         previewPlaybackState = state
-    }
-
-    private func handleSecondaryAction() {
-        if hasPendingAutoReturn {
-            cancelAutoReturn()
-            return
-        }
-
-        handleClose()
     }
 
     private func cancelAutoReturn() {
@@ -2513,7 +2498,14 @@ enum SmartFillWorkspaceCompletionBehavior: CaseIterable {
 
 enum SmartFillWorkspacePresentation {
     static func headerTitle(for context: SmartFillSettingsContext) -> String {
-        context.infoTitle ?? "SmartFill Editor"
+        guard let infoTitle = context.infoTitle else { return "SmartFill Editor" }
+        if infoTitle.localizedCaseInsensitiveContains("required") {
+            return "SmartFill"
+        }
+        if infoTitle.localizedCaseInsensitiveContains("fine-tune") {
+            return "SmartFill Editor"
+        }
+        return infoTitle
     }
 
     static func headerMessage(for context: SmartFillSettingsContext) -> String {
@@ -3350,11 +3342,11 @@ private struct SmartFillWorkspaceCompareViewer: View {
                     .font(.caption.weight(.semibold))
                     .lineLimit(1)
             }
-            .foregroundStyle(isSelected ? Theme.textPrimary : .secondary)
+            .foregroundStyle(isSelected ? SmartFillWorkspacePalette.textPrimary : .secondary)
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
             .background(
-                isSelected ? Theme.primary.opacity(0.14) : Color.clear,
+                isSelected ? SmartFillWorkspacePalette.accent.opacity(0.14) : Color.clear,
                 in: Capsule()
             )
         }
@@ -3370,27 +3362,27 @@ private struct SmartFillWorkspaceCompareViewer: View {
         HStack(spacing: 6) {
             Image(systemName: symbolName)
                 .font(.caption2.weight(.semibold))
-                .foregroundStyle(isSelected ? Theme.primary : .secondary)
+                .foregroundStyle(isSelected ? SmartFillWorkspacePalette.accent : .secondary)
             VStack(alignment: .leading, spacing: 1) {
                 Text(title)
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.secondary)
                 Text(value)
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.textPrimary)
+                    .foregroundStyle(SmartFillWorkspacePalette.textPrimary)
                     .lineLimit(1)
             }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
         .background(
-            isSelected ? Theme.primary.opacity(0.14) : Color.white.opacity(0.04),
+            isSelected ? SmartFillWorkspacePalette.accent.opacity(0.14) : Color.white.opacity(0.04),
             in: Capsule()
         )
         .overlay(
             Capsule()
                 .stroke(
-                    isSelected ? Theme.primary.opacity(0.4) : Color.white.opacity(0.08),
+                    isSelected ? SmartFillWorkspacePalette.accent.opacity(0.4) : Color.white.opacity(0.08),
                     lineWidth: 1
                 )
         )

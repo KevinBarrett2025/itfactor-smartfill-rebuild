@@ -1,5 +1,67 @@
 # CODEX Thread Continuity
 
+## Ticket 049 Harden SmartFill Preview Ownership And Simplify Studio Chrome (2026-03-28)
+- Thread Status: phase-49 is locally gated on a fresh GM worktree from anchored phase-48, the SmartFill preview wrapper now avoids every explicit `AVPlayerItem` handoff when a unified preview `AVPlayer` already exists, duplicate bottom workspace actions are removed, and the rebuild workspace now uses the studio lobby theme instead of the pop-brand shell.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase49`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase49`
+- Working Head SHA: `e4abb1eb50566667746cc41c377517777f3f4cd2`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Harden the SmartFill workspace after the second device crash report in `smartfill logs2.md` and clean up the obvious workspace chrome debt:
+1. remove the remaining explicit `AVPlayerItem` reuse seam by making `ModernSmartFillPlayer` wrap an existing unified preview `AVPlayer` directly
+2. preserve the fresh-item construction path for source-only preview surfaces that intentionally build a new `AVPlayerItem(url:)`
+3. remove the duplicate bottom `Cancel` / `Save and Return` bar so the top toolbar is the only primary action owner
+4. shift `SmartFillWorkspaceView` from the pop-brand shell to the existing `studioLobbyV1` cinematic theme and shorten the header title so device chrome does not truncate the workspace identity
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase49`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase49`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase49`
+  - `git rev-parse HEAD` -> `e4abb1eb50566667746cc41c377517777f3f4cd2`
+  - `git status --porcelain` -> clean before phase-49 edits
+  - `git log -1 --oneline` -> `e4abb1e SF-REBUILD-048: stop the SmartFill preview AVPlayerItem reuse crash`
+- Truth-sync confirmed:
+  - `git -C /Users/kevinbarrett/Dev/itFactor_1.23.26_git fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Completed This Pass
+- `SmartFillManager.createPreviewPlayer(...)` now returns `ModernSmartFillPlayer(player: avPlayer)` directly, so the unified SmartFill preview player remains authoritative instead of handing its item back into a second player wrapper.
+- `ModernSmartFillPlayer` now uses `player.currentItem` for readiness, duration, and end-of-playback observation instead of storing a second `playerItem` copy for wrapped preview sessions.
+- `SmartFillWorkspaceView` now removes the duplicate bottom action bar and relies on the top toolbar as the primary close/save seam.
+- The workspace now uses `STSThemeLibrary.theme(for: .studioLobbyV1)` for its background, chrome, panel, and accent colors, and `SmartFillWorkspacePresentation.headerTitle(for:)` now shortens long required/fine-tune titles into stable toolbar-safe labels.
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase49/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase49_gateA build | tee /tmp/itfactor_smartfill_phase49_gateA.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase49_gateA.log`
+- Focused parity command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase49/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase49_tests_rerun -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase49_tests_rerun.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase49_tests_rerun.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase49_tests_rerun/Logs/Test/Test-STSiPhone-2026.03.28_18-09-58--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Next Action
+1. Anchor `SF-REBUILD-049` on `gm/smartfill-itfactor-phase49`.
+2. Use the anchored phase-49 branch as the next safe device-test baseline because it hardens preview ownership beyond phase 48 and removes the duplicate bottom action bar while shifting the workspace toward the cinematic studio shell.
+3. After the next device smoke, return to tightening the professional live-preview feel only where it improves the canvas-first editor without growing the chrome again.
+
 ## Ticket 048 Stop SmartFill Preview AVPlayerItem Reuse Crash (2026-03-28)
 - Thread Status: phase-48 is locally gated on a fresh GM worktree from anchored phase-47, the SmartFill preview wrapper no longer tries to create a second `AVPlayer` around an `AVPlayerItem` that already belongs to the unified preview player, and this slice is ready to anchor as `SF-REBUILD-048`.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

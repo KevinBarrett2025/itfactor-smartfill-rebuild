@@ -62,6 +62,7 @@ Rules:
 - The larger compare sheet is now also a true source-versus-result viewer that shares the same playhead and disables the inline preview while it is open, so A/B inspection happens in one active preview system instead of a disconnected source-only player.
 - The larger compare sheet now also supports a temporary split-wipe gesture, so users can reveal source on one side and current on the other without adding a permanent compare bar or second viewer mode row.
 - The pinned preview and the larger compare viewer now also share one compare-selection seam directly, so compare mode and pinned wipe position no longer rely on a second shadow-copy object during sheet open/close.
+- The SmartFill preview wrapper now also avoids every explicit `AVPlayerItem` handoff when a unified preview `AVPlayer` already exists, and the workspace now removes the duplicate bottom save bar while shifting into the darker `studioLobbyV1` shell.
 - `authority/main` now exists remotely and locally at the untouched Jan 23 baseline.
 
 ---
@@ -114,6 +115,7 @@ Rules:
 | 5K | SF-REBUILD-046 | Add inline pinned-preview wipe compare mode | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase46_gateA_rerun.log`; focused parity PASS `/tmp/itfactor_smartfill_phase46_tests_rerun.log`; the pinned preview now supports direct `Source`, `Current`, and pinned `Wipe` compare modes while the larger compare viewer stays the drill-in surface |
 | 5L | SF-REBUILD-047 | Share compare state across the pinned preview and larger compare viewer | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase47_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase47_tests.log`; the pinned preview and larger compare viewer now bind to the same compare-selection and pinned-divider state so sheet transitions no longer depend on a second memory object |
 | 5M | SF-REBUILD-048 | Stop the SmartFill preview `AVPlayerItem` reuse crash | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase48_gateA_rerun.log`; focused parity PASS `/tmp/itfactor_smartfill_phase48_tests_rerun.log`; the unified preview `AVPlayer` now stays authoritative instead of being re-wrapped around the same `AVPlayerItem` inside `ModernSmartFillPlayer` |
+| 5N | SF-REBUILD-049 | Harden SmartFill preview ownership and simplify studio chrome | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase49_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase49_tests_rerun.log`; the preview wrapper now keeps one authoritative `AVPlayer` with no explicit item handoff, the duplicate bottom save bar is removed, and the workspace now uses the cinematic `studioLobbyV1` shell |
 
 ---
 
@@ -134,6 +136,6 @@ Rules:
 ---
 
 ## Next Action
-1. Use `SF-REBUILD-048` as the next safe workspace baseline for a device smoke before choosing the next intentional compare/playback slice. The current shell now keeps live playback, momentary compare, precise frame-step nudging, direct canvas precision scrubbing, a true shared-playhead compare viewer, a temporary split-wipe gesture, one compact explicit compare-mode toolbar, one grouped preview-side compare control, a pinned-preview inline wipe mode, one shared compare-selection seam, and a fixed preview wrapper that no longer crashes by attaching one `AVPlayerItem` to two players.
+1. Use `SF-REBUILD-049` as the next safe workspace baseline for a device smoke before choosing the next intentional compare/playback slice. The current shell now keeps live playback, momentary compare, precise frame-step nudging, direct canvas precision scrubbing, a true shared-playhead compare viewer, a temporary split-wipe gesture, one compact explicit compare-mode toolbar, one grouped preview-side compare control, a pinned-preview inline wipe mode, one shared compare-selection seam, one top action owner, the cinematic studio shell, and a fixed preview wrapper that no longer re-hands a live `AVPlayerItem` back into a second player.
 2. Implement that slice on GM, then rerun Gate A plus focused SmartFill parity before any promotion discussion.
 3. Keep the standalone derivation ledger in sync while future shared-workspace chrome, synchronized compare states, the true larger compare viewer, the temporary split-wipe gesture, the compact explicit compare toolbar, shared compare-selection state, hold-to-compare behavior, frame-step transport nudging, direct canvas scrubbing, working entry routes, and any deeper preview/live-transport work lands.

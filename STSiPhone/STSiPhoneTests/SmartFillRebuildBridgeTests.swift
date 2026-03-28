@@ -22,7 +22,7 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         let item = AVPlayerItem(asset: AVMutableComposition())
         let player = AVPlayer(playerItem: item)
 
-        let wrapped = ModernSmartFillPlayer(player: player, playerItem: item)
+        let wrapped = ModernSmartFillPlayer(player: player)
 
         XCTAssertTrue(wrapped.player === player)
         XCTAssertTrue(wrapped.player.currentItem === item)
@@ -763,7 +763,7 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
             infoMessage: "Use the rebuild workspace to shape the look."
         )
 
-        XCTAssertEqual(SmartFillWorkspacePresentation.headerTitle(for: context), "Fine-Tune SmartFill")
+        XCTAssertEqual(SmartFillWorkspacePresentation.headerTitle(for: context), "SmartFill Editor")
         XCTAssertEqual(SmartFillWorkspacePresentation.headerMessage(for: context), "Use the rebuild workspace to shape the look.")
     }
 
