@@ -1,3 +1,4 @@
+import AVFoundation
 import XCTest
 @testable import STSiPhone
 
@@ -15,6 +16,17 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         "smartFillProcessingPriority",
         "smartFillForceUpdateToken"
     ]
+
+    @MainActor
+    func testModernSmartFillPlayerWrapsExistingAVPlayerWithoutReusingItemInSecondPlayer() {
+        let item = AVPlayerItem(asset: AVMutableComposition())
+        let player = AVPlayer(playerItem: item)
+
+        let wrapped = ModernSmartFillPlayer(player: player, playerItem: item)
+
+        XCTAssertTrue(wrapped.player === player)
+        XCTAssertTrue(wrapped.player.currentItem === item)
+    }
 
     func testShouldOfferSmartFillForPortraitTakeInLandscapeSession() {
         let take = ProjectTake(

@@ -211,7 +211,7 @@ public final class SmartFillManager: ObservableObject {
 
 
             logger.info("✅ Created SAFE preview player using unified interface")
-            return ModernSmartFillPlayer(playerItem: playerItem)
+            return ModernSmartFillPlayer(player: avPlayer, playerItem: playerItem)
             
         } catch {
             throw error
@@ -265,10 +265,14 @@ public final class ModernSmartFillPlayer: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private let logger = Logger(subsystem: "SelfTapeStudio", category: "SmartFillPreview")
     
-    init(playerItem: AVPlayerItem) {
+    convenience init(playerItem: AVPlayerItem) {
+        self.init(player: AVPlayer(playerItem: playerItem), playerItem: playerItem)
+    }
+
+    init(player: AVPlayer, playerItem: AVPlayerItem) {
         self.playerItem = playerItem
-        self.player = AVPlayer(playerItem: playerItem)
-        
+        self.player = player
+
         setupObservation()
         logger.info("🎬 ModernSmartFillPlayer: Initialized with modern Combine observation")
     }

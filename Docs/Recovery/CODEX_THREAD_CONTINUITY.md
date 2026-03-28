@@ -1,5 +1,66 @@
 # CODEX Thread Continuity
 
+## Ticket 048 Stop SmartFill Preview AVPlayerItem Reuse Crash (2026-03-28)
+- Thread Status: phase-48 is locally gated on a fresh GM worktree from anchored phase-47, the SmartFill preview wrapper no longer tries to create a second `AVPlayer` around an `AVPlayerItem` that already belongs to the unified preview player, and this slice is ready to anchor as `SF-REBUILD-048`.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase48`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase48`
+- Working Head SHA: `3aff1c90153475b09b61e32a09a7d1527c1bd21d`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+Stop the concrete SmartFill device crash reported in `smartfill logs1.md`:
+1. fix the preview seam so the unified preview `AVPlayer` stays authoritative instead of re-wrapping its `currentItem` into a second `AVPlayer`
+2. preserve the existing local preview-player construction path that creates a fresh `AVPlayerItem(url:)` for standalone source-only preview surfaces
+3. add focused test coverage proving the wrapped `ModernSmartFillPlayer` preserves the original `AVPlayer` instance
+4. make `SF-REBUILD-048` the next safe device-smoke baseline before returning to further workspace chrome refinement
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase48`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase48`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase48`
+  - `git rev-parse HEAD` -> `3aff1c90153475b09b61e32a09a7d1527c1bd21d`
+  - `git status --porcelain` -> clean before phase-48 edits
+  - `git log -1 --oneline` -> `3aff1c9 SF-REBUILD-047: share compare state across pinned and drill-in preview`
+- Truth-sync confirmed:
+  - `git -C /Users/kevinbarrett/Dev/itFactor_1.23.26_git fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Completed This Pass
+- `SmartFillManager.createPreviewPlayer(...)` now preserves the `AVPlayer` created by `SmartFillUnifiedInterface` instead of extracting its `currentItem` and attaching that item to a second player.
+- `ModernSmartFillPlayer` now supports wrapping an already-created `AVPlayer` while still keeping the original `playerItem` for readiness, duration, and end-of-playback observation.
+- Focused parity now includes a direct test that the wrapped preview player preserves the supplied `AVPlayer` instance instead of creating a second owner for the same item.
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase48/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase48_gateA_rerun build | tee /tmp/itfactor_smartfill_phase48_gateA_rerun.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase48_gateA_rerun.log`
+- Focused parity command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase48/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase48_tests_rerun -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase48_tests_rerun.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase48_tests_rerun.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase48_tests_rerun/Logs/Test/Test-STSiPhone-2026.03.28_17-40-49--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Next Action
+1. Anchor `SF-REBUILD-048` on `gm/smartfill-itfactor-phase48`.
+2. Use the anchored phase-48 branch as the next safe device-test baseline because it specifically removes the concrete SmartFill preview crash seen when opening the workspace on device.
+3. After that device smoke, decide whether the next workspace slice should return to compare/playback fluency or address the oversize/duplicated chrome shown in the latest screenshot.
+
 ## Ticket 047 Shared Compare State Across Pinned And Drill-In Preview (2026-03-28)
 - Thread Status: phase-47 is locally gated on a fresh GM worktree from the anchored phase-46 baseline, the pinned preview and larger compare viewer now share one compare-selection seam directly, and this slice is ready to anchor as `SF-REBUILD-047`.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
