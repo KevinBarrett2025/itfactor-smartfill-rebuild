@@ -50,6 +50,8 @@ public struct SmartFillSettingsSnapshot: Codable, Equatable, Sendable {
     public var darkenAmount: Double
     public var backgroundScale: Double
     public var foregroundScale: Double
+    public var foregroundOffsetX: Double
+    public var foregroundOffsetY: Double
     public var backgroundSourceMode: String?
     public var backgroundAssetPath: String?
     public var backgroundAssetDisplayName: String?
@@ -65,6 +67,8 @@ public struct SmartFillSettingsSnapshot: Codable, Equatable, Sendable {
         darkenAmount: Double,
         backgroundScale: Double,
         foregroundScale: Double,
+        foregroundOffsetX: Double = 0,
+        foregroundOffsetY: Double = 0,
         backgroundSourceMode: String? = nil,
         backgroundAssetPath: String? = nil,
         backgroundAssetDisplayName: String? = nil,
@@ -79,6 +83,8 @@ public struct SmartFillSettingsSnapshot: Codable, Equatable, Sendable {
         self.darkenAmount = darkenAmount
         self.backgroundScale = backgroundScale
         self.foregroundScale = foregroundScale
+        self.foregroundOffsetX = foregroundOffsetX
+        self.foregroundOffsetY = foregroundOffsetY
         self.backgroundSourceMode = backgroundSourceMode
         self.backgroundAssetPath = backgroundAssetPath
         self.backgroundAssetDisplayName = backgroundAssetDisplayName
@@ -87,6 +93,62 @@ public struct SmartFillSettingsSnapshot: Codable, Equatable, Sendable {
         self.renderHeight = renderHeight
         self.processingPriority = processingPriority
         self.presetName = presetName
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case isEnabled
+        case blurRadius
+        case darkenAmount
+        case backgroundScale
+        case foregroundScale
+        case foregroundOffsetX
+        case foregroundOffsetY
+        case backgroundSourceMode
+        case backgroundAssetPath
+        case backgroundAssetDisplayName
+        case backgroundVideoTakeID
+        case renderWidth
+        case renderHeight
+        case processingPriority
+        case presetName
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.isEnabled = try container.decode(Bool.self, forKey: .isEnabled)
+        self.blurRadius = try container.decode(Double.self, forKey: .blurRadius)
+        self.darkenAmount = try container.decode(Double.self, forKey: .darkenAmount)
+        self.backgroundScale = try container.decode(Double.self, forKey: .backgroundScale)
+        self.foregroundScale = try container.decode(Double.self, forKey: .foregroundScale)
+        self.foregroundOffsetX = try container.decodeIfPresent(Double.self, forKey: .foregroundOffsetX) ?? 0
+        self.foregroundOffsetY = try container.decodeIfPresent(Double.self, forKey: .foregroundOffsetY) ?? 0
+        self.backgroundSourceMode = try container.decodeIfPresent(String.self, forKey: .backgroundSourceMode)
+        self.backgroundAssetPath = try container.decodeIfPresent(String.self, forKey: .backgroundAssetPath)
+        self.backgroundAssetDisplayName = try container.decodeIfPresent(String.self, forKey: .backgroundAssetDisplayName)
+        self.backgroundVideoTakeID = try container.decodeIfPresent(UUID.self, forKey: .backgroundVideoTakeID)
+        self.renderWidth = try container.decode(Double.self, forKey: .renderWidth)
+        self.renderHeight = try container.decode(Double.self, forKey: .renderHeight)
+        self.processingPriority = try container.decode(String.self, forKey: .processingPriority)
+        self.presetName = try container.decodeIfPresent(String.self, forKey: .presetName)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(isEnabled, forKey: .isEnabled)
+        try container.encode(blurRadius, forKey: .blurRadius)
+        try container.encode(darkenAmount, forKey: .darkenAmount)
+        try container.encode(backgroundScale, forKey: .backgroundScale)
+        try container.encode(foregroundScale, forKey: .foregroundScale)
+        try container.encode(foregroundOffsetX, forKey: .foregroundOffsetX)
+        try container.encode(foregroundOffsetY, forKey: .foregroundOffsetY)
+        try container.encodeIfPresent(backgroundSourceMode, forKey: .backgroundSourceMode)
+        try container.encodeIfPresent(backgroundAssetPath, forKey: .backgroundAssetPath)
+        try container.encodeIfPresent(backgroundAssetDisplayName, forKey: .backgroundAssetDisplayName)
+        try container.encodeIfPresent(backgroundVideoTakeID, forKey: .backgroundVideoTakeID)
+        try container.encode(renderWidth, forKey: .renderWidth)
+        try container.encode(renderHeight, forKey: .renderHeight)
+        try container.encode(processingPriority, forKey: .processingPriority)
+        try container.encodeIfPresent(presetName, forKey: .presetName)
     }
 }
 

@@ -46,6 +46,8 @@ enum SmartFillTakeBridge {
             darkenAmount: CGFloat(snapshot.darkenAmount),
             backgroundScale: CGFloat(snapshot.backgroundScale),
             foregroundScale: CGFloat(snapshot.foregroundScale),
+            foregroundOffsetX: CGFloat(snapshot.foregroundOffsetX),
+            foregroundOffsetY: CGFloat(snapshot.foregroundOffsetY),
             backgroundSourceMode: SmartFillSettings.BackgroundSourceMode(
                 rawValue: snapshot.backgroundSourceMode ?? SmartFillSettings.BackgroundSourceMode.sourceDerived.rawValue
             ) ?? .sourceDerived,
@@ -65,6 +67,8 @@ enum SmartFillTakeBridge {
             darkenAmount: Double(settings.darkenAmount),
             backgroundScale: Double(settings.backgroundScale),
             foregroundScale: Double(settings.foregroundScale),
+            foregroundOffsetX: Double(settings.foregroundOffsetX),
+            foregroundOffsetY: Double(settings.foregroundOffsetY),
             backgroundSourceMode: settings.backgroundSourceMode.rawValue,
             backgroundAssetPath: settings.backgroundAssetPath,
             backgroundAssetDisplayName: settings.backgroundAssetDisplayName,
@@ -116,6 +120,8 @@ enum SmartFillTakeBridge {
             darkenAmount: Double(persistedDefaults.darkenAmount),
             backgroundScale: Double(persistedDefaults.backgroundScale),
             foregroundScale: Double(persistedDefaults.foregroundScale),
+            foregroundOffsetX: Double(persistedDefaults.foregroundOffsetX),
+            foregroundOffsetY: Double(persistedDefaults.foregroundOffsetY),
             backgroundSourceMode: persistedDefaults.backgroundSourceMode.rawValue,
             backgroundAssetPath: persistedDefaults.backgroundAssetPath,
             backgroundAssetDisplayName: persistedDefaults.backgroundAssetDisplayName,

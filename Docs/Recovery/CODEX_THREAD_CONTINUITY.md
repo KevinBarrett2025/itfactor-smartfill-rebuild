@@ -1,5 +1,67 @@
 # CODEX Thread Continuity
 
+## Ticket 057 Add Real Foreground Framing Offsets To The SmartFill Workspace (2026-03-29)
+- Thread Status: phase-57 is locally gated on a clean GM worktree cut from anchored phase-56. This slice turns the current foreground tool into a real framing seam by adding persistent X/Y composition offsets that preview, save, and reopen can all honor without introducing new sheets or regressing the fixed-shell studio chrome.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase57`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase57`
+- Working Head SHA: `3376f59a79784fa6bd27bdb3019436d5b0935980`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+1. expand the current `Foreground` tray from zoom-only into a real framing tool with persistent horizontal and vertical composition control
+2. preserve the fixed-shell SmartFill studio workspace and avoid new drill-in sheets for controls that fit inline
+3. wire the new framing offsets through settings defaults, snapshots, preview, export, and reopen so the tool is not a UI-only illusion
+4. keep motion backgrounds explicitly deferred until a true second-video renderer seam exists, instead of pretending that staged `Motion` UI is already functional
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase57`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase57`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase57`
+  - `git rev-parse HEAD` -> `3376f59a79784fa6bd27bdb3019436d5b0935980`
+  - `git status --porcelain` -> seven intended SmartFill engine/workspace/test edits before gates
+  - `git log -1 --oneline` -> `3376f59 SF-REBUILD-056: restore pinned-wipe playback ownership and make foreground zoom real`
+- Truth-sync confirmed:
+  - `git -C /tmp/itfactor_smartfill_phase57 fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Completed This Pass
+- `SmartFillSettings` now persists `foregroundOffsetX` and `foregroundOffsetY` through defaults, clamping, and save/load behavior so foreground framing survives workspace relaunch.
+- `ProjectModels.SmartFillSettingsSnapshot`, `SmartFillTakeBridge`, and `SmartFillProcessingManager` now round-trip those framing offsets through snapshot persistence, reopen, and save-result truth instead of dropping them after the current session.
+- `SmartFillCIBuilder` now applies the framing offsets to the real SmartFill composition by translating the foreground within the available room after zoom scaling, so horizontal and vertical subject framing affect preview and export output.
+- `SmartFillWorkspaceView` now upgrades the `Foreground` lane from zoom-only to a real framing tool with inline presets plus horizontal and vertical framing sliders, while keeping the fixed-shell studio chrome intact.
+- `SmartFillRebuildBridgeTests` now lock defaults/snapshot round-tripping, resolved foreground translation math, and the new user-facing framing summaries.
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase57/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -clonedSourcePackagesDirPath /tmp/itfactor_smartfill_phase57_gateA_rerun/SourcePackages -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase57_gateA_localpkgs build | tee /tmp/itfactor_smartfill_phase57_gateA_localpkgs.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase57_gateA_localpkgs.log`
+- Focused parity command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase57/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -clonedSourcePackagesDirPath /tmp/itfactor_smartfill_phase56_tests_rerun/SourcePackages -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase57_tests -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase57_tests.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase57_tests.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase57_tests/Logs/Test/Test-STSiPhone-2026.03.29_11-40-36--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Next Action
+1. anchor this slice as `SF-REBUILD-057` on `gm/smartfill-itfactor-phase57`
+2. use the new foreground framing seam as the baseline for richer crop/pan/zoom behavior instead of keeping subject control at zoom-only
+3. keep motion backgrounds explicitly deferred until the flagship renderer can honestly carry a second moving asset through preview and export
+
 ## Ticket 056 Restore Pinned-Wipe Playback And Make Foreground Zoom Real (2026-03-29)
 - Thread Status: phase-56 is locally gated on a clean GM worktree cut from anchored phase-55. Device feedback drove this slice, and the resulting workspace now restores interactive playback when pinned `Wipe` compare is active while carrying foreground zoom through the real SmartFill composition.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

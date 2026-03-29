@@ -59,6 +59,8 @@ public struct SmartFillSettings: Codable, Equatable, Sendable {
     public var darkenAmount: CGFloat
     public var backgroundScale: CGFloat
     public var foregroundScale: CGFloat
+    public var foregroundOffsetX: CGFloat
+    public var foregroundOffsetY: CGFloat
     public var backgroundSourceMode: BackgroundSourceMode
     public var backgroundAssetPath: String?
     public var backgroundAssetDisplayName: String?
@@ -95,6 +97,8 @@ public struct SmartFillSettings: Codable, Equatable, Sendable {
         self.darkenAmount = SmartFillSettings.cgFloat(forKey: "smartFillDarkenAmount", in: defaults, fallback: 0.12)
         self.backgroundScale = SmartFillSettings.cgFloat(forKey: "smartFillBackgroundScale", in: defaults, fallback: 10.0)
         self.foregroundScale = SmartFillSettings.cgFloat(forKey: "smartFillForegroundScale", in: defaults, fallback: 1.0)
+        self.foregroundOffsetX = SmartFillSettings.cgFloat(forKey: "smartFillForegroundOffsetX", in: defaults, fallback: 0.0)
+        self.foregroundOffsetY = SmartFillSettings.cgFloat(forKey: "smartFillForegroundOffsetY", in: defaults, fallback: 0.0)
         let backgroundSourceModeRawValue = defaults.string(forKey: "smartFillBackgroundSourceMode")
             ?? BackgroundSourceMode.sourceDerived.rawValue
         self.backgroundSourceMode = BackgroundSourceMode(rawValue: backgroundSourceModeRawValue) ?? .sourceDerived
@@ -126,6 +130,8 @@ public struct SmartFillSettings: Codable, Equatable, Sendable {
         darkenAmount: CGFloat = 0.12,
         backgroundScale: CGFloat = 10.0,
         foregroundScale: CGFloat = 1.0,
+        foregroundOffsetX: CGFloat = 0.0,
+        foregroundOffsetY: CGFloat = 0.0,
         backgroundSourceMode: BackgroundSourceMode = .sourceDerived,
         backgroundAssetPath: String? = nil,
         backgroundAssetDisplayName: String? = nil,
@@ -140,6 +146,8 @@ public struct SmartFillSettings: Codable, Equatable, Sendable {
         self.darkenAmount = darkenAmount
         self.backgroundScale = backgroundScale
         self.foregroundScale = foregroundScale
+        self.foregroundOffsetX = foregroundOffsetX
+        self.foregroundOffsetY = foregroundOffsetY
         self.backgroundSourceMode = backgroundSourceMode
         self.backgroundAssetPath = backgroundAssetPath
         self.backgroundAssetDisplayName = backgroundAssetDisplayName
@@ -166,6 +174,8 @@ public struct SmartFillSettings: Codable, Equatable, Sendable {
             darkenAmount: defaultDarkenAmount,
             backgroundScale: backgroundScale,
             foregroundScale: 1.0,
+            foregroundOffsetX: 0.0,
+            foregroundOffsetY: 0.0,
             renderSize: defaultRenderSize,
             processingPriority: processingPriority,
             forceUpdateToken: forceUpdateToken
@@ -180,6 +190,8 @@ public struct SmartFillSettings: Codable, Equatable, Sendable {
         copy.darkenAmount = min(max(0, copy.darkenAmount), 1)
         copy.backgroundScale = max(0.1, copy.backgroundScale)
         copy.foregroundScale = max(0.1, copy.foregroundScale)
+        copy.foregroundOffsetX = min(max(copy.foregroundOffsetX, -1), 1)
+        copy.foregroundOffsetY = min(max(copy.foregroundOffsetY, -1), 1)
         copy.renderSize = CGSize(
             width: max(1, copy.renderSize.width),
             height: max(1, copy.renderSize.height)
@@ -195,6 +207,8 @@ public struct SmartFillSettings: Codable, Equatable, Sendable {
         defaults.set(darkenAmount, forKey: "smartFillDarkenAmount")
         defaults.set(backgroundScale, forKey: "smartFillBackgroundScale")
         defaults.set(foregroundScale, forKey: "smartFillForegroundScale")
+        defaults.set(foregroundOffsetX, forKey: "smartFillForegroundOffsetX")
+        defaults.set(foregroundOffsetY, forKey: "smartFillForegroundOffsetY")
         defaults.set(backgroundSourceMode.rawValue, forKey: "smartFillBackgroundSourceMode")
         defaults.set(backgroundAssetPath, forKey: "smartFillBackgroundAssetPath")
         defaults.set(backgroundAssetDisplayName, forKey: "smartFillBackgroundAssetDisplayName")

@@ -10,6 +10,8 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         "smartFillDarkenAmount",
         "smartFillBackgroundScale",
         "smartFillForegroundScale",
+        "smartFillForegroundOffsetX",
+        "smartFillForegroundOffsetY",
         "smartFillBackgroundSourceMode",
         "smartFillBackgroundAssetPath",
         "smartFillBackgroundAssetDisplayName",
@@ -487,6 +489,8 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
             darkenAmount: 0.18,
             backgroundScale: 4.5,
             foregroundScale: 1.2,
+            foregroundOffsetX: -0.4,
+            foregroundOffsetY: 0.25,
             backgroundSourceMode: .customImage,
             backgroundAssetPath: "/tmp/background.png",
             backgroundAssetDisplayName: "background.png",
@@ -505,6 +509,9 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertEqual(restored.blurRadius, settings.blurRadius)
         XCTAssertEqual(restored.darkenAmount, settings.darkenAmount)
         XCTAssertEqual(restored.backgroundScale, settings.backgroundScale)
+        XCTAssertEqual(restored.foregroundScale, settings.foregroundScale)
+        XCTAssertEqual(restored.foregroundOffsetX, settings.foregroundOffsetX)
+        XCTAssertEqual(restored.foregroundOffsetY, settings.foregroundOffsetY)
         XCTAssertEqual(restored.backgroundSourceMode, .customImage)
         XCTAssertEqual(restored.backgroundAssetPath, "/tmp/background.png")
         XCTAssertEqual(restored.backgroundAssetDisplayName, "background.png")
@@ -521,6 +528,8 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
                 darkenAmount: 0.1,
                 backgroundScale: 3.0,
                 foregroundScale: 1.0,
+                foregroundOffsetX: 0.3,
+                foregroundOffsetY: -0.2,
                 backgroundSourceMode: .customImage,
                 backgroundAssetPath: "/tmp/still-background.png",
                 backgroundAssetDisplayName: "still-background.png",
@@ -536,6 +545,8 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
             XCTAssertEqual(restored.backgroundSourceMode, .customImage)
             XCTAssertEqual(restored.backgroundAssetPath, "/tmp/still-background.png")
             XCTAssertEqual(restored.backgroundAssetDisplayName, "still-background.png")
+            XCTAssertEqual(restored.foregroundOffsetX, 0.3, accuracy: 0.0001)
+            XCTAssertEqual(restored.foregroundOffsetY, -0.2, accuracy: 0.0001)
         }
     }
 
@@ -737,6 +748,19 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
             1.0,
             accuracy: 0.0001
         )
+    }
+
+    func testResolvedForegroundTranslationUsesWorkspaceFramingOffsets() {
+        let settings = SmartFillSettings(foregroundOffsetX: -0.5, foregroundOffsetY: 0.25)
+
+        let translation = SmartFillCIBuilder.resolvedForegroundTranslation(
+            renderSize: CGSize(width: 1920, height: 1080),
+            foregroundRect: CGRect(x: 0, y: 0, width: 960, height: 1440),
+            settings: settings
+        )
+
+        XCTAssertEqual(translation.x, -240, accuracy: 0.0001)
+        XCTAssertEqual(translation.y, 45, accuracy: 0.0001)
     }
 
     func testPreviewCompareStateUsesSelectedModeWhenNotHolding() {
@@ -1055,9 +1079,12 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
     func testWorkspacePresentationDescribesFramingAndPriority() {
         let relaxedFraming = SmartFillSettings(foregroundScale: 0.9, processingPriority: .background)
         let tightFraming = SmartFillSettings(foregroundScale: 1.18, processingPriority: .high)
+        let offsetFraming = SmartFillSettings(foregroundScale: 1.0, foregroundOffsetX: -0.4, foregroundOffsetY: 0.3)
 
         XCTAssertEqual(SmartFillWorkspacePresentation.framingCaption(for: relaxedFraming), "Show more breathing room around the subject.")
         XCTAssertEqual(SmartFillWorkspacePresentation.framingCaption(for: tightFraming), "Push the subject forward for a tighter, more dramatic frame.")
+        XCTAssertEqual(SmartFillWorkspacePresentation.foregroundFramingValue(for: offsetFraming), "Left • Down")
+        XCTAssertEqual(SmartFillWorkspacePresentation.foregroundToolValue(for: offsetFraming), "1.00× • Left • Down")
         XCTAssertEqual(SmartFillWorkspacePresentation.processingPriorityTitle(for: .background), "Batch")
         XCTAssertEqual(SmartFillWorkspacePresentation.processingPriorityTitle(for: .high), "Fast")
     }

@@ -785,6 +785,8 @@ private extension SmartFillSettingsSnapshot {
             darkenAmount: Double(settings.darkenAmount),
             backgroundScale: Double(settings.backgroundScale),
             foregroundScale: Double(settings.foregroundScale),
+            foregroundOffsetX: Double(settings.foregroundOffsetX),
+            foregroundOffsetY: Double(settings.foregroundOffsetY),
             backgroundSourceMode: settings.backgroundSourceMode.rawValue,
             backgroundAssetPath: settings.backgroundAssetPath,
             backgroundAssetDisplayName: settings.backgroundAssetDisplayName,

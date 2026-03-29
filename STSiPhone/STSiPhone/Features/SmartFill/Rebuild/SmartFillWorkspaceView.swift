@@ -579,7 +579,7 @@ struct SmartFillWorkspaceView: View {
 
     private var framingSurface: some View {
         VStack(alignment: .leading, spacing: 12) {
-            toolSectionHeader("Foreground", value: SmartFillWorkspacePresentation.foregroundZoomValue(for: settings))
+            toolSectionHeader("Foreground", value: SmartFillWorkspacePresentation.foregroundToolValue(for: settings))
 
             compactMenuPicker(
                 title: "Zoom",
@@ -599,10 +599,10 @@ struct SmartFillWorkspaceView: View {
                 }
             }
 
-            compactToolGroup(title: "Framing", value: isSubjectPrecisionExpanded ? SmartFillWorkspacePresentation.foregroundZoomValue(for: settings) : "Closed") {
+            compactToolGroup(title: "Framing", value: isSubjectPrecisionExpanded ? SmartFillWorkspacePresentation.foregroundFramingValue(for: settings) : "Closed") {
                 compactToolChip(
-                    title: "Zoom",
-                    subtitle: SmartFillWorkspacePresentation.foregroundZoomValue(for: settings),
+                    title: "Frame",
+                    subtitle: SmartFillWorkspacePresentation.foregroundFramingValue(for: settings),
                     systemImage: "viewfinder",
                     isSelected: isSubjectPrecisionExpanded
                 ) {
@@ -612,6 +612,21 @@ struct SmartFillWorkspaceView: View {
 
             if isSubjectPrecisionExpanded {
                 toolSectionCard {
+                    toolSubheader("Foreground framing", value: SmartFillWorkspacePresentation.foregroundFramingValue(for: settings))
+
+                    compactToolGroup(title: "Preset", value: SmartFillWorkspacePresentation.foregroundFramingValue(for: settings)) {
+                        ForEach(SmartFillWorkspaceFramingPreset.allCases, id: \.self) { preset in
+                            compactToolChip(
+                                title: preset.title,
+                                subtitle: preset.valueLabel,
+                                systemImage: preset.matches(settings) ? "checkmark.circle.fill" : nil,
+                                isSelected: preset.matches(settings)
+                            ) {
+                                applyForegroundFramingPreset(preset)
+                            }
+                        }
+                    }
+
                     toolSubheader("Foreground zoom", value: SmartFillWorkspacePresentation.foregroundZoomValue(for: settings))
 
                     Slider(value: foregroundScaleBinding, in: 0.80...1.35, step: 0.05) {
@@ -619,7 +634,21 @@ struct SmartFillWorkspaceView: View {
                     }
                     .tint(SmartFillWorkspacePalette.accent)
 
-                    Text("Zoom the subject tighter or give the frame more room without leaving the editor tray.")
+                    toolSubheader("Horizontal", value: SmartFillWorkspacePresentation.foregroundHorizontalValue(for: settings))
+
+                    Slider(value: foregroundOffsetXBinding, in: -1...1, step: 0.1) {
+                        Text("Horizontal framing")
+                    }
+                    .tint(SmartFillWorkspacePalette.accent)
+
+                    toolSubheader("Vertical", value: SmartFillWorkspacePresentation.foregroundVerticalValue(for: settings))
+
+                    Slider(value: foregroundOffsetYBinding, in: -1...1, step: 0.1) {
+                        Text("Vertical framing")
+                    }
+                    .tint(SmartFillWorkspacePalette.accent)
+
+                    Text("Zoom the subject tighter, then nudge the frame until the composition feels deliberate.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -1050,6 +1079,26 @@ struct SmartFillWorkspaceView: View {
             get: { Double(settings.foregroundScale) },
             set: {
                 settings.foregroundScale = CGFloat($0)
+                markSettingsDirty()
+            }
+        )
+    }
+
+    private var foregroundOffsetXBinding: Binding<Double> {
+        Binding(
+            get: { Double(settings.foregroundOffsetX) },
+            set: {
+                settings.foregroundOffsetX = CGFloat($0)
+                markSettingsDirty()
+            }
+        )
+    }
+
+    private var foregroundOffsetYBinding: Binding<Double> {
+        Binding(
+            get: { Double(settings.foregroundOffsetY) },
+            set: {
+                settings.foregroundOffsetY = CGFloat($0)
                 markSettingsDirty()
             }
         )
@@ -1920,6 +1969,12 @@ struct SmartFillWorkspaceView: View {
         markSettingsDirty()
     }
 
+    private func applyForegroundFramingPreset(_ preset: SmartFillWorkspaceFramingPreset) {
+        settings.foregroundOffsetX = preset.offsetX
+        settings.foregroundOffsetY = preset.offsetY
+        markSettingsDirty()
+    }
+
     private func queueSmartFill() {
         let clamped = settings.clamped()
         settings = clamped
@@ -2655,7 +2710,8 @@ enum SmartFillWorkspaceTool: CaseIterable {
             let presetTitle = SmartFillWorkspaceSubjectPreset.allCases.first(where: { $0.matches(settings.foregroundScale) })?.title ?? "Custom"
             return [
                 SmartFillWorkspaceFocusItem(title: "Preset", value: presetTitle, symbolName: "person.crop.rectangle"),
-                SmartFillWorkspaceFocusItem(title: "Zoom", value: SmartFillWorkspacePresentation.foregroundZoomValue(for: settings), symbolName: "viewfinder")
+                SmartFillWorkspaceFocusItem(title: "Zoom", value: SmartFillWorkspacePresentation.foregroundZoomValue(for: settings), symbolName: "viewfinder"),
+                SmartFillWorkspaceFocusItem(title: "Frame", value: SmartFillWorkspacePresentation.foregroundFramingValue(for: settings), symbolName: "arrow.up.left.and.arrow.down.right")
             ]
         case .output:
             return [
@@ -2827,6 +2883,67 @@ private enum SmartFillWorkspaceSubjectPreset: CaseIterable {
 
     func matches(_ value: CGFloat) -> Bool {
         abs(value - scale) < 0.01
+    }
+}
+
+private enum SmartFillWorkspaceFramingPreset: CaseIterable {
+    case centered
+    case leadLeft
+    case leadRight
+    case higher
+    case lower
+
+    var offsetX: CGFloat {
+        switch self {
+        case .centered, .higher, .lower:
+            return 0
+        case .leadLeft:
+            return -0.6
+        case .leadRight:
+            return 0.6
+        }
+    }
+
+    var offsetY: CGFloat {
+        switch self {
+        case .centered, .leadLeft, .leadRight:
+            return 0
+        case .higher:
+            return -0.4
+        case .lower:
+            return 0.4
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .centered:
+            return "Center"
+        case .leadLeft:
+            return "Left"
+        case .leadRight:
+            return "Right"
+        case .higher:
+            return "Raise"
+        case .lower:
+            return "Lower"
+        }
+    }
+
+    var valueLabel: String {
+        switch self {
+        case .centered:
+            return "Neutral"
+        case .leadLeft, .leadRight:
+            return "Horizontal"
+        case .higher, .lower:
+            return "Vertical"
+        }
+    }
+
+    func matches(_ settings: SmartFillSettings) -> Bool {
+        abs(settings.foregroundOffsetX - offsetX) < 0.01 &&
+        abs(settings.foregroundOffsetY - offsetY) < 0.01
     }
 }
 
@@ -3371,6 +3488,34 @@ enum SmartFillWorkspacePresentation {
         String(format: "%.2f×", settings.foregroundScale)
     }
 
+    static func foregroundHorizontalValue(for settings: SmartFillSettings) -> String {
+        axisValue(settings.foregroundOffsetX, negative: "Left", positive: "Right")
+    }
+
+    static func foregroundVerticalValue(for settings: SmartFillSettings) -> String {
+        axisValue(settings.foregroundOffsetY, negative: "Up", positive: "Down")
+    }
+
+    static func foregroundFramingValue(for settings: SmartFillSettings) -> String {
+        let horizontal = foregroundHorizontalValue(for: settings)
+        let vertical = foregroundVerticalValue(for: settings)
+
+        if horizontal == "Center", vertical == "Center" {
+            return "Centered"
+        }
+        if horizontal == "Center" {
+            return vertical
+        }
+        if vertical == "Center" {
+            return horizontal
+        }
+        return "\(horizontal) • \(vertical)"
+    }
+
+    static func foregroundToolValue(for settings: SmartFillSettings) -> String {
+        "\(foregroundZoomValue(for: settings)) • \(foregroundFramingValue(for: settings))"
+    }
+
     static func outputCaption(for settings: SmartFillSettings) -> String {
         let size = "\(Int(settings.renderSize.width))×\(Int(settings.renderSize.height))"
         return "\(size) output with \(processingPriorityTitle(for: settings.processingPriority).lowercased()) processing."
@@ -3403,6 +3548,16 @@ enum SmartFillWorkspacePresentation {
         case .high:
             return "Prioritize this pass when you need the result quickly."
         }
+    }
+
+    private static func axisValue(_ rawValue: CGFloat, negative: String, positive: String) -> String {
+        if rawValue < -0.15 {
+            return negative
+        }
+        if rawValue > 0.15 {
+            return positive
+        }
+        return "Center"
     }
 }
 

@@ -94,8 +94,17 @@ public final class SmartFillCIBuilder {
             )
             let fgScaled = src.transformed(by: CGAffineTransform(scaleX: fgScale, y: fgScale))
             let fgRect = fgScaled.extent
-            let fgDx = (renderSize.width  - fgRect.width)  * 0.5 - fgRect.minX
-            let fgDy = (renderSize.height - fgRect.height) * 0.5 - fgRect.minY
+            let centeredForegroundOffset = CGPoint(
+                x: (renderSize.width  - fgRect.width)  * 0.5 - fgRect.minX,
+                y: (renderSize.height - fgRect.height) * 0.5 - fgRect.minY
+            )
+            let framingOffset = resolvedForegroundTranslation(
+                renderSize: renderSize,
+                foregroundRect: fgRect,
+                settings: settings
+            )
+            let fgDx = centeredForegroundOffset.x + framingOffset.x
+            let fgDy = centeredForegroundOffset.y + framingOffset.y
             let fgCentered = fgScaled
                 .transformed(by: CGAffineTransform(translationX: fgDx, y: fgDy))
                 .cropped(to: renderRect)
@@ -226,6 +235,21 @@ public final class SmartFillCIBuilder {
         let safeBaseScale = max(baseScale, 0.1)
         let configuredForegroundScale = max(settings.foregroundScale, 0.1)
         return min(safeBaseScale * configuredForegroundScale, safeBaseScale * 2.5)
+    }
+
+    static func resolvedForegroundTranslation(
+        renderSize: CGSize,
+        foregroundRect: CGRect,
+        settings: SmartFillSettings
+    ) -> CGPoint {
+        let safeOffsetX = min(max(settings.foregroundOffsetX, -1), 1)
+        let safeOffsetY = min(max(settings.foregroundOffsetY, -1), 1)
+        let maxShiftX = abs(renderSize.width - foregroundRect.width) * 0.5
+        let maxShiftY = abs(renderSize.height - foregroundRect.height) * 0.5
+        return CGPoint(
+            x: maxShiftX * safeOffsetX,
+            y: maxShiftY * safeOffsetY
+        )
     }
 }
 
