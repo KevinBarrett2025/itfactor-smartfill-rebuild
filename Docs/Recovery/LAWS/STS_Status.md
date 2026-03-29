@@ -393,6 +393,13 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase57_gateA_localpkgs.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase57_tests.log`
   - xcresult: `/tmp/itfactor_smartfill_phase57_tests/Logs/Test/Test-STSiPhone-2026.03.29_11-40-36--0400.xcresult`
+- `SF-REBUILD-058` — seed one master-editor player entry seam — `COMPLETE (LOCAL-GATED 2026-03-29)`
+  - `StudioEditorPlayerEntryResolver` now gives the flagship player one shared entry contract that resolves whether the active take should open standard editing, SmartFill request flow, or SmartFill edit flow.
+  - `SwipeableVideoPlayerView` now renders one generic `Edit` chip instead of separate player-entry affordances, and routes that chip to the correct existing editor module without rewriting the editor shell yet.
+  - `SwipeableMediaPlayerView` now follows the same shared entry contract, leaving the future master editor free to absorb PIP/trim/crop behind one launch seam instead of per-feature overlay buttons.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase58_gateA_rerun.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase58_tests_rerun.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase58_tests_rerun/Logs/Test/Test-STSiPhone-2026.03.29_12-15-03--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -416,6 +423,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Use `SF-REBUILD-057` as the new SmartFill workspace baseline. The current shell now has real still-image background ownership, working pinned-wipe playback ownership, foreground zoom that affects the rendered SmartFill result, and persistent foreground X/Y framing that also affects preview and export output.
-2. Implement the next studio-shell tightening slice on GM around richer crop/pan/zoom behavior using the new foreground framing seam, while keeping motion backgrounds explicitly deferred until the renderer can honestly support them.
-3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, explicit background/foreground picker ownership, still-image background-source persistence, real foreground zoom and framing composition, inline expander ownership model, flatter studio-shelf chrome, preview-focus deck, canvas-embedded live transport, synchronized source/result compare behavior, visible poster-frame-at-rest preview behavior, stable single-owner action chrome, studio-grade theming, working entry routing, shared playback-intent seam, and tray-to-sheet split for deeper tools.
+1. Use `SF-REBUILD-058` as the new flagship baseline. The player now has one shared `Edit` entry seam that can route to SmartFill or the standard editor, which is the first real bridge toward the future all-in-one editor.
+2. Build the next GM slice on top of that shared entry contract so PIP, trim replacement, crop replacement, and future timeline work can converge behind the same launch seam instead of adding more feature-specific player buttons.
+3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, explicit background/foreground picker ownership, still-image background-source persistence, real foreground zoom and framing composition, inline expander ownership model, flatter studio-shelf chrome, preview-focus deck, canvas-embedded live transport, synchronized source/result compare behavior, visible poster-frame-at-rest preview behavior, stable single-owner action chrome, studio-grade theming, working entry routing, shared playback-intent seam, shared player `Edit` routing contract, and tray-to-sheet split for deeper tools.

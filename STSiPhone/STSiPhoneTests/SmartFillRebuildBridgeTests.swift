@@ -146,6 +146,80 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertNil(SmartFillPlayerEntryResolver.resolve(for: exported, in: session))
     }
 
+    func testStudioEditorEntryResolverRoutesPortraitTakeToSmartFillRequest() {
+        let take = ProjectTake(
+            filePath: "/tmp/original.mov",
+            durationSeconds: 12,
+            capturedOrientation: .portrait
+        )
+        let session = ProjectSession(
+            type: .selfTape,
+            takes: [take],
+            primaryOrientation: .landscape
+        )
+
+        XCTAssertEqual(
+            StudioEditorPlayerEntryResolver.resolve(for: take, in: session),
+            .smartFillRequest(targetTake: take)
+        )
+    }
+
+    func testStudioEditorEntryResolverRoutesSmartFillVariantToSmartFillEdit() {
+        let originalID = UUID(uuidString: "BBBBBBBB-CCCC-DDDD-EEEE-FFFFFFFFFFFF")!
+        let variant = ProjectTake(
+            id: UUID(uuidString: "12345678-1234-1234-1234-1234567890AB")!,
+            filePath: "/tmp/original_smartfill.mov",
+            durationSeconds: 12,
+            takeNotes: "[SMARTFILL_ORIGINAL:\(originalID.uuidString)]",
+            capturedOrientation: .portrait
+        )
+        let session = ProjectSession(
+            type: .selfTape,
+            takes: [variant],
+            primaryOrientation: .landscape
+        )
+
+        XCTAssertEqual(
+            StudioEditorPlayerEntryResolver.resolve(for: variant, in: session),
+            .smartFillEdit(targetTake: variant)
+        )
+    }
+
+    func testStudioEditorEntryResolverRoutesLandscapeTakeToStandardEdit() {
+        let take = ProjectTake(
+            filePath: "/tmp/landscape.mov",
+            durationSeconds: 12,
+            capturedOrientation: .landscape
+        )
+        let session = ProjectSession(
+            type: .selfTape,
+            takes: [take],
+            primaryOrientation: .landscape
+        )
+
+        XCTAssertEqual(
+            StudioEditorPlayerEntryResolver.resolve(for: take, in: session),
+            .standardEdit(targetTake: take)
+        )
+    }
+
+    func testStudioEditorEntryPresentationUsesOneGenericEditTitle() {
+        let take = ProjectTake(
+            filePath: "/tmp/clip.mov",
+            durationSeconds: 12,
+            capturedOrientation: .portrait
+        )
+
+        XCTAssertEqual(
+            StudioEditorPlayerEntryPresentation.overlayTitle(for: .smartFillRequest(targetTake: take)),
+            "Edit"
+        )
+        XCTAssertEqual(
+            StudioEditorPlayerEntryPresentation.overlayTitle(for: .standardEdit(targetTake: take)),
+            "Edit"
+        )
+    }
+
     func testHomeScreenSmartFillRouteBuildsPlayerRequestContext() {
         let take = ProjectTake(
             filePath: "/tmp/original.mov",

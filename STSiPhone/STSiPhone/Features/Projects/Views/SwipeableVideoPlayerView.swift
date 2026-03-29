@@ -76,6 +76,91 @@ enum SmartFillPlayerEntryResolver {
     }
 }
 
+enum StudioEditorPlayerEntryIntent: Equatable, CustomStringConvertible {
+    case standardEdit(targetTake: ProjectTake)
+    case smartFillRequest(targetTake: ProjectTake)
+    case smartFillEdit(targetTake: ProjectTake)
+
+    var targetTake: ProjectTake {
+        switch self {
+        case .standardEdit(let targetTake),
+             .smartFillRequest(let targetTake),
+             .smartFillEdit(let targetTake):
+            return targetTake
+        }
+    }
+
+    var prefersSmartFillFlow: Bool {
+        switch self {
+        case .standardEdit:
+            return false
+        case .smartFillRequest, .smartFillEdit:
+            return true
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .standardEdit:
+            return "standardEdit"
+        case .smartFillRequest:
+            return "smartFillRequest"
+        case .smartFillEdit:
+            return "smartFillEdit"
+        }
+    }
+}
+
+enum StudioEditorPlayerEntryResolver {
+    static func resolve(for take: ProjectTake, in session: ProjectSession) -> StudioEditorPlayerEntryIntent? {
+        if let smartFillIntent = SmartFillPlayerEntryResolver.resolve(for: take, in: session) {
+            switch smartFillIntent {
+            case .request(let targetTake):
+                return .smartFillRequest(targetTake: targetTake)
+            case .edit(let targetTake):
+                return .smartFillEdit(targetTake: targetTake)
+            }
+        }
+
+        guard shouldOfferStandardEdit(for: take) else {
+            return nil
+        }
+
+        return .standardEdit(targetTake: take)
+    }
+
+    static func shouldOfferStandardEdit(for take: ProjectTake) -> Bool {
+        if take.takeType == .pipSlate {
+            return true
+        }
+        return take.isSmartFillVariant || !SmartFillPlayerEntryResolver.shouldRequestSmartFill(for: take)
+    }
+}
+
+enum StudioEditorPlayerEntryPresentation {
+    static func overlayTitle(for intent: StudioEditorPlayerEntryIntent) -> String {
+        "Edit"
+    }
+
+    static func overlaySymbolName(for intent: StudioEditorPlayerEntryIntent) -> String {
+        intent.prefersSmartFillFlow ? "person.crop.rectangle.stack.fill" : "slider.horizontal.3"
+    }
+
+    static func overlayBackgroundColor(for intent: StudioEditorPlayerEntryIntent) -> UIColor {
+        if intent.prefersSmartFillFlow {
+            return UIColor(red: 0.13, green: 0.20, blue: 0.34, alpha: 0.92)
+        }
+        return UIColor.black.withAlphaComponent(0.72)
+    }
+
+    static func overlayForegroundColor(for intent: StudioEditorPlayerEntryIntent) -> UIColor {
+        if intent.prefersSmartFillFlow {
+            return UIColor(red: 0.67, green: 0.83, blue: 1.0, alpha: 0.98)
+        }
+        return UIColor.white.withAlphaComponent(0.96)
+    }
+}
+
 // MARK: - Shared Utilities
 extension Array {
     subscript(safe index: Int) -> Element? {
@@ -301,10 +386,11 @@ struct SwipeableVideoPlayerView: View {
                                             playerController.isCurrentlyVisible = (index == currentIndex)
                                         },
                                         onEditorRequest: { take in
-                                            handleStandardEditTap(for: take)
+                                            handleEditorRequestWithRefresh(take)
                                         },
-                                        onSmartFillTap: { take in
-                                            handleSmartFillButtonTap(for: take)
+                                        supportsSmartFillEditorEntry: onSmartFillRequest != nil || onSmartFillEditRequest != nil,
+                                        onStudioEditorEntryTap: { take in
+                                            handleStudioEditorEntryTap(for: take)
                                         },
                                         onCompareSourceTake: { sourceTakeID in
                                             handleCompareSourceTake(sourceTakeID)
@@ -415,34 +501,37 @@ struct SwipeableVideoPlayerView: View {
         .stsSupportedOrientations(.all, label: "SwipeableVideoPlayerView")
     }
     
-    private func handleSmartFillButtonTap(for take: ProjectTake) {
-        guard let intent = resolvedSmartFillButtonIntent(for: take) else {
-            print("⚠️ SmartFill button tapped but no actionable target was resolved")
+    private func handleStudioEditorEntryTap(for take: ProjectTake) {
+        guard let intent = StudioEditorPlayerEntryResolver.resolve(for: take, in: currentSession) else {
+            print("⚠️ Edit button tapped but no actionable target was resolved")
             return
         }
 
-        let smartFillHandler: ((ProjectTake) -> Void)?
         switch intent {
-        case .request:
-            smartFillHandler = onSmartFillRequest
-        case .edit:
-            smartFillHandler = onSmartFillEditRequest
+        case .smartFillRequest(let targetTake):
+            guard let onSmartFillRequest else {
+                print("⚠️ Edit button tapped but no SmartFill request handler is wired")
+                return
+            }
+            print("🎛️ SwipeableVideoPlayer: unified editor entry routed to SmartFill request for \(friendlyDisplayName(for: targetTake, in: currentSession))")
+            prepareForEditorTransition()
+            onSmartFillRequest(targetTake)
+        case .smartFillEdit(let targetTake):
+            guard let onSmartFillEditRequest else {
+                print("⚠️ Edit button tapped but no SmartFill edit handler is wired")
+                return
+            }
+            print("🎛️ SwipeableVideoPlayer: unified editor entry routed to SmartFill edit for \(friendlyDisplayName(for: targetTake, in: currentSession))")
+            prepareForEditorTransition()
+            onSmartFillEditRequest(targetTake)
+        case .standardEdit(let targetTake):
+            guard onEditorRequest != nil else {
+                print("⚠️ Edit button tapped but no standard editor handler is wired")
+                return
+            }
+            print("🎛️ SwipeableVideoPlayer: unified editor entry routed to standard edit for \(friendlyDisplayName(for: targetTake, in: currentSession))")
+            handleEditorRequestWithRefresh(targetTake)
         }
-
-        guard let smartFillHandler else {
-            print("⚠️ SmartFill button tapped but no handler is wired for intent \(intent)")
-            return
-        }
-
-        if case .edit(let targetTake) = intent {
-            print("✨ SwipeableVideoPlayer: SmartFill edit requested for \(friendlyDisplayName(for: targetTake, in: currentSession))")
-        }
-
-        prepareForEditorTransition()
-        smartFillHandler(intent.targetTake)
-    }
-    private func handleStandardEditTap(for take: ProjectTake) {
-        handleEditorRequestWithRefresh(take)
     }
 
     private func handleCompareSourceTake(_ sourceTakeID: UUID) {
@@ -861,7 +950,8 @@ struct CustomAVPlayerViewContent: View {
     
     // PHASE 1: NEW - Editor request callback
     let onEditorRequest: ((ProjectTake) -> Void)?
-    let onSmartFillTap: ((ProjectTake) -> Void)?
+    let supportsSmartFillEditorEntry: Bool
+    let onStudioEditorEntryTap: ((ProjectTake) -> Void)?
     let onCompareSourceTake: ((UUID) -> Void)?
     
     // 🚨 SMARTFILL DATA REFRESH FIX: Add refresh trigger
@@ -880,7 +970,8 @@ struct CustomAVPlayerViewContent: View {
         showsTitleOverlay: Bool = true,
         ratingsOverlayMode: RatingsOverlayMode = .uikit,
         onEditorRequest: ((ProjectTake) -> Void)? = nil,
-        onSmartFillTap: ((ProjectTake) -> Void)? = nil,
+        supportsSmartFillEditorEntry: Bool = false,
+        onStudioEditorEntryTap: ((ProjectTake) -> Void)? = nil,
         onCompareSourceTake: ((UUID) -> Void)? = nil,
         refreshTrigger: Int,
         enableVideoZoom: Bool = false
@@ -896,7 +987,8 @@ struct CustomAVPlayerViewContent: View {
         self.showsTitleOverlay = showsTitleOverlay
         self.ratingsOverlayMode = ratingsOverlayMode
         self.onEditorRequest = onEditorRequest
-        self.onSmartFillTap = onSmartFillTap
+        self.supportsSmartFillEditorEntry = supportsSmartFillEditorEntry
+        self.onStudioEditorEntryTap = onStudioEditorEntryTap
         self.onCompareSourceTake = onCompareSourceTake
         self.refreshTrigger = refreshTrigger
         self.enableVideoZoom = enableVideoZoom
@@ -914,7 +1006,8 @@ struct CustomAVPlayerViewContent: View {
             showsTitleOverlay: showsTitleOverlay,
             ratingsOverlayMode: ratingsOverlayMode,
             onEditorRequest: onEditorRequest,  // PHASE 1: NEW - Pass editor callback through
-            onSmartFillTap: onSmartFillTap,
+            supportsSmartFillEditorEntry: supportsSmartFillEditorEntry,
+            onStudioEditorEntryTap: onStudioEditorEntryTap,
             onCompareSourceTake: onCompareSourceTake,
             refreshTrigger: refreshTrigger,  // 🚨 SMARTFILL DATA REFRESH FIX: Pass refresh trigger
             enableVideoZoom: enableVideoZoom
@@ -940,7 +1033,8 @@ struct CustomAVPlayerViewController: UIViewControllerRepresentable {
     
     // PHASE 1: NEW - Editor request callback
     let onEditorRequest: ((ProjectTake) -> Void)?
-    let onSmartFillTap: ((ProjectTake) -> Void)?
+    let supportsSmartFillEditorEntry: Bool
+    let onStudioEditorEntryTap: ((ProjectTake) -> Void)?
     let onCompareSourceTake: ((UUID) -> Void)?
     
     // 🚨 SMARTFILL DATA REFRESH FIX: Add refresh trigger
@@ -1113,14 +1207,9 @@ struct CustomAVPlayerViewController: UIViewControllerRepresentable {
 #endif
         }
         
-        @objc func smartFillButtonTapped() {
-            print("✨ SmartFill button tapped for: \(parent.videoData.unifiedTake.fileName)")
-            parent.onSmartFillTap?(parent.videoData.take)
-        }
-        
-        @objc func trimButtonTapped() {
-            print("✂️ Trim button tapped for: \(parent.videoData.unifiedTake.fileName)")
-            parent.onEditorRequest?(parent.videoData.take)
+        @objc func editorEntryButtonTapped() {
+            print("🎛️ Edit button tapped for: \(parent.videoData.unifiedTake.fileName)")
+            parent.onStudioEditorEntryTap?(parent.videoData.take)
         }
 
         @objc func compareSourceButtonTapped() {
@@ -1402,9 +1491,9 @@ struct CustomAVPlayerViewController: UIViewControllerRepresentable {
         private func setAlpha(_ targetAlpha: CGFloat, for view: UIView, isPlaying: Bool) {
             // Custom overlays are controlled by playback state observer; skip them here.
             if view.tag == OverlayTags.titleView
-                || view.tag == OverlayTags.trimButton
+                || view.tag == OverlayTags.editorEntryButton
                 || view.tag == OverlayTags.ratingButtons
-                || view.tag == OverlayTags.smartFillButton {
+            {
                 return
             }
             let shouldHideForPlayback = isPlaying
@@ -1420,9 +1509,8 @@ struct CustomAVPlayerViewController: UIViewControllerRepresentable {
                 for sub in root.subviews {
                     switch sub.tag {
                     case OverlayTags.titleView,
-                         OverlayTags.trimButton,
-                         OverlayTags.ratingButtons,
-                         OverlayTags.smartFillButton:
+                         OverlayTags.editorEntryButton,
+                         OverlayTags.ratingButtons:
                         sub.alpha = targetAlpha
                         sub.isUserInteractionEnabled = visible
                     default:
@@ -1979,45 +2067,25 @@ struct CustomAVPlayerViewController: UIViewControllerRepresentable {
     
     private enum OverlayTags {
         static let titleView = 9001
-        static let trimButton = 9002
+        static let editorEntryButton = 9002
         static let ratingButtons = 9003
-        static let smartFillButton = 9004
-    }
-    
-    private enum SmartFillButtonState {
-        case hidden
-        case request(available: Bool)
-        case edit
-        
-        var shouldShow: Bool {
-            switch self {
-            case .hidden: return false
-            default: return true
-            }
-        }
-    }
-
-    private func smartFillButtonState(for take: ProjectTake) -> SmartFillButtonState {
-        if isExportDeliverable(take) { return .hidden }
-        guard let intent = SmartFillPlayerEntryResolver.resolve(for: take, in: currentSession) else {
-            return .hidden
-        }
-        switch intent {
-        case .request:
-            return .request(available: true)
-        case .edit:
-            return .edit
-        }
     }
     
     private func createEditorButtonsOverlay(coordinator: Coordinator) -> UIView? {
-        let smartFillState = smartFillButtonState(for: videoData.take)
-        let showSmartFill = smartFillState.shouldShow && onSmartFillTap != nil
-        let showTrim = shouldShowTrimButton(for: videoData.take) && onEditorRequest != nil
-        guard showSmartFill || showTrim else { return nil }
+        guard let intent = StudioEditorPlayerEntryResolver.resolve(for: videoData.take, in: currentSession),
+              onStudioEditorEntryTap != nil else {
+            return nil
+        }
+
+        switch intent {
+        case .standardEdit:
+            guard onEditorRequest != nil else { return nil }
+        case .smartFillRequest, .smartFillEdit:
+            guard supportsSmartFillEditorEntry else { return nil }
+        }
         
         let containerView = UIView()
-        containerView.tag = OverlayTags.ratingButtons
+        containerView.tag = OverlayTags.editorEntryButton
         containerView.backgroundColor = UIColor.clear
         
         let stackView = UIStackView()
@@ -2032,88 +2100,39 @@ struct CustomAVPlayerViewController: UIViewControllerRepresentable {
             stackView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
             stackView.centerXAnchor.constraint(equalTo: containerView.centerXAnchor)
         ])
-        
-        if showSmartFill, let smartFillButton = makeSmartFillOverlayButton(for: smartFillState, coordinator: coordinator) {
-            smartFillButton.tag = OverlayTags.smartFillButton
-            stackView.addArrangedSubview(smartFillButton)
-        }
-        
-        if showTrim {
-            let trimButton = makeOverlayButton(
-                symbolName: "scissors",
-                tintColor: UIColor.white.withAlphaComponent(0.95),
-                backgroundColor: UIColor.black.withAlphaComponent(0.65),
-                action: #selector(Coordinator.trimButtonTapped),
-                coordinator: coordinator
-            )
-            trimButton.tag = OverlayTags.trimButton
-            stackView.addArrangedSubview(trimButton)
-        }
+
+        let editorEntryButton = makeEditorEntryOverlayButton(for: intent, coordinator: coordinator)
+        editorEntryButton.tag = OverlayTags.editorEntryButton
+        stackView.addArrangedSubview(editorEntryButton)
         
         return containerView
     }
-    
-    private func makeSmartFillOverlayButton(for state: SmartFillButtonState, coordinator: Coordinator) -> UIView? {
-        switch state {
-        case .hidden:
-            return nil
-        case .edit:
-            return makeOverlayButton(
-                symbolName: "person.and.background.dotted",
-                tintColor: UIColor.white.withAlphaComponent(0.95),
-                backgroundColor: UIColor.systemPurple.withAlphaComponent(0.85),
-                action: #selector(Coordinator.smartFillButtonTapped),
-                coordinator: coordinator
-            )
-        case .request(let available):
-            let tint = available ? UIColor.white.withAlphaComponent(0.95) : UIColor.white.withAlphaComponent(0.35)
-            let background = available ? UIColor.systemPurple.withAlphaComponent(0.65) : UIColor.white.withAlphaComponent(0.12)
-            return makeOverlayButton(
-                symbolName: "person.and.background.dotted",
-                tintColor: tint,
-                backgroundColor: background,
-                action: #selector(Coordinator.smartFillButtonTapped),
-                coordinator: coordinator
-            )
-        }
-    }
-    
-    private func makeOverlayButton(
-        symbolName: String,
-        tintColor: UIColor,
-        backgroundColor: UIColor,
-        action: Selector,
+
+    private func makeEditorEntryOverlayButton(
+        for intent: StudioEditorPlayerEntryIntent,
         coordinator: Coordinator
-    ) -> UIView {
-        let buttonSize: CGFloat = 50
+    ) -> UIButton {
         let button = UIButton(type: .system)
-        let configuration = UIImage.SymbolConfiguration(pointSize: 22, weight: .medium)
-        button.setImage(UIImage(systemName: symbolName, withConfiguration: configuration), for: .normal)
-        button.tintColor = tintColor
-        button.backgroundColor = backgroundColor
-        button.layer.cornerRadius = buttonSize / 2
+        var configuration = UIButton.Configuration.filled()
+        configuration.cornerStyle = .capsule
+        configuration.baseBackgroundColor = StudioEditorPlayerEntryPresentation.overlayBackgroundColor(for: intent)
+        configuration.baseForegroundColor = StudioEditorPlayerEntryPresentation.overlayForegroundColor(for: intent)
+        configuration.image = UIImage(
+            systemName: StudioEditorPlayerEntryPresentation.overlaySymbolName(for: intent),
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: 15, weight: .semibold)
+        )
+        configuration.title = StudioEditorPlayerEntryPresentation.overlayTitle(for: intent)
+        configuration.imagePadding = 8
+        configuration.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 13, bottom: 10, trailing: 14)
+        button.configuration = configuration
         button.layer.shadowColor = UIColor.black.cgColor
         button.layer.shadowOffset = CGSize(width: 0, height: 2)
         button.layer.shadowRadius = 4
-        button.layer.shadowOpacity = 0.7
+        button.layer.shadowOpacity = 0.65
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.widthAnchor.constraint(equalToConstant: buttonSize).isActive = true
-        button.heightAnchor.constraint(equalToConstant: buttonSize).isActive = true
-        button.addTarget(coordinator, action: action, for: .touchUpInside)
+        button.heightAnchor.constraint(equalToConstant: 42).isActive = true
+        button.addTarget(coordinator, action: #selector(Coordinator.editorEntryButtonTapped), for: .touchUpInside)
         return button
-    }
-    
-    private func shouldShowTrimButton(for take: ProjectTake) -> Bool {
-        if take.takeType == .pipSlate { return true }
-        return isSmartFillVariant(take) || !requiresSmartFill(for: take)
-    }
-    
-    private func requiresSmartFill(for take: ProjectTake) -> Bool {
-        SmartFillPlayerEntryResolver.shouldRequestSmartFill(for: take)
-    }
-    
-    private func isSmartFillVariant(_ take: ProjectTake) -> Bool {
-        take.isSmartFillVariant
     }
     
     private func isExportDeliverable(_ take: ProjectTake) -> Bool {

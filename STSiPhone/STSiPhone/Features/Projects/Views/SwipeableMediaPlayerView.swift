@@ -901,7 +901,8 @@ struct UnifiedMediaContentView: View {
                     showsTitleOverlay: showsTitleOverlay,
                     ratingsOverlayMode: ratingsOverlayMode,
                     onEditorRequest: nil,  // PHASE 1: Add editor request parameter (no editor for media player currently)
-                    onSmartFillTap: nil,
+                    supportsSmartFillEditorEntry: false,
+                    onStudioEditorEntryTap: nil,
                     refreshTrigger: 0,  // 🚨 SMARTFILL DATA REFRESH FIX: Add missing refreshTrigger parameter (not used for media player)
                     enableVideoZoom: true
                 )

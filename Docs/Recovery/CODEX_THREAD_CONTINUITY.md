@@ -1,5 +1,69 @@
 # CODEX Thread Continuity
 
+## Ticket 058 Seed One Master-Editor Player Entry Seam (2026-03-29)
+- Thread Status: phase-58 is locally gated on a clean GM worktree cut from anchored phase-57. This slice starts the real editor convergence path by replacing separate player-entry affordances with one shared master-editor `Edit` seam that can route to SmartFill now, preserve standard editing, and keep PIP/trim/crop convergence open without dragging legacy third-party seams into the new shell.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase58`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase58`
+- Working Head SHA: `b5057f6616293dd4f79c55128cbd806e6c9c8278`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+1. replace separate player-entry buttons with one shared `Edit` intent so the app begins converging on a single master-editor entry path instead of SmartFill-only versus trim-only chips
+2. keep SmartFill as the first real module by routing portrait/request/edit cases through the existing SmartFill workspace while standard takes still route into the existing editor entry seam
+3. preserve current player return behavior and avoid a giant editor rewrite in this slice
+4. leave explicit seams open for PIP, trim replacement, crop replacement, and future timeline work instead of cementing the old third-party tool stack as architecture truth
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase58`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase58`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase58`
+  - `git rev-parse HEAD` -> `b5057f6616293dd4f79c55128cbd806e6c9c8278`
+  - `git status --porcelain` -> clean before edits
+  - `git log -1 --oneline` -> `b5057f6 SF-REBUILD-057: add real foreground framing offsets to the SmartFill workspace`
+- Truth-sync confirmed:
+  - `git -C /tmp/itfactor_smartfill_phase58 fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Planner authority confirmed from `/Users/kevinbarrett/Dev/iTFactorSmartfill/Docs/Recovery/CODEX_THREAD_CONTINUITY.md`:
+  - `SMARTFILL-V3-201` closed with one canvas-first master-editor shell, compact mode rail, grouped inline controls, drill-ins for deeper tools, and SmartFill as the first proving module
+  - `SMARTFILL-V3-204` already identifies the writable flagship bridge as the place where player/editor entry contracts, SmartFill bridge seams, PIP surfaces, and trim/crop replacement debt begin converging
+
+### Completed This Pass
+- `StudioEditorPlayerEntryResolver` now establishes one shared player-entry contract that can resolve `.standardEdit`, `.smartFillRequest`, or `.smartFillEdit` from the current take instead of hard-coding separate SmartFill versus trim/player buttons.
+- `SwipeableVideoPlayerView` now renders one shared `Edit` chip in the player overlay and routes through the correct editor intent seam, so portrait/request/edit cases still open SmartFill while standard/PIP-style takes can continue into the existing editor path.
+- `SwipeableMediaPlayerView` now consumes the same shared entry contract without keeping a dead SmartFill-specific parameter in the player wrapper.
+- `SmartFillRebuildBridgeTests` now lock the new shared entry resolver and generic `Edit` presentation rules so the first master-editor bridge seam has focused parity coverage.
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase58/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -clonedSourcePackagesDirPath /tmp/itfactor_smartfill_phase58_tests/SourcePackages -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase58_gateA_rerun build | tee /tmp/itfactor_smartfill_phase58_gateA_rerun.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase58_gateA_rerun.log`
+- Focused parity command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase58/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -clonedSourcePackagesDirPath /tmp/itfactor_smartfill_phase58_tests/SourcePackages -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase58_tests_rerun -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase58_tests_rerun.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase58_tests_rerun.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase58_tests_rerun/Logs/Test/Test-STSiPhone-2026.03.29_12-15-03--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Next Action
+1. anchor this slice as `SF-REBUILD-058` on `gm/smartfill-itfactor-phase58`
+2. use the shared player `Edit` seam as the new flagship convergence baseline so future PIP, trim, crop, and timeline work enter the same editor contract instead of spawning new feature-specific chips
+3. keep SmartFill as the first proving module inside that shared contract while leaving explicit seams open for the later unified timeline/editor shell
+
 ## Ticket 057 Add Real Foreground Framing Offsets To The SmartFill Workspace (2026-03-29)
 - Thread Status: phase-57 is locally gated on a clean GM worktree cut from anchored phase-56. This slice turns the current foreground tool into a real framing seam by adding persistent X/Y composition offsets that preview, save, and reopen can all honor without introducing new sheets or regressing the fixed-shell studio chrome.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
