@@ -12,6 +12,7 @@ The flagship intent is:
 - launch SmartFill from take review or player context
 - preserve SmartFill lineage and repository truth
 - replace overlapping or duplicate SmartFill UI surfaces with one bounded workspace
+- converge future editor modules behind one routed editor-host contract instead of adding more feature-specific player seams
 
 ## Classification Matrix
 | Area | Path | Classification | Reason | Next Action |
@@ -34,6 +35,8 @@ The flagship intent is:
 ## Authoritative Seams To Preserve
 These seams are the correct architectural anchors for the rebuild:
 
+- `STSiPhone/STSiPhone/Features/Projects/Views/StudioEditorHost.swift`
+- `STSiPhone/STSiPhone/Features/Projects/Views/StudioEditorPIPHostView.swift`
 - `STSiPhone/STSiPhone/Shared/Repositories/ProjectsRepository.swift`
 - `STSiPhone/STSiPhone/Shared/Repositories/SQLite/SQLiteProjectsRepository.swift`
 - `STSiPhone/STSiPhone/Shared/Models/ProjectModels.swift`
@@ -153,3 +156,4 @@ These fields and APIs carry shipped SmartFill truth and must not be deleted duri
 51. Master-editor convergence should start by collapsing feature-specific player chips into one shared `Edit` entry seam before the inner editor shells merge. Do not keep adding SmartFill-only, trim-only, or PIP-only player affordances once the app has enough editor modules to justify one routed editor contract.
 52. Once the shared player `Edit` seam exists, host screens must consume one shared editor-launch request object instead of parallel standard-edit versus SmartFill callback plumbing. Do not let HomeScreen, project detail, or future player hosts fork the contract back into feature-specific launch handlers.
 53. Once host screens already share one editor-launch request, they must also share one editor-host contract above that request. Do not let HomeScreen, project detail, or future hosts keep deciding between standard edit and SmartFill themselves after the player has already resolved intent, because that reintroduces duplicated module-selection logic exactly where trim, PIP, crop, and timeline convergence need one routed seam.
+54. Once the shared editor host exists, PIP should hang off that host as a real third module instead of staying outside the contract as a separate review-only or host-only edit path. Use the existing PIP editor seams as module interior truth, but keep launch routing centralized above them.

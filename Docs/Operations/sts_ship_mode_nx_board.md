@@ -69,6 +69,7 @@ Rules:
 - The SmartFill workspace now also carries typed background-source ownership through settings, snapshots, preview, and export, exposing inline `Source`, `Still`, and staged `Motion` choices plus `Photos` / `Files` still pickers directly in the fixed tray.
 - The SmartFill workspace now also treats foreground framing as zoom/room around the subject, which better matches the future shared master-editor control model.
 - Player hosts now also consume one shared `StudioEditorLaunchRequest` contract, so the same generic player `Edit` seam routes through `ProjectDetailView` and `HomeScreenView` without parallel standard-edit versus SmartFill callback plumbing.
+- The shared editor host now also routes PIP as its first third module, so the same routed host contract can now hand off standard edit, SmartFill, and PIP instead of leaving PIP outside the convergence seam.
 - `authority/main` now exists remotely and locally at the untouched Jan 23 baseline.
 
 ---
@@ -133,6 +134,7 @@ Rules:
 | 5W | SF-REBUILD-058 | Seed one master-editor player entry seam | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase58_gateA_rerun.log`; focused parity PASS `/tmp/itfactor_smartfill_phase58_tests_rerun.log`; player overlays now expose one shared `Edit` chip that resolves to standard edit, SmartFill request, or SmartFill edit intent, which becomes the first real convergence seam toward the future all-in-one editor |
 | 5X | SF-REBUILD-059 | Converge player hosts on one shared editor launch contract | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase59_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase59_tests_rerun.log`; `SwipeableVideoPlayerView` now emits one shared `StudioEditorLaunchRequest`, and both `ProjectDetailView` and `HomeScreenView` now consume it so the generic player `Edit` seam can launch standard editing or SmartFill from multiple hosts without duplicated callback plumbing |
 | 5Y | SF-REBUILD-060 | Introduce one shared editor host above the player launch contract | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase60_gateA_escalated2.log`; focused parity PASS `/tmp/itfactor_smartfill_phase60_tests.log`; `StudioEditorHost` now resolves the shared player launch request into either standard-edit context or SmartFill context, and both `HomeScreenView` and `ProjectDetailView` now route through that host instead of owning post-player module selection themselves |
+| 5Z | SF-REBUILD-061 | Route PIP through the shared editor host as the first third module | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase61_gateA_authoritative.log`; focused parity PASS `/tmp/itfactor_smartfill_phase61_tests_authoritative.log`; `StudioEditorHost` now resolves `.pipSlate`, `StudioEditorPIPHostView` now wraps the existing PIP editor behind the shared host contract, and both `HomeScreenView` and `ProjectDetailView` now present that same module through the routed host seam |
 
 ---
 
@@ -153,6 +155,6 @@ Rules:
 ---
 
 ## Next Action
-1. Use `SF-REBUILD-060` as the next safe flagship baseline. The app now has one shared player `Edit` seam, one shared `StudioEditorLaunchRequest`, and one shared editor-host contract above that request, so HomeScreen and project detail can both hand off to SmartFill or standard editing without reintroducing feature-specific overlay buttons or per-host post-player branching.
-2. Implement the next convergence slice on GM only by hanging more editor modules off that shared editor-host contract, starting with trim/PIP/crop/timeline planning and seams instead of adding more feature-specific player chips or host-specific callback paths.
-3. Keep the standalone derivation ledger in sync while future shared-workspace chrome, visible preview-at-rest behavior, clearer background/foreground ownership, inline studio expander ownership, flatter studio-shelf language, synchronized compare states, real foreground zoom and framing composition, deeper preview/live-transport work, the shared player `Edit` entry seam, the shared launch-request contract, and the shared editor-host contract land.
+1. Use `SF-REBUILD-061` as the next safe flagship baseline. The app now has one shared player `Edit` seam, one shared `StudioEditorLaunchRequest`, and one shared editor-host contract that can route standard edit, SmartFill, and PIP without reintroducing feature-specific overlay buttons or per-host post-player branching.
+2. Implement the next convergence slice on GM only by tightening the editor modules that now hang off that shared editor-host contract, starting with richer shipped-style PIP interior behavior and later trim/crop/timeline seams instead of adding more feature-specific player chips or host-specific callback paths.
+3. Keep the standalone derivation ledger in sync while the shared editor-host seam continues to grow into the full master editor shell.

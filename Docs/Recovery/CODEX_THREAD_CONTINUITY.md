@@ -1,5 +1,71 @@
 # CODEX Thread Continuity
 
+## Ticket 061 Add PIP As The First Third Module On The Shared Editor Host (2026-03-29)
+- Thread Status: phase-61 is active on a clean GM worktree cut from anchored phase-60. This slice keeps the new shared editor-host contract and hangs the first third module off it by routing PIP slates through the same host seam that already owns standard edit and SmartFill.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase61`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase61`
+- Working Head SHA: `65dff40d26dc3c2c78ff95b36adaf6448f9c269f`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+1. extend the shared `StudioEditorHost` contract so PIP becomes the first real third module hanging off the same routed editor seam as standard edit and SmartFill
+2. keep SmartFill and the current standard editor shell unchanged while removing one more layer of host-specific branching from HomeScreen and ProjectDetail
+3. use the existing `PIPSlateEditorScreen` and session persistence seams instead of inventing a parallel editor path
+4. keep the later trim, crop, and timeline convergence path open above this same shared host instead of hard-coding another feature-specific player escape hatch
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase61`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase61`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase61`
+  - `git rev-parse HEAD` -> `65dff40d26dc3c2c78ff95b36adaf6448f9c269f`
+  - `git status --porcelain` -> clean before edits
+  - `git log -1 --oneline` -> `65dff40 SF-REBUILD-060: introduce one shared editor host above the player launch contract`
+- Truth-sync confirmed:
+  - `git -C /tmp/itfactor_smartfill_phase61 fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Initial archaeology confirmed:
+  - `StudioEditorHost` currently resolves only `.standardEdit` and `.smartFill`
+  - `PIPSlateEditorScreen` already owns a first-party PIP slate editor and persists `SlatePIPSession`
+  - `HomeScreenView` and `ProjectDetailView` already route shared player launches through `StudioEditorHost.route(...)`
+
+### Completed This Pass
+- Added `StudioEditorPIPContext` plus `StudioEditorPIPHostView` so the shared editor host can now route a third module without inventing another host-specific launch seam.
+- `StudioEditorHost` now resolves `.standardEdit` into `.pipSlate` when the target take is a PIP slate/component and the route closure provides a valid PIP context.
+- `HomeScreenView` now queues and presents that shared PIP host through the same post-player handoff layer used for SmartFill and standard edit.
+- `ProjectDetailView` now routes the same shared PIP context through `FlowCoordinator` so player-launched and review-launched editor handoffs no longer have to special-case PIP outside the host contract.
+- `SmartFillRebuildBridgeTests` now lock the PIP host-destination rule directly.
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase61/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -clonedSourcePackagesDirPath /tmp/itfactor_smartfill_phase59_tests_rerun/SourcePackages -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase61_gateA_authoritative build > /tmp/itfactor_smartfill_phase61_gateA_authoritative.log 2>&1; printf 'EXIT:%s\n' $?`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase61_gateA_authoritative.log`
+- Focused parity command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase61/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -clonedSourcePackagesDirPath /tmp/itfactor_smartfill_phase59_tests_rerun/SourcePackages -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase61_tests_authoritative -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test > /tmp/itfactor_smartfill_phase61_tests_authoritative.log 2>&1; printf 'EXIT:%s\n' $?`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase61_tests_authoritative.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase61_tests_authoritative/Logs/Test/Test-STSiPhone-2026.03.29_14-08-33--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Next Action
+1. use `SF-REBUILD-061` as the new shared-host baseline so trim, crop, and later timeline modules hang off the same routed editor host instead of creating another player-specific seam
+2. bring over the stronger shipped PIP interior shape next: embedded editor core plus full-editor drill-in, rather than leaving PIP as a thin modal wrapper behind the host
+3. keep SmartFill, standard edit, and PIP converging inside the shared editor shell without reviving long settings pages or feature-specific player chips
+
 ## Ticket 060 Introduce One Shared Editor Host Above The Player Launch Contract (2026-03-29)
 - Thread Status: phase-60 is locally gated on a clean GM worktree cut from anchored phase-59. This slice lifts module selection above the shared player launch request so HomeScreen and ProjectDetail stop deciding between `LightweightEditorView` and SmartFill themselves and instead route through one shared editor-host contract.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

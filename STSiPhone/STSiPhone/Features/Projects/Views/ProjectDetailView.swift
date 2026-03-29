@@ -1232,6 +1232,9 @@ public struct ProjectDetailView: View {
     private func handleStudioEditorLaunchRequest(_ request: StudioEditorLaunchRequest) {
         let didRoute = StudioEditorHost.route(
             request: request,
+            pipSlateContext: { take, session, project in
+                makePIPEditorContext(for: take, session: session, project: project)
+            },
             requestSmartFillContext: { take, session, project in
                 makeSmartFillRequestContext(
                     for: take,
@@ -1250,6 +1253,9 @@ public struct ProjectDetailView: View {
             },
             onStandardEdit: { context in
                 presentEditor(for: context.take, session: context.session, project: context.project)
+            },
+            onPIPSlate: { context in
+                presentPIPEditor(context)
             },
             onSmartFill: { context in
                 presentSmartFillSettingsContext(context)
@@ -1294,6 +1300,47 @@ public struct ProjectDetailView: View {
             )
         }
         
+        if case .player = FlowCoordinator.shared.activeFlow {
+            FlowCoordinator.shared.transition(
+                to: .editor(payload: editorPayload),
+                viaProcessingOverlay: false
+            )
+        } else {
+            FlowCoordinator.shared.present(.editor(payload: editorPayload))
+        }
+    }
+
+    private func makePIPEditorContext(
+        for take: ProjectTake,
+        session: ProjectSession,
+        project: Project
+    ) -> StudioEditorPIPContext? {
+        StudioEditorPIPContext.make(
+            for: take,
+            session: session,
+            project: project,
+            onUpdateSession: { newValue in
+                var updatedSession = session
+                updatedSession.pipSlateSession = newValue
+                vm.repo.updateSession(updatedSession, in: project.id)
+                vm.reload()
+            }
+        )
+    }
+
+    private func presentPIPEditor(_ context: StudioEditorPIPContext) {
+        print("✨ Opening PIP Slate Editor for: \(URL(fileURLWithPath: context.take.filePath).lastPathComponent)")
+        captureEditorReturnContext(for: context.take, session: context.session, project: context.project)
+
+        let editorPayload = EditorPayload {
+            StudioEditorPIPHostView(
+                context: context,
+                onClose: {
+                    handlePIPEditorDismiss(context)
+                }
+            )
+        }
+
         if case .player = FlowCoordinator.shared.activeFlow {
             FlowCoordinator.shared.transition(
                 to: .editor(payload: editorPayload),
@@ -1482,6 +1529,15 @@ public struct ProjectDetailView: View {
         let resolvedSession = resolveSession(withID: session.id) ?? session
         let resolvedProject = vm.project ?? project
         returnToTakeReview(with: take, session: resolvedSession, project: resolvedProject)
+    }
+
+    private func handlePIPEditorDismiss(_ context: StudioEditorPIPContext) {
+        print("❌ PIP editor dismissed for: \(URL(fileURLWithPath: context.take.filePath).lastPathComponent)")
+
+        vm.reload()
+        let resolvedSession = resolveSession(withID: context.session.id) ?? context.session
+        let resolvedProject = vm.project ?? context.project
+        returnToTakeReview(with: context.take, session: resolvedSession, project: resolvedProject)
     }
     
     private func captureEditorReturnContext(for take: ProjectTake, session: ProjectSession, project: Project) {

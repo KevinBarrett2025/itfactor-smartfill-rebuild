@@ -9,11 +9,14 @@ struct StudioEditorStandardEditContext: Identifiable {
 
 enum StudioEditorHostDestination: Identifiable {
     case standardEdit(StudioEditorStandardEditContext)
+    case pipSlate(StudioEditorPIPContext)
     case smartFill(SmartFillSettingsContext)
 
     var id: UUID {
         switch self {
         case .standardEdit(let context):
+            return context.id
+        case .pipSlate(let context):
             return context.id
         case .smartFill(let context):
             return context.id
@@ -24,11 +27,19 @@ enum StudioEditorHostDestination: Identifiable {
 enum StudioEditorHost {
     static func resolveDestination(
         for request: StudioEditorLaunchRequest,
+        pipSlateContext: (ProjectTake, ProjectSession, Project) -> StudioEditorPIPContext?,
         requestSmartFillContext: (ProjectTake, ProjectSession, Project) -> SmartFillSettingsContext?,
         editSmartFillContext: (ProjectTake, ProjectSession, Project) -> SmartFillSettingsContext?
     ) -> StudioEditorHostDestination? {
         switch request.intent {
         case .standardEdit(let targetTake):
+            if let pipContext = pipSlateContext(
+                targetTake,
+                request.session,
+                request.project
+            ) {
+                return .pipSlate(pipContext)
+            }
             return .standardEdit(
                 StudioEditorStandardEditContext(
                     take: targetTake,
@@ -60,13 +71,16 @@ enum StudioEditorHost {
     @discardableResult
     static func route(
         request: StudioEditorLaunchRequest,
+        pipSlateContext: (ProjectTake, ProjectSession, Project) -> StudioEditorPIPContext?,
         requestSmartFillContext: (ProjectTake, ProjectSession, Project) -> SmartFillSettingsContext?,
         editSmartFillContext: (ProjectTake, ProjectSession, Project) -> SmartFillSettingsContext?,
         onStandardEdit: (StudioEditorStandardEditContext) -> Void,
+        onPIPSlate: (StudioEditorPIPContext) -> Void,
         onSmartFill: (SmartFillSettingsContext) -> Void
     ) -> Bool {
         guard let destination = resolveDestination(
             for: request,
+            pipSlateContext: pipSlateContext,
             requestSmartFillContext: requestSmartFillContext,
             editSmartFillContext: editSmartFillContext
         ) else {
@@ -76,6 +90,8 @@ enum StudioEditorHost {
         switch destination {
         case .standardEdit(let context):
             onStandardEdit(context)
+        case .pipSlate(let context):
+            onPIPSlate(context)
         case .smartFill(let context):
             onSmartFill(context)
         }

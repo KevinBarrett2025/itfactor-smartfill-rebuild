@@ -353,10 +353,13 @@ public struct HomeScreenView: View {
     @State private var activeSmartFillContext: SmartFillSettingsContext?
     @State private var pendingSmartFillSettingsContext: SmartFillSettingsContext?
     @State private var pendingSmartFillOpenRequest: HomeScreenPendingSmartFillOpenRequest?
+    @State private var activePIPContext: StudioEditorPIPContext?
+    @State private var pendingPIPContext: StudioEditorPIPContext?
     @State private var activeEditorContext: StudioEditorStandardEditContext?
     @State private var pendingEditorContext: StudioEditorStandardEditContext?
     @State private var smartFillError: SmartFillErrorMessage?
     @State private var isSmartFillPresentationScheduled = false
+    @State private var isPIPPresentationScheduled = false
     @State private var isEditorPresentationScheduled = false
 
     private var takeReviewHandoffBinding: Binding<Bool> {
@@ -379,6 +382,7 @@ public struct HomeScreenView: View {
             }
             .sheet(item: $playerRequest, onDismiss: {
                 presentPendingSmartFillSheetIfPossible()
+                presentPendingPIPIfPossible()
                 presentPendingEditorIfPossible()
             }) { request in
                 if request.prefersMediaPlayer {
@@ -459,6 +463,17 @@ public struct HomeScreenView: View {
                 )
                 .ignoresSafeArea()
             }
+            .fullScreenCover(item: $activePIPContext, onDismiss: {
+                handlePIPWorkspaceDismissed()
+            }) { context in
+                StudioEditorPIPHostView(
+                    context: context,
+                    onClose: {
+                        activePIPContext = nil
+                    }
+                )
+                .ignoresSafeArea()
+            }
             .alert(item: $smartFillError) { error in
                 Alert(
                     title: Text("SmartFill"),
@@ -517,6 +532,14 @@ public struct HomeScreenView: View {
     private func handleStudioEditorLaunchRequestFromHome(_ request: StudioEditorLaunchRequest) {
         let didRoute = StudioEditorHost.route(
             request: request,
+            pipSlateContext: { take, session, project in
+                StudioEditorPIPContext.make(
+                    for: take,
+                    session: session,
+                    project: project,
+                    onUpdateSession: makePIPSessionUpdater(for: session, project: project)
+                )
+            },
             requestSmartFillContext: { take, session, project in
                 HomeScreenSmartFillRoute.requestContext(
                     for: take,
@@ -535,6 +558,9 @@ public struct HomeScreenView: View {
             },
             onStandardEdit: { context in
                 queueEditorPresentation(context)
+            },
+            onPIPSlate: { context in
+                queuePIPPresentation(context)
             },
             onSmartFill: { context in
                 queueSmartFillPresentation(context)
@@ -588,9 +614,19 @@ public struct HomeScreenView: View {
         }
     }
 
+    private func queuePIPPresentation(_ context: StudioEditorPIPContext) {
+        pendingPIPContext = context
+        if playerRequest != nil {
+            playerRequest = nil
+        } else {
+            presentPendingPIPIfPossible()
+        }
+    }
+
     private func presentPendingEditorIfPossible() {
         guard activeEditorContext == nil,
               activeSmartFillContext == nil,
+              activePIPContext == nil,
               playerRequest == nil,
               pendingEditorContext != nil,
               isEditorPresentationScheduled == false else {
@@ -602,12 +638,39 @@ public struct HomeScreenView: View {
             isEditorPresentationScheduled = false
             guard activeEditorContext == nil,
                   activeSmartFillContext == nil,
+                  activePIPContext == nil,
                   playerRequest == nil,
                   let pending = pendingEditorContext else {
                 return
             }
             pendingEditorContext = nil
             activeEditorContext = pending
+        }
+    }
+
+    private func presentPendingPIPIfPossible() {
+        guard activePIPContext == nil,
+              activeEditorContext == nil,
+              activeSmartFillContext == nil,
+              playerRequest == nil,
+              pendingPIPContext != nil,
+              isPIPPresentationScheduled == false else {
+            return
+        }
+
+        isPIPPresentationScheduled = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            isPIPPresentationScheduled = false
+            guard activePIPContext == nil,
+                  activeEditorContext == nil,
+                  activeSmartFillContext == nil,
+                  playerRequest == nil,
+                  let pending = pendingPIPContext else {
+                return
+            }
+
+            pendingPIPContext = nil
+            activePIPContext = pending
         }
     }
 
@@ -620,6 +683,12 @@ public struct HomeScreenView: View {
 
     private func handleEditorWorkspaceDismissed() {
         activeEditorContext = nil
+        vm.reload()
+        refreshHandoffSessionContext()
+    }
+
+    private func handlePIPWorkspaceDismissed() {
+        activePIPContext = nil
         vm.reload()
         refreshHandoffSessionContext()
     }

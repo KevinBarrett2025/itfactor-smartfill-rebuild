@@ -287,6 +287,7 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
 
         let destination = StudioEditorHost.resolveDestination(
             for: request,
+            pipSlateContext: { _, _, _ in nil },
             requestSmartFillContext: { _, _, _ in
                 XCTFail("standard edit should not request SmartFill context")
                 return nil
@@ -336,6 +337,7 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
 
         let destination = StudioEditorHost.resolveDestination(
             for: request,
+            pipSlateContext: { _, _, _ in nil },
             requestSmartFillContext: { _, _, _ in expected },
             editSmartFillContext: { _, _, _ in
                 XCTFail("request flow should not ask for SmartFill edit context")
@@ -371,6 +373,7 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
 
         let destination = StudioEditorHost.resolveDestination(
             for: request,
+            pipSlateContext: { _, _, _ in nil },
             requestSmartFillContext: { _, _, _ in
                 XCTFail("edit flow should not ask for SmartFill request context")
                 return nil
@@ -379,6 +382,45 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         )
 
         XCTAssertNil(destination)
+    }
+
+    func testStudioEditorHostResolvesPIPSlateDestinationBeforeStandardEdit() {
+        let take = ProjectTake(
+            filePath: "/tmp/pip-slate.mov",
+            durationSeconds: 12,
+            capturedOrientation: .landscape,
+            takeType: .pipSlate
+        )
+        let session = ProjectSession(type: .selfTape, takes: [take], primaryOrientation: .landscape)
+        let project = Project(title: "Project", sessions: [session])
+        let request = StudioEditorLaunchRequest(
+            sourceTake: take,
+            intent: .standardEdit(targetTake: take),
+            session: session,
+            project: project
+        )
+
+        let destination = StudioEditorHost.resolveDestination(
+            for: request,
+            pipSlateContext: { take, session, project in
+                StudioEditorPIPContext.make(
+                    for: take,
+                    session: session,
+                    project: project,
+                    onUpdateSession: nil
+                )
+            },
+            requestSmartFillContext: { _, _, _ in nil },
+            editSmartFillContext: { _, _, _ in nil }
+        )
+
+        guard case .pipSlate(let context)? = destination else {
+            return XCTFail("Expected PIP destination")
+        }
+
+        XCTAssertEqual(context.take.id, take.id)
+        XCTAssertEqual(context.session.id, session.id)
+        XCTAssertEqual(context.project.id, project.id)
     }
 
     func testHomeScreenSmartFillRouteBuildsPlayerRequestContext() {

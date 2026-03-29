@@ -64,6 +64,7 @@ _Current rebuild working baseline:_ `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 - SmartFill workspace now exposes real still-image background source ownership, preserves it through settings snapshots, and clarifies foreground framing as zoom while motion backgrounds remain staged next work: COMPLETE (LOCAL-GATED)
 - SmartFill workspace now restores interactive playback in pinned `Wipe` compare and carries foreground zoom through the real SmartFill composition instead of leaving it as tray-only UI: COMPLETE (LOCAL-GATED)
 - Player hosts now consume one shared studio-editor launch request instead of parallel standard-edit versus SmartFill callbacks, and HomeScreen player can route standard editor presentation through that same contract: COMPLETE (LOCAL-GATED)
+- The shared studio-editor host now routes PIP as its first third module, so HomeScreen and project detail can both hand off PIP slates through the same editor-host seam that already owns standard edit and SmartFill: COMPLETE (LOCAL-GATED)
 - Standalone derivation ledger: ACTIVE
 
 If anything above is not true, it must be reflected here.
@@ -415,6 +416,13 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase60_gateA_escalated2.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase60_tests.log`
   - xcresult: `/tmp/itfactor_smartfill_phase60_tests/Logs/Test/Test-STSiPhone-2026.03.29_13-43-44--0400.xcresult`
+- `SF-REBUILD-061` — route PIP through the shared editor host as the first third module — `COMPLETE (LOCAL-GATED 2026-03-29)`
+  - `StudioEditorHost` now resolves `.pipSlate` from `.standardEdit` when the target take is a PIP slate/component and a shared PIP context is available.
+  - `HomeScreenView` now queues and presents `StudioEditorPIPHostView` through the same host seam used for SmartFill and standard edit, and `ProjectDetailView` now presents that same host via `FlowCoordinator`.
+  - `SmartFillRebuildBridgeTests` now lock the PIP host-destination rule directly.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase61_gateA_authoritative.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase61_tests_authoritative.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase61_tests_authoritative/Logs/Test/Test-STSiPhone-2026.03.29_14-08-33--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -438,6 +446,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Use `SF-REBUILD-060` as the new flagship baseline. The app now has one shared player `Edit` seam, one shared `StudioEditorLaunchRequest`, and one shared editor-host contract above that request, so host screens no longer need to decide between standard edit and SmartFill themselves.
-2. Build the next GM slice on top of that shared host seam so PIP, trim replacement, crop replacement, and future timeline work can converge behind the same routed editor host instead of adding more feature-specific player buttons or host-specific callback plumbing.
-3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, explicit background/foreground picker ownership, still-image background-source persistence, real foreground zoom and framing composition, inline expander ownership model, flatter studio-shelf chrome, preview-focus deck, canvas-embedded live transport, synchronized source/result compare behavior, visible poster-frame-at-rest preview behavior, stable single-owner action chrome, studio-grade theming, working entry routing, shared playback-intent seam, shared player launch contract, shared editor-host contract, and tray-to-sheet split for deeper tools.
+1. Use `SF-REBUILD-061` as the new flagship baseline. The app now has one shared player `Edit` seam, one shared `StudioEditorLaunchRequest`, and one shared editor-host contract that can route standard edit, SmartFill, and PIP without reintroducing another player-specific seam.
+2. Build the next GM slice on top of that shared host seam so richer PIP interior behavior, trim replacement, crop replacement, and future timeline work converge behind the same routed editor host instead of adding more feature-specific player buttons or host-specific callback plumbing.
+3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same shared host seam along with the fixed preview + tray/rail shell, explicit background/foreground picker ownership, still-image background-source persistence, real foreground zoom and framing composition, inline expander ownership model, flatter studio-shelf chrome, preview-focus deck, canvas-embedded live transport, synchronized source/result compare behavior, visible poster-frame-at-rest preview behavior, stable single-owner action chrome, studio-grade theming, working entry routing, shared playback-intent seam, shared player launch contract, and tray-to-sheet split for deeper tools.
