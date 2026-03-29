@@ -1,5 +1,81 @@
 # CODEX Thread Continuity
 
+## Ticket 055 Add Still-Image Background Source Ownership And Clarify Foreground Framing (2026-03-29)
+- Thread Status: phase-55 is locally gated on a fresh GM worktree from anchored phase-54. The SmartFill workspace now exposes real background source ownership for `Source`, `Still`, and staged `Motion`, persists custom still selection through settings snapshots, renders still-image backgrounds through the shared SmartFill CI pipeline, and clarifies foreground framing as subject zoom instead of a vague legacy subject sheet.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase55`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase55`
+- Working Head SHA: `ad3ac930471482e1a30f62702da88cc07a684450`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+1. carry real background-source ownership from the standalone SmartFill engine into the flagship workspace without regressing into sheets or scroll-heavy chrome
+2. preserve custom still-background choice through `SmartFillSettings`, snapshot bridging, preview, and export so the background picker is not just decorative UI
+3. keep motion/video background selection honest by surfacing it as staged next work instead of pretending it is already live
+4. clarify foreground framing as zoom/room around subject so the future master editor has a better shared subject-control seam
+5. stay aligned with Mission 6 / `SMARTFILL-V3-201` while continuing flagship SmartFill execution instead of pausing for planning
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase55`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase55`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase55`
+  - `git rev-parse HEAD` -> `ad3ac930471482e1a30f62702da88cc07a684450`
+  - `git status --porcelain` -> seven intended SmartFill engine/workspace/test edits before gates
+  - `git log -1 --oneline` -> `ad3ac93 SF-REBUILD-054: add inline background-subject pickers and preserve preview play intent`
+- Truth-sync confirmed:
+  - `git -C /tmp/itfactor_smartfill_phase55 fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Planner alignment confirmed:
+  - `SMARTFILL-V3-201` / Mission 6 completed in `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+  - this phase keeps that planning track in the loop while continuing the flagship SmartFill shell directly
+
+### Completed This Pass
+- `SmartFillSettings` now carries typed background-source state (`sourceDerived`, `customImage`, staged `customVideo`) plus selected asset identity so the flagship rebuild can model real background ownership instead of only blur/darken styling.
+- `ProjectModels.SmartFillSettingsSnapshot`, `SmartFillTakeBridge`, and `SmartFillProcessingManager` now preserve that background-source state through defaults, take snapshots, workspace restore, and queued SmartFill jobs.
+- `SmartFillCIBuilder` now renders still-image backgrounds through the existing shared SmartFill preview/export pipeline. If a custom still is chosen, preview and export use that image as the background base before blur/darken/fill treatment; staged motion mode falls back honestly.
+- `SmartFillWorkspaceView` now surfaces explicit inline background-source controls in the fixed tray:
+  - `Source`
+  - `Still`
+  - `Motion` (shown but disabled as staged next work)
+- When `Still` is active, the tray now exposes inline `Photos`, `Files`, and `Use Source` actions instead of hiding that ownership in a sheet.
+- `Foreground` framing copy now treats the control as zoom/room around subject, and the precision slider range now gives more practical foreground zoom headroom.
+- `SmartFillRebuildBridgeTests` now lock snapshot/default round-trip for custom still backgrounds and the new background-source presentation rules.
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase55/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase55_gateA build | tee /tmp/itfactor_smartfill_phase55_gateA.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase55_gateA.log`
+- Focused parity command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase55/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase55_tests_clean3 -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase55_tests_authoritative.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase55_tests_authoritative.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase55_tests_clean3/Logs/Test/Test-STSiPhone-2026.03.29_10-29-33--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Next Action
+1. anchor the still-image background-source slice as `SF-REBUILD-055` on `gm/smartfill-itfactor-phase55`
+2. use the anchored phase-55 branch as the next safe device-test point, specifically verifying that:
+  - the video still opens cleanly
+  - `Still` background selection is visible in the tray
+  - `Photos` and `Files` routes are reachable
+  - a selected still background visibly affects preview/export
+  - `Motion` stays obviously staged/disabled instead of pretending to work
+3. after that smoke, choose the next shared editor slice around either true motion background support or richer foreground crop/pan/zoom controls without regressing back into verbose sheet-heavy chrome
+
 ## Ticket 054 Add Inline Background Pickers And Preserve Preview Play Intent (2026-03-29)
 - Thread Status: phase-54 is locally gated on a fresh GM worktree from anchored phase-53. The SmartFill workspace now exposes explicit inline `Background` and `Foreground` pickers in the fixed studio tray, and preview wrappers now sync observed time upward without stomping the parent play intent that should own live transport behavior.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

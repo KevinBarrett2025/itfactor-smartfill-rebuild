@@ -44,6 +44,8 @@ These seams are the correct architectural anchors for the rebuild:
 - `STSiPhone/STSiPhone/Core/VideoPipeline/SmartFill/SmartFillPreviewPlayer.swift`
 - `STSiPhone/STSiPhone/Core/VideoPipeline/SmartFill/SmartFillPreviewView.swift`
 - `STSiPhone/STSiPhone/Core/VideoPipeline/SmartFill/SmartFillProcessingManager.swift`
+- `STSiPhone/STSiPhone/Core/VideoPipeline/SmartFill/SmartFillSettings.swift`
+- `STSiPhone/STSiPhone/Core/VideoPipeline/SmartFill/SmartFillCIBuilder.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillSessionContext.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillTakeBridge.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillResultBridge.swift`
@@ -54,6 +56,7 @@ These seams are the correct architectural anchors for the rebuild:
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspacePresentation` (declared in `SmartFillWorkspaceView.swift`)
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspaceBackgroundDetail` / inline background, subject, and output expander state (declared in `SmartFillWorkspaceView.swift`)
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/compactMenuPicker` / explicit inline `Background` and `Foreground` picker ownership (declared in `SmartFillWorkspaceView.swift`)
+- `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/handleBackgroundPhotoSelection(...)` / `handleBackgroundFileImport(...)` / `applySelectedBackgroundStill(...)` / real still-image background source ownership in the fixed-shell workspace (declared in `SmartFillWorkspaceView.swift`)
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspacePreviewCompareGroupState` / inline pinned-preview compare state (declared in `SmartFillWorkspaceView.swift`)
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspacePreviewPlaybackState.syncingObservedTime(...)` / shared preview-state sync seam that preserves parent play intent while child preview wrappers publish observed current time (declared in `SmartFillWorkspaceView.swift`)
 - `STSiPhone/STSiPhone/Features/Editing/LightweightEditorViewController+ModularWiring.swift`
@@ -137,3 +140,6 @@ These fields and APIs carry shipped SmartFill truth and must not be deleted duri
 42. When background, subject, or output adjustments are small enough to fit inside the fixed tray, they should stay inline as studio expanders instead of reopening repetitive full-screen sheets. Reserve real drill-ins for compare viewing, save details, or controls whose content genuinely needs the extra space.
 43. Once simple edits already live inline, the tray should flatten into one denser studio shelf instead of reintroducing a stack of inset mini-cards. Favor one shared compact inset language and smaller control sizing so the shell can scale toward the unified master editor without reading like a settings document.
 44. When live preview transport already exists inside the SmartFill canvas, every playback action must first update the shared preview-state seam before mutating the underlying `AVPlayer`. Do not let tap-to-play, frame-step, or scrub completion bypass the authoritative playback owner, because preview rerenders will reapply stale `shouldPlay` state and make device playback look broken even when the preview surface is visible.
+45. Background-source ownership must be explicit in the fixed editor shell. If SmartFill already supports source-derived backgrounds and the standalone utility proves the value of custom still/video inputs, the flagship workspace must surface typed `Source` / `Still` / staged `Motion` ownership inline and preserve that selection through defaults, snapshots, processing, and saved-result reopening instead of hiding it behind generic “look” tuning.
+46. When custom still backgrounds are supported, they must use the same persistence and render truth as the rest of SmartFill. A user-picked still image should survive workspace reloads, default restoration, snapshot round-trips, and render/export execution; if motion backgrounds are not shipped yet, the workspace should say so honestly rather than pretending the option works.
+47. Foreground framing should read like an editor tool, not a vague settings concept. If the subject lane is currently scaling the foreground, label it as foreground zoom/framing now and keep the seam open for later crop/zoom expansion instead of hiding that capability behind background-tuning language.

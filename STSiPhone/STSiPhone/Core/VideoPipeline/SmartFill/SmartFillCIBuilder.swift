@@ -1,9 +1,13 @@
 import AVFoundation
 import CoreImage
+import UIKit
 
 /// CRITICAL FIX 2025-10-22: SmartFill CI Builder with Infinite Extent Protection
 /// FIXED: Properly handle infinite source images and validate before processing
 public final class SmartFillCIBuilder {
+    private struct PreparedBackgroundImage: @unchecked Sendable {
+        let image: CIImage
+    }
     
     /// CRITICAL FIX 2025-10-22: Create unified CI video composition with infinite extent protection
     public static func makeComposition(
@@ -53,6 +57,14 @@ public final class SmartFillCIBuilder {
         // Precompute sizes
         _ = NormalizeOrientation.uprightSize(natural: naturalSize, preferred: preferred)
         let renderRect = CGRect(origin: .zero, size: renderSize)
+        let preparedBackgroundImage = loadPreparedBackgroundImage(
+            mode: settings.backgroundSourceMode,
+            assetPath: settings.backgroundAssetPath
+        )
+
+        if settings.backgroundSourceMode == .customVideo {
+            print("⚠️ SmartFillCIBuilder: Motion background selection is not wired yet, falling back to source-derived background")
+        }
 
         let filterHandler: @Sendable (AVAsynchronousCIImageFilteringRequest) -> Void = { request in
             @inline(__always) func blackFrame() -> CIImage { CIImage(color: .black).cropped(to: renderRect) }
@@ -82,24 +94,17 @@ public final class SmartFillCIBuilder {
                 .transformed(by: CGAffineTransform(translationX: fgDx, y: fgDy))
                 .cropped(to: renderRect)
 
-            // BACKGROUND: aspect-fill + blur + darken
-            let bgScale = max(renderSize.width / srcExtent.width,
-                              renderSize.height / srcExtent.height) * settings.backgroundScale
-            let bgScaled = src.transformed(by: CGAffineTransform(scaleX: bgScale, y: bgScale))
-            let bgRect = bgScaled.extent
-            let bgDx = (renderSize.width  - bgRect.width)  * 0.5 - bgRect.minX
-            let bgDy = (renderSize.height - bgRect.height) * 0.5 - bgRect.minY
-            let bgCentered = bgScaled.transformed(by: CGAffineTransform(translationX: bgDx, y: bgDy))
+            let backgroundBaseImage = preparedBackgroundImage?.image ?? src
+            let background = makePreparedBackgroundImage(
+                from: backgroundBaseImage,
+                fallbackSourceImage: src,
+                renderSize: renderSize,
+                settings: settings
+            )
 
-            let blurred = bgCentered
-                .clampedToExtent()
-                .applyingFilter("CIGaussianBlur", parameters: ["inputRadius": settings.defaultBlurRadius])
-                .cropped(to: renderRect)
-                .applyingFilter("CIColorControls", parameters: ["inputBrightness": -settings.defaultDarkenAmount])
+            print("🎯 SmartFillCIBuilder: fgRect =", fgRect, " bgExtent =", background.extent, " final =", renderRect)
 
-            print("🎯 SmartFillCIBuilder: fgRect =", fgRect, " bgRect =", bgRect, " final =", renderRect)
-
-            finishSafely(fgCentered.composited(over: blurred))
+            finishSafely(fgCentered.composited(over: background))
         }
 
         let comp: AVVideoComposition
@@ -117,6 +122,95 @@ public final class SmartFillCIBuilder {
         print("✅ SmartFillCIBuilder: Created CI composition with infinite extent protection")
         
         return mutableComp
+    }
+
+    private static func loadPreparedBackgroundImage(
+        mode: SmartFillSettings.BackgroundSourceMode,
+        assetPath: String?
+    ) -> PreparedBackgroundImage? {
+        guard mode == .customImage else { return nil }
+        guard let assetPath, !assetPath.isEmpty else { return nil }
+
+        let url = URL(fileURLWithPath: assetPath)
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            print("⚠️ SmartFillCIBuilder: custom still background missing at \(assetPath)")
+            return nil
+        }
+
+        if let ciImage = CIImage(contentsOf: url, options: [.applyOrientationProperty: true]) {
+            return PreparedBackgroundImage(image: ciImage)
+        }
+
+        if let uiImage = UIImage(contentsOfFile: url.path) {
+            if let cgImage = uiImage.cgImage {
+                return PreparedBackgroundImage(image: CIImage(cgImage: cgImage))
+            }
+            if let ciImage = uiImage.ciImage {
+                return PreparedBackgroundImage(image: ciImage)
+            }
+        }
+
+        print("⚠️ SmartFillCIBuilder: could not load custom still background at \(assetPath)")
+        return nil
+    }
+
+    private static func makePreparedBackgroundImage(
+        from image: CIImage,
+        fallbackSourceImage: CIImage,
+        renderSize: CGSize,
+        settings: SmartFillSettings
+    ) -> CIImage {
+        let inputImage = validatedBackgroundInput(image, fallback: fallbackSourceImage, renderSize: renderSize)
+        let sourceSize = inputImage.extent.size
+        let baseScale = max(renderSize.width / sourceSize.width, renderSize.height / sourceSize.height)
+        let configuredScale = max(settings.backgroundScale, 1.0)
+        let finalScale = min(baseScale * configuredScale, baseScale * 4.0)
+        let scaled = inputImage.transformed(by: CGAffineTransform(scaleX: finalScale, y: finalScale))
+        let scaledRect = scaled.extent
+        let offsetX = (renderSize.width - scaledRect.width) * 0.5 - scaledRect.minX
+        let offsetY = (renderSize.height - scaledRect.height) * 0.5 - scaledRect.minY
+        let centered = scaled.transformed(by: CGAffineTransform(translationX: offsetX, y: offsetY))
+
+        return centered
+            .clampedToExtent()
+            .applyingFilter("CIGaussianBlur", parameters: ["inputRadius": settings.defaultBlurRadius])
+            .cropped(to: CGRect(origin: .zero, size: renderSize))
+            .applyingFilter("CIColorControls", parameters: ["inputBrightness": -settings.defaultDarkenAmount])
+    }
+
+    private static func validatedBackgroundInput(
+        _ image: CIImage,
+        fallback fallbackSourceImage: CIImage,
+        renderSize: CGSize
+    ) -> CIImage {
+        let source = isValidBackgroundExtent(image.extent)
+            ? image
+            : fallbackSourceImage
+
+        guard isValidBackgroundExtent(source.extent) else {
+            return CIImage(color: .black)
+                .cropped(to: CGRect(origin: .zero, size: renderSize))
+        }
+
+        let rect = source.extent
+        return source.transformed(
+            by: CGAffineTransform(
+                translationX: -rect.origin.x,
+                y: -rect.origin.y
+            )
+        )
+    }
+
+    private static func isValidBackgroundExtent(_ rect: CGRect) -> Bool {
+        rect.isNull == false &&
+        rect.isInfinite == false &&
+        rect.isEmpty == false &&
+        rect.origin.x.isFinite &&
+        rect.origin.y.isFinite &&
+        rect.size.width.isFinite &&
+        rect.size.height.isFinite &&
+        rect.size.width > 0 &&
+        rect.size.height > 0
     }
 }
 

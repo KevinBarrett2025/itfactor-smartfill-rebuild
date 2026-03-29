@@ -61,6 +61,7 @@ _Current rebuild working baseline:_ `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 - SmartFill workspace now keeps simple background, subject, and output controls inline through studio expanders while reserving drill-ins for compare and save detail only: COMPLETE (LOCAL-GATED)
 - SmartFill workspace now uses a flatter anchored studio shelf and denser control sizing instead of stacked mini-card chrome: COMPLETE (LOCAL-GATED)
 - SmartFill workspace now keeps preview play intent authoritative while exposing explicit inline background and foreground pickers: COMPLETE (LOCAL-GATED)
+- SmartFill workspace now exposes real still-image background source ownership, preserves it through settings snapshots, and clarifies foreground framing as zoom while motion backgrounds remain staged next work: COMPLETE (LOCAL-GATED)
 - Standalone derivation ledger: ACTIVE
 
 If anything above is not true, it must be reflected here.
@@ -370,6 +371,13 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase54_gateA_escalated.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase54_tests_final.log`
   - xcresult: `/tmp/itfactor_smartfill_phase54_tests/Logs/Test/Test-STSiPhone-2026.03.29_09-13-38--0400.xcresult`
+- `SF-REBUILD-055` — add still-image background source ownership and clarify foreground framing — `COMPLETE (LOCAL-GATED 2026-03-29)`
+  - `SmartFillSettings`, snapshot persistence, and `SmartFillTakeBridge` now preserve typed background-source state plus selected still-image identity instead of treating background ownership as only blur/darken tuning.
+  - `SmartFillCIBuilder` now renders custom still-image backgrounds through the shared SmartFill preview/export pipeline, and `SmartFillWorkspaceView` now exposes inline `Source`, `Still`, and staged `Motion` source controls plus `Photos` / `Files` still pickers in the fixed tray.
+  - `Foreground` framing copy now behaves like zoom/room around the subject, giving the future shared editor a clearer subject-control seam.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase55_gateA.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase55_tests_authoritative.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase55_tests_clean3/Logs/Test/Test-STSiPhone-2026.03.29_10-29-33--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -393,6 +401,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Use `SF-REBUILD-054` as the new SmartFill workspace baseline and take the next device smoke from there, specifically verifying that playback now starts on device and that the inline `Background` / `Foreground` pickers are obvious in the tray.
-2. Implement the next studio-shell tightening slice on GM only after the phase-54 device smoke confirms that playback survives real preview rerenders and that the new picker ownership closes the “missing background control” gap.
-3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, explicit background/subject picker ownership, inline expander ownership model, flatter studio-shelf chrome, preview-focus deck, canvas-embedded live transport, synchronized source/result compare behavior, visible poster-frame-at-rest preview behavior, stable single-owner action chrome, studio-grade theming, working entry routing, shared playback-intent seam, and tray-to-sheet split for deeper tools.
+1. Use `SF-REBUILD-055` as the new SmartFill workspace baseline and take the next device smoke from there, specifically verifying that video still opens cleanly, `Still` background selection is visible, `Photos` / `Files` routes are reachable, and a selected still background visibly affects preview/export.
+2. Implement the next studio-shell tightening slice on GM only after the phase-55 device smoke confirms that still-background ownership is real on device and that the staged `Motion` source remains clearly disabled instead of pretending to work.
+3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, explicit background/foreground picker ownership, still-image background-source persistence, inline expander ownership model, flatter studio-shelf chrome, preview-focus deck, canvas-embedded live transport, synchronized source/result compare behavior, visible poster-frame-at-rest preview behavior, stable single-owner action chrome, studio-grade theming, working entry routing, shared playback-intent seam, and tray-to-sheet split for deeper tools.

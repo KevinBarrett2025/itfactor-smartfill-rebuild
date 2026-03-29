@@ -50,6 +50,10 @@ public struct SmartFillSettingsSnapshot: Codable, Equatable, Sendable {
     public var darkenAmount: Double
     public var backgroundScale: Double
     public var foregroundScale: Double
+    public var backgroundSourceMode: String?
+    public var backgroundAssetPath: String?
+    public var backgroundAssetDisplayName: String?
+    public var backgroundVideoTakeID: UUID?
     public var renderWidth: Double
     public var renderHeight: Double
     public var processingPriority: String
@@ -61,6 +65,10 @@ public struct SmartFillSettingsSnapshot: Codable, Equatable, Sendable {
         darkenAmount: Double,
         backgroundScale: Double,
         foregroundScale: Double,
+        backgroundSourceMode: String? = nil,
+        backgroundAssetPath: String? = nil,
+        backgroundAssetDisplayName: String? = nil,
+        backgroundVideoTakeID: UUID? = nil,
         renderWidth: Double,
         renderHeight: Double,
         processingPriority: String,
@@ -71,6 +79,10 @@ public struct SmartFillSettingsSnapshot: Codable, Equatable, Sendable {
         self.darkenAmount = darkenAmount
         self.backgroundScale = backgroundScale
         self.foregroundScale = foregroundScale
+        self.backgroundSourceMode = backgroundSourceMode
+        self.backgroundAssetPath = backgroundAssetPath
+        self.backgroundAssetDisplayName = backgroundAssetDisplayName
+        self.backgroundVideoTakeID = backgroundVideoTakeID
         self.renderWidth = renderWidth
         self.renderHeight = renderHeight
         self.processingPriority = processingPriority

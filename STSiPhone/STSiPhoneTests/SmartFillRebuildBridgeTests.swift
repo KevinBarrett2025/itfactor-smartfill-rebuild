@@ -10,6 +10,10 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         "smartFillDarkenAmount",
         "smartFillBackgroundScale",
         "smartFillForegroundScale",
+        "smartFillBackgroundSourceMode",
+        "smartFillBackgroundAssetPath",
+        "smartFillBackgroundAssetDisplayName",
+        "smartFillBackgroundVideoTakeID",
         "smartFillPresetName",
         "smartFillRenderWidth",
         "smartFillRenderHeight",
@@ -483,6 +487,9 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
             darkenAmount: 0.18,
             backgroundScale: 4.5,
             foregroundScale: 1.2,
+            backgroundSourceMode: .customImage,
+            backgroundAssetPath: "/tmp/background.png",
+            backgroundAssetDisplayName: "background.png",
             presetName: "Medium",
             renderSize: CGSize(width: 1280, height: 720),
             processingPriority: .high
@@ -498,9 +505,55 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertEqual(restored.blurRadius, settings.blurRadius)
         XCTAssertEqual(restored.darkenAmount, settings.darkenAmount)
         XCTAssertEqual(restored.backgroundScale, settings.backgroundScale)
+        XCTAssertEqual(restored.backgroundSourceMode, .customImage)
+        XCTAssertEqual(restored.backgroundAssetPath, "/tmp/background.png")
+        XCTAssertEqual(restored.backgroundAssetDisplayName, "background.png")
         XCTAssertEqual(restored.renderSize.width, settings.renderSize.width)
         XCTAssertEqual(restored.renderSize.height, settings.renderSize.height)
         XCTAssertEqual(restored.processingPriority, settings.processingPriority)
+    }
+
+    func testCustomStillBackgroundDefaultsRoundTripPreservesModeAndSelection() {
+        preservingSmartFillDefaults {
+            let settings = SmartFillSettings(
+                isEnabled: true,
+                blurRadius: 22,
+                darkenAmount: 0.1,
+                backgroundScale: 3.0,
+                foregroundScale: 1.0,
+                backgroundSourceMode: .customImage,
+                backgroundAssetPath: "/tmp/still-background.png",
+                backgroundAssetDisplayName: "still-background.png",
+                presetName: "Balanced",
+                renderSize: CGSize(width: 1920, height: 1080),
+                processingPriority: .userInitiated
+            )
+
+            settings.saveToUserDefaults()
+
+            let restored = SmartFillSettings()
+
+            XCTAssertEqual(restored.backgroundSourceMode, .customImage)
+            XCTAssertEqual(restored.backgroundAssetPath, "/tmp/still-background.png")
+            XCTAssertEqual(restored.backgroundAssetDisplayName, "still-background.png")
+        }
+    }
+
+    func testBackgroundSourcePresentationUsesSelectedStillImageName() {
+        let settings = SmartFillSettings(
+            backgroundSourceMode: .customImage,
+            backgroundAssetDisplayName: "studio-backdrop.png"
+        )
+
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.backgroundSourceTitle(for: settings),
+            "studio-backdrop.png"
+        )
+        XCTAssertEqual(
+            SmartFillWorkspacePresentation.backgroundStillValue(for: settings),
+            "studio-backdrop.png"
+        )
+        XCTAssertFalse(SmartFillSettings.BackgroundSourceMode.customVideo.isCurrentlySupported)
     }
 
     func testPreviewReloadsWhenRefreshIDChanges() {
@@ -828,7 +881,7 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertEqual(
             items,
             [
-                SmartFillWorkspaceFocusItem(title: "Background", value: "Balanced", symbolName: "camera.filters"),
+                SmartFillWorkspaceFocusItem(title: "Source", value: "Source", symbolName: "sparkles.tv"),
                 SmartFillWorkspaceFocusItem(title: "Finish", value: "Balanced", symbolName: "sparkles"),
                 SmartFillWorkspaceFocusItem(title: "Fill", value: "Default", symbolName: "arrow.up.left.and.arrow.down.right")
             ]
@@ -993,14 +1046,14 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         )
     }
 
-    func testWorkspacePresentationSupportsStageAwareSaveCopyAndBackgroundModes() {
+    func testWorkspacePresentationSupportsStageAwareSaveCopyAndBackgroundLookTitles() {
         let settings = SmartFillSettings(presetName: "Subtle", processingPriority: .userInitiated)
         let context = makeWorkspaceContext(
             take: ProjectTake(filePath: "/tmp/original.mov", durationSeconds: 12),
             existingSettings: settings
         )
 
-        XCTAssertEqual(SmartFillWorkspacePresentation.backgroundModeTitle(for: settings), "Natural")
+        XCTAssertEqual(SmartFillWorkspacePresentation.backgroundLookTitle(for: settings), "Natural")
         XCTAssertEqual(SmartFillWorkspacePresentation.actionTitle(for: context, stage: .export), "Saving SmartFill…")
         XCTAssertEqual(SmartFillWorkspacePresentation.actionTitle(for: context, stage: .completed), "Return to Review")
         XCTAssertEqual(

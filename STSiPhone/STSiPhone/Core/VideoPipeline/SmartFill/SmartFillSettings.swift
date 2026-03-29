@@ -5,12 +5,64 @@ import CoreGraphics
 /// Stored values are bridged to legacy property names so the existing codebase
 /// continues to compile while we converge on the unified API.
 public struct SmartFillSettings: Codable, Equatable, Sendable {
+    public enum BackgroundSourceMode: String, Codable, CaseIterable, Sendable {
+        case sourceDerived
+        case customImage
+        case customVideo
+
+        public var title: String {
+            switch self {
+            case .sourceDerived:
+                return "Source"
+            case .customImage:
+                return "Still"
+            case .customVideo:
+                return "Motion"
+            }
+        }
+
+        public var systemImage: String {
+            switch self {
+            case .sourceDerived:
+                return "sparkles.tv"
+            case .customImage:
+                return "photo"
+            case .customVideo:
+                return "film"
+            }
+        }
+
+        public var summary: String {
+            switch self {
+            case .sourceDerived:
+                return "Use the source clip as the background plate."
+            case .customImage:
+                return "Use a picked still image as the background plate."
+            case .customVideo:
+                return "Reserve a motion background seam for the next flagship slice."
+            }
+        }
+
+        public var isCurrentlySupported: Bool {
+            switch self {
+            case .sourceDerived, .customImage:
+                return true
+            case .customVideo:
+                return false
+            }
+        }
+    }
+
     // MARK: - Canonical properties
     public var isEnabled: Bool
     public var blurRadius: CGFloat
     public var darkenAmount: CGFloat
     public var backgroundScale: CGFloat
     public var foregroundScale: CGFloat
+    public var backgroundSourceMode: BackgroundSourceMode
+    public var backgroundAssetPath: String?
+    public var backgroundAssetDisplayName: String?
+    public var backgroundVideoTakeID: UUID?
     public var presetName: String?
     public var renderSize: CGSize
     public var processingPriority: ProcessingPriority
@@ -43,6 +95,16 @@ public struct SmartFillSettings: Codable, Equatable, Sendable {
         self.darkenAmount = SmartFillSettings.cgFloat(forKey: "smartFillDarkenAmount", in: defaults, fallback: 0.12)
         self.backgroundScale = SmartFillSettings.cgFloat(forKey: "smartFillBackgroundScale", in: defaults, fallback: 10.0)
         self.foregroundScale = SmartFillSettings.cgFloat(forKey: "smartFillForegroundScale", in: defaults, fallback: 1.0)
+        let backgroundSourceModeRawValue = defaults.string(forKey: "smartFillBackgroundSourceMode")
+            ?? BackgroundSourceMode.sourceDerived.rawValue
+        self.backgroundSourceMode = BackgroundSourceMode(rawValue: backgroundSourceModeRawValue) ?? .sourceDerived
+        self.backgroundAssetPath = defaults.string(forKey: "smartFillBackgroundAssetPath")
+        self.backgroundAssetDisplayName = defaults.string(forKey: "smartFillBackgroundAssetDisplayName")
+        if let backgroundVideoTakeID = defaults.string(forKey: "smartFillBackgroundVideoTakeID") {
+            self.backgroundVideoTakeID = UUID(uuidString: backgroundVideoTakeID)
+        } else {
+            self.backgroundVideoTakeID = nil
+        }
         self.presetName = defaults.string(forKey: "smartFillPresetName")
         let width = SmartFillSettings.cgFloat(forKey: "smartFillRenderWidth", in: defaults, fallback: 1920)
         let height = SmartFillSettings.cgFloat(forKey: "smartFillRenderHeight", in: defaults, fallback: 1080)
@@ -64,6 +126,10 @@ public struct SmartFillSettings: Codable, Equatable, Sendable {
         darkenAmount: CGFloat = 0.12,
         backgroundScale: CGFloat = 10.0,
         foregroundScale: CGFloat = 1.0,
+        backgroundSourceMode: BackgroundSourceMode = .sourceDerived,
+        backgroundAssetPath: String? = nil,
+        backgroundAssetDisplayName: String? = nil,
+        backgroundVideoTakeID: UUID? = nil,
         presetName: String? = nil,
         renderSize: CGSize = CGSize(width: 1920, height: 1080),
         processingPriority: ProcessingPriority = .userInitiated,
@@ -74,6 +140,10 @@ public struct SmartFillSettings: Codable, Equatable, Sendable {
         self.darkenAmount = darkenAmount
         self.backgroundScale = backgroundScale
         self.foregroundScale = foregroundScale
+        self.backgroundSourceMode = backgroundSourceMode
+        self.backgroundAssetPath = backgroundAssetPath
+        self.backgroundAssetDisplayName = backgroundAssetDisplayName
+        self.backgroundVideoTakeID = backgroundVideoTakeID
         self.presetName = presetName
         self.renderSize = renderSize
         self.processingPriority = processingPriority
@@ -125,6 +195,10 @@ public struct SmartFillSettings: Codable, Equatable, Sendable {
         defaults.set(darkenAmount, forKey: "smartFillDarkenAmount")
         defaults.set(backgroundScale, forKey: "smartFillBackgroundScale")
         defaults.set(foregroundScale, forKey: "smartFillForegroundScale")
+        defaults.set(backgroundSourceMode.rawValue, forKey: "smartFillBackgroundSourceMode")
+        defaults.set(backgroundAssetPath, forKey: "smartFillBackgroundAssetPath")
+        defaults.set(backgroundAssetDisplayName, forKey: "smartFillBackgroundAssetDisplayName")
+        defaults.set(backgroundVideoTakeID?.uuidString, forKey: "smartFillBackgroundVideoTakeID")
         defaults.set(presetName, forKey: "smartFillPresetName")
         defaults.set(renderSize.width, forKey: "smartFillRenderWidth")
         defaults.set(renderSize.height, forKey: "smartFillRenderHeight")

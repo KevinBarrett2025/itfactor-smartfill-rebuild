@@ -66,6 +66,8 @@ Rules:
 - The SmartFill workspace now also preserves a visible poster frame for portrait media at rest, uses clearer `Background` ownership in the fixed-shell chrome, and turns the old advanced sheet into a smaller studio adjustments drill-in.
 - The SmartFill workspace now also keeps simple background, subject, and output adjustments inline through compact studio expanders, so only compare viewing and save details still open as real drill-ins.
 - The SmartFill workspace now also uses a flatter anchored shelf, denser chips, and one smaller inset-panel language so the tray feels less like stacked cards and more like a reusable editor module.
+- The SmartFill workspace now also carries typed background-source ownership through settings, snapshots, preview, and export, exposing inline `Source`, `Still`, and staged `Motion` choices plus `Photos` / `Files` still pickers directly in the fixed tray.
+- The SmartFill workspace now also treats foreground framing as zoom/room around the subject, which better matches the future shared master-editor control model.
 - `authority/main` now exists remotely and locally at the untouched Jan 23 baseline.
 
 ---
@@ -124,6 +126,7 @@ Rules:
 | 5Q | SF-REBUILD-052 | Flatten SmartFill tray chrome into a studio shelf | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase52_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase52_tests.log`; the workspace now uses a flatter anchored shelf, smaller controls, and one shared inset-panel language so the tray reads less like stacked mini-cards while preserving the inline ownership from phase 51 |
 | 5R | SF-REBUILD-053 | Preserve SmartFill play intent through shared preview state | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase53_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase53_tests.log`; preview transport actions now publish through the shared playback-state seam before mutating `AVPlayer`, so tap-to-play, frame-step nudging, and scrub completion stop getting paused back down by stale preview state |
 | 5S | SF-REBUILD-054 | Add inline background-subject pickers and keep workspace play intent authoritative | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase54_gateA_escalated.log`; focused parity PASS `/tmp/itfactor_smartfill_phase54_tests_final.log`; the workspace now exposes explicit inline `Background` and `Foreground` pickers and the preview wrappers now sync observed time without overwriting the parent `shouldPlay` intent |
+| 5T | SF-REBUILD-055 | Add still-image background source ownership and clarify foreground framing | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase55_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase55_tests_authoritative.log`; the workspace now persists typed background-source state, renders custom still-image backgrounds through the shared SmartFill CI pipeline, exposes inline `Source` / `Still` / staged `Motion` controls with `Photos` / `Files` still pickers, and treats foreground framing as zoom |
 
 ---
 
@@ -144,6 +147,6 @@ Rules:
 ---
 
 ## Next Action
-1. Use `SF-REBUILD-054` as the next safe workspace baseline for a device smoke before choosing the next intentional studio-shell tightening slice. The current shell now keeps live playback intent at the workspace level, exposes explicit inline `Background` / `Foreground` pickers, retains the flatter studio shelf, and stays aligned with the Mission 6 master-editor planner direction.
-2. Implement the next slice on GM only after the phase-54 device smoke confirms that playback starts reliably and that the new inline picker ownership closes the “missing background control” gap.
-3. Keep the standalone derivation ledger in sync while future shared-workspace chrome, visible preview-at-rest behavior, clearer background/subject ownership, inline studio expander ownership, flatter studio-shelf language, synchronized compare states, and deeper preview/live-transport work land.
+1. Use `SF-REBUILD-055` as the next safe workspace baseline for a device smoke before choosing the next intentional studio-shell tightening slice. The current shell now keeps live playback intent at the workspace level, exposes real still-image background ownership in the fixed tray, retains the flatter studio shelf, and stays aligned with the Mission 6 master-editor planner direction.
+2. Implement the next slice on GM only after the phase-55 device smoke confirms that `Still` background selection is reachable from `Photos` / `Files`, that the selected still visibly affects preview/export, and that staged `Motion` stays honestly disabled.
+3. Keep the standalone derivation ledger in sync while future shared-workspace chrome, visible preview-at-rest behavior, clearer background/foreground ownership, inline studio expander ownership, flatter studio-shelf language, synchronized compare states, and deeper preview/live-transport work land.

@@ -1,6 +1,8 @@
 import AVKit
 import Combine
+import PhotosUI
 import SwiftUI
+import UniformTypeIdentifiers
 
 private enum SmartFillWorkspacePalette {
     static let theme = STSThemeLibrary.theme(for: .studioLobbyV1)
@@ -40,6 +42,11 @@ struct SmartFillWorkspaceView: View {
     @State private var previewPinnedWipeProgress: CGFloat = SmartFillWorkspaceCompareWipeState.defaultProgress
     @State private var previewPlaybackState = SmartFillWorkspacePreviewPlaybackState()
     @State private var isHoldingPreviewComparison = false
+    @State private var showingBackgroundPhotoPicker = false
+    @State private var backgroundPhotoItem: PhotosPickerItem?
+    @State private var showingBackgroundFileImporter = false
+    @State private var backgroundSelectionMessage: String?
+    @State private var backgroundSelectionError: String?
 
     private let workspaceDefaults: SmartFillWorkspaceDefaults
 
@@ -120,10 +127,19 @@ struct SmartFillWorkspaceView: View {
                 previewPinnedWipeProgress = SmartFillWorkspaceCompareWipeState.defaultProgress
                 previewPlaybackState = SmartFillWorkspacePreviewPlaybackState()
                 activeSheet = nil
+                backgroundSelectionMessage = settings.backgroundSourceMode == .customImage
+                    ? (settings.backgroundAssetDisplayName.map { "Using \($0) as the SmartFill background." }
+                        ?? "Pick a still image from Photos or Files for the SmartFill background.")
+                    : nil
+                backgroundSelectionError = nil
             }
             .onChange(of: activeSheet) { oldValue, newValue in
                 guard oldValue == .sourcePreview, newValue != .sourcePreview else { return }
                 isHoldingPreviewComparison = false
+            }
+            .onChange(of: backgroundPhotoItem, initial: false) { _, newItem in
+                guard let item = newItem else { return }
+                Task { await handleBackgroundPhotoSelection(item: item) }
             }
             .onReceive(NotificationCenter.default.publisher(for: .smartFillProcessingProgress)) { notification in
                 guard coordinator.stage == .export else { return }
@@ -174,6 +190,18 @@ struct SmartFillWorkspaceView: View {
             .onDisappear {
                 autoReturnWorkItem?.cancel()
                 autoReturnWorkItem = nil
+            }
+            .photosPicker(
+                isPresented: $showingBackgroundPhotoPicker,
+                selection: $backgroundPhotoItem,
+                matching: .images
+            )
+            .fileImporter(
+                isPresented: $showingBackgroundFileImporter,
+                allowedContentTypes: [.image],
+                allowsMultipleSelection: false
+            ) { result in
+                handleBackgroundFileImport(result)
             }
         }
     }
@@ -421,12 +449,78 @@ struct SmartFillWorkspaceView: View {
 
     private var lookSurface: some View {
         VStack(alignment: .leading, spacing: 12) {
-            toolSectionHeader("Background", value: SmartFillWorkspacePresentation.backgroundModeTitle(for: settings))
+            toolSectionHeader("Background", value: SmartFillWorkspacePresentation.backgroundSourceTitle(for: settings))
+
+            compactToolGroup(
+                title: "Source",
+                value: SmartFillWorkspacePresentation.backgroundSourceValue(for: settings)
+            ) {
+                ForEach(SmartFillSettings.BackgroundSourceMode.allCases, id: \.self) { mode in
+                    compactToolChip(
+                        title: mode.title,
+                        subtitle: backgroundSourceChipSubtitle(for: mode),
+                        systemImage: mode.systemImage,
+                        isSelected: settings.backgroundSourceMode == mode,
+                        isEnabled: mode.isCurrentlySupported
+                    ) {
+                        handleBackgroundSourceModeSelection(mode)
+                    }
+                }
+            }
+
+            if settings.backgroundSourceMode == .customImage {
+                toolSectionCard {
+                    VStack(alignment: .leading, spacing: 12) {
+                        toolSubheader("Still image", value: SmartFillWorkspacePresentation.backgroundStillValue(for: settings))
+
+                        compactToolGroup(title: nil, value: nil) {
+                            compactToolChip(
+                                title: "Photos",
+                                subtitle: "Choose",
+                                systemImage: "photo.on.rectangle.angled",
+                                isSelected: false
+                            ) {
+                                showingBackgroundPhotoPicker = true
+                            }
+
+                            compactToolChip(
+                                title: "Files",
+                                subtitle: "Import",
+                                systemImage: "folder",
+                                isSelected: false
+                            ) {
+                                showingBackgroundFileImporter = true
+                            }
+
+                            if settings.backgroundAssetPath != nil {
+                                compactToolChip(
+                                    title: "Use Source",
+                                    subtitle: "Clear still",
+                                    systemImage: "arrow.uturn.backward",
+                                    isSelected: false
+                                ) {
+                                    clearCustomStillBackground()
+                                }
+                            }
+                        }
+
+                        if let backgroundSelectionError {
+                            Label(backgroundSelectionError, systemImage: "exclamationmark.triangle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                        } else {
+                            Text(backgroundSelectionMessage ?? "Still backgrounds stay inside this tray and inherit the same finish and tuning controls below.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
 
             compactMenuPicker(
-                title: "Background",
-                value: SmartFillWorkspacePresentation.backgroundModeTitle(for: settings),
-                systemImage: "photo.on.rectangle.angled"
+                title: "Look",
+                value: SmartFillWorkspacePresentation.backgroundLookTitle(for: settings),
+                systemImage: "camera.filters"
             ) {
                 ForEach(SmartFillWorkspaceBackgroundMode.allCases, id: \.self) { mode in
                     Button {
@@ -455,7 +549,7 @@ struct SmartFillWorkspaceView: View {
             }
 
             compactToolGroup(
-                title: "Studio",
+                title: "Adjust",
                 value: activeBackgroundDetail?.valueLabel(for: settings, activeLookAdjustment: activeLookAdjustment) ?? "Closed"
             ) {
                 ForEach(SmartFillWorkspaceBackgroundDetail.allCases, id: \.self) { detail in
@@ -479,12 +573,12 @@ struct SmartFillWorkspaceView: View {
 
     private var framingSurface: some View {
         VStack(alignment: .leading, spacing: 12) {
-            toolSectionHeader("Subject", value: String(format: "%.2f×", settings.foregroundScale))
+            toolSectionHeader("Foreground", value: SmartFillWorkspacePresentation.foregroundZoomValue(for: settings))
 
             compactMenuPicker(
-                title: "Foreground",
-                value: activeSubjectPreset?.title ?? String(format: "%.2f×", settings.foregroundScale),
-                systemImage: "person.crop.rectangle"
+                title: "Zoom",
+                value: activeSubjectPreset?.title ?? SmartFillWorkspacePresentation.foregroundZoomValue(for: settings),
+                systemImage: "person.crop.rectangle.badge.plus"
             ) {
                 ForEach(SmartFillWorkspaceSubjectPreset.allCases, id: \.self) { preset in
                     Button {
@@ -499,11 +593,11 @@ struct SmartFillWorkspaceView: View {
                 }
             }
 
-            compactToolGroup(title: "Framing", value: isSubjectPrecisionExpanded ? String(format: "%.2f×", settings.foregroundScale) : "Closed") {
+            compactToolGroup(title: "Framing", value: isSubjectPrecisionExpanded ? SmartFillWorkspacePresentation.foregroundZoomValue(for: settings) : "Closed") {
                 compactToolChip(
-                    title: "Precision",
-                    subtitle: String(format: "%.2f×", settings.foregroundScale),
-                    systemImage: "slider.horizontal.below.rectangle",
+                    title: "Zoom",
+                    subtitle: SmartFillWorkspacePresentation.foregroundZoomValue(for: settings),
+                    systemImage: "viewfinder",
                     isSelected: isSubjectPrecisionExpanded
                 ) {
                     isSubjectPrecisionExpanded.toggle()
@@ -512,12 +606,16 @@ struct SmartFillWorkspaceView: View {
 
             if isSubjectPrecisionExpanded {
                 toolSectionCard {
-                    toolSubheader("Precision", value: String(format: "%.2f×", settings.foregroundScale))
+                    toolSubheader("Foreground zoom", value: SmartFillWorkspacePresentation.foregroundZoomValue(for: settings))
 
-                    Slider(value: foregroundScaleBinding, in: 0.85...1.25, step: 0.05) {
-                        Text("Subject scale")
+                    Slider(value: foregroundScaleBinding, in: 0.80...1.35, step: 0.05) {
+                        Text("Foreground zoom")
                     }
                     .tint(SmartFillWorkspacePalette.accent)
+
+                    Text("Zoom the subject tighter or give the frame more room without leaving the editor tray.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
         }
@@ -1045,11 +1143,14 @@ struct SmartFillWorkspaceView: View {
     }
 
     private var toolTrayHeight: CGFloat {
+        let backgroundPickerInsetCompact: CGFloat = settings.backgroundSourceMode == .customImage ? 90 : 0
+        let backgroundPickerInsetRegular: CGFloat = settings.backgroundSourceMode == .customImage ? 105 : 0
+
         switch (verticalSizeClass, activeTool) {
         case (.compact, .save):
             return 205
         case (.compact, .background):
-            return activeBackgroundDetail == .studio ? 285 : (activeBackgroundDetail == nil ? 170 : 245)
+            return (activeBackgroundDetail == .studio ? 285 : (activeBackgroundDetail == nil ? 170 : 245)) + backgroundPickerInsetCompact
         case (.compact, .subject):
             return isSubjectPrecisionExpanded ? 175 : 130
         case (.compact, .output):
@@ -1057,7 +1158,7 @@ struct SmartFillWorkspaceView: View {
         case (_, .save):
             return 235
         case (_, .background):
-            return activeBackgroundDetail == .studio ? 315 : (activeBackgroundDetail == nil ? 180 : 265)
+            return (activeBackgroundDetail == .studio ? 315 : (activeBackgroundDetail == nil ? 180 : 265)) + backgroundPickerInsetRegular
         case (_, .subject):
             return isSubjectPrecisionExpanded ? 190 : 145
         case (_, .output):
@@ -1376,6 +1477,7 @@ struct SmartFillWorkspaceView: View {
         subtitle: String?,
         systemImage: String?,
         isSelected: Bool,
+        isEnabled: Bool = true,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
@@ -1407,6 +1509,8 @@ struct SmartFillWorkspaceView: View {
             )
         }
         .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.55)
     }
 
     private func statusPill(icon: String, title: String, value: String) -> some View {
@@ -1679,6 +1783,105 @@ struct SmartFillWorkspaceView: View {
         markSettingsDirty()
     }
 
+    private func handleBackgroundSourceModeSelection(_ mode: SmartFillSettings.BackgroundSourceMode) {
+        guard mode.isCurrentlySupported else {
+            backgroundSelectionError = "Motion backgrounds are reserved for the next flagship slice. Still image backgrounds are live now."
+            return
+        }
+
+        backgroundSelectionError = nil
+        settings.backgroundSourceMode = mode
+        markSettingsDirty()
+
+        if mode == .customImage {
+            backgroundSelectionMessage = settings.backgroundAssetDisplayName == nil
+                ? "Pick a still image from Photos or Files for the SmartFill background."
+                : "Using \(settings.backgroundAssetDisplayName ?? "your still image") as the background."
+            if settings.backgroundAssetPath == nil {
+                showingBackgroundPhotoPicker = true
+            }
+        } else {
+            backgroundSelectionMessage = nil
+        }
+    }
+
+    private func clearCustomStillBackground() {
+        settings.backgroundAssetPath = nil
+        settings.backgroundAssetDisplayName = nil
+        settings.backgroundSourceMode = .sourceDerived
+        backgroundSelectionMessage = nil
+        backgroundSelectionError = nil
+        markSettingsDirty()
+    }
+
+    private func handleBackgroundFileImport(_ result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            do {
+                let imported = try SafeDocumentStore.importFromPicker(
+                    url: url,
+                    preferredName: url.lastPathComponent,
+                    subfolder: "SmartFillBackgrounds"
+                )
+                applySelectedBackgroundStill(localURL: imported.localURL, fileName: imported.fileName)
+            } catch {
+                backgroundSelectionError = error.localizedDescription
+            }
+        case .failure(let error):
+            backgroundSelectionError = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func handleBackgroundPhotoSelection(item: PhotosPickerItem) async {
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self) else {
+                backgroundSelectionError = "The selected still image could not be loaded."
+                backgroundPhotoItem = nil
+                return
+            }
+
+            let fileExtension = item.supportedContentTypes.first?.preferredFilenameExtension ?? "jpg"
+            let imported = try SafeDocumentStore.save(
+                data: data,
+                preferredFileName: "SmartFillStill-\(UUID().uuidString.prefix(8)).\(fileExtension)",
+                subfolder: "SmartFillBackgrounds"
+            )
+            applySelectedBackgroundStill(localURL: imported.localURL, fileName: imported.fileName)
+        } catch {
+            backgroundSelectionError = error.localizedDescription
+        }
+
+        backgroundPhotoItem = nil
+    }
+
+    private func applySelectedBackgroundStill(localURL: URL, fileName: String) {
+        settings.backgroundSourceMode = .customImage
+        settings.backgroundAssetPath = localURL.path
+        settings.backgroundAssetDisplayName = fileName
+        backgroundSelectionMessage = "Using \(fileName) as the SmartFill background."
+        backgroundSelectionError = nil
+        markSettingsDirty()
+    }
+
+    private func backgroundSourceChipSubtitle(
+        for mode: SmartFillSettings.BackgroundSourceMode
+    ) -> String {
+        switch mode {
+        case .sourceDerived:
+            return "Live"
+        case .customImage:
+            if let displayName = settings.backgroundAssetDisplayName,
+               !displayName.isEmpty {
+                return settings.backgroundSourceMode == .customImage ? displayName : "Saved"
+            }
+            return "Ready"
+        case .customVideo:
+            return "Next"
+        }
+    }
+
     private func applyBackgroundFillPreset(_ preset: SmartFillWorkspaceBackgroundFillPreset) {
         settings.backgroundScale = preset.scale
         settings.forceUpdateToken = UUID()
@@ -1930,7 +2133,7 @@ struct SmartFillWorkspaceView: View {
 
         let savedSettings = SmartFillTakeBridge.settings(from: snapshot)
         let renderSize = "\(Int(savedSettings.renderSize.width))×\(Int(savedSettings.renderSize.height))"
-        return "\(SmartFillWorkspacePresentation.backgroundModeTitle(for: savedSettings)) • \(renderSize)"
+        return "\(SmartFillWorkspacePresentation.backgroundSourceTitle(for: savedSettings)) • \(SmartFillWorkspacePresentation.backgroundLookTitle(for: savedSettings)) • \(renderSize)"
     }
 
     private func handleClose() {
@@ -2314,7 +2517,7 @@ enum SmartFillWorkspaceTool: CaseIterable {
         case .background:
             return "Background"
         case .subject:
-            return "Subject"
+            return "Foreground"
         case .output:
             return "Output"
         case .save:
@@ -2338,9 +2541,9 @@ enum SmartFillWorkspaceTool: CaseIterable {
     func summaryValue(for settings: SmartFillSettings, behavior: SmartFillWorkspaceCompletionBehavior) -> String {
         switch self {
         case .background:
-            return SmartFillWorkspacePresentation.backgroundModeTitle(for: settings)
+            return SmartFillWorkspacePresentation.backgroundSourceTitle(for: settings)
         case .subject:
-            return String(format: "%.2f×", settings.foregroundScale)
+            return SmartFillWorkspacePresentation.foregroundZoomValue(for: settings)
         case .output:
             return "\(Int(settings.renderSize.width))×\(Int(settings.renderSize.height))"
         case .save:
@@ -2358,7 +2561,7 @@ enum SmartFillWorkspaceTool: CaseIterable {
             let finishTitle = SmartFillWorkspaceTreatmentPreset.allCases.first(where: { $0.matches(settings) })?.title ?? "Custom"
             let fillTitle = SmartFillWorkspaceBackgroundFillPreset.allCases.first(where: { $0.matches(settings.backgroundScale) })?.title ?? String(format: "%.1f×", settings.backgroundScale)
             return [
-                SmartFillWorkspaceFocusItem(title: "Background", value: SmartFillWorkspacePresentation.backgroundModeTitle(for: settings), symbolName: "camera.filters"),
+                SmartFillWorkspaceFocusItem(title: "Source", value: SmartFillWorkspacePresentation.backgroundSourceTitle(for: settings), symbolName: settings.backgroundSourceMode.systemImage),
                 SmartFillWorkspaceFocusItem(title: "Finish", value: finishTitle, symbolName: "sparkles"),
                 SmartFillWorkspaceFocusItem(title: "Fill", value: fillTitle, symbolName: "arrow.up.left.and.arrow.down.right")
             ]
@@ -2366,7 +2569,7 @@ enum SmartFillWorkspaceTool: CaseIterable {
             let presetTitle = SmartFillWorkspaceSubjectPreset.allCases.first(where: { $0.matches(settings.foregroundScale) })?.title ?? "Custom"
             return [
                 SmartFillWorkspaceFocusItem(title: "Preset", value: presetTitle, symbolName: "person.crop.rectangle"),
-                SmartFillWorkspaceFocusItem(title: "Scale", value: String(format: "%.2f×", settings.foregroundScale), symbolName: "arrow.up.left.and.arrow.down.right.circle")
+                SmartFillWorkspaceFocusItem(title: "Zoom", value: SmartFillWorkspacePresentation.foregroundZoomValue(for: settings), symbolName: "viewfinder")
             ]
         case .output:
             return [
@@ -3052,12 +3255,42 @@ enum SmartFillWorkspacePresentation {
         }
     }
 
+    static func backgroundSourceTitle(for settings: SmartFillSettings) -> String {
+        switch settings.backgroundSourceMode {
+        case .sourceDerived:
+            return "Source"
+        case .customImage:
+            return settings.backgroundAssetDisplayName ?? "Still image"
+        case .customVideo:
+            return settings.backgroundAssetDisplayName ?? "Motion background"
+        }
+    }
+
+    static func backgroundSourceValue(for settings: SmartFillSettings) -> String {
+        switch settings.backgroundSourceMode {
+        case .sourceDerived:
+            return "Source clip"
+        case .customImage:
+            return settings.backgroundAssetDisplayName ?? "Pick still image"
+        case .customVideo:
+            return settings.backgroundAssetDisplayName ?? "Reserved next"
+        }
+    }
+
+    static func backgroundStillValue(for settings: SmartFillSettings) -> String {
+        settings.backgroundAssetDisplayName ?? "Pick still image"
+    }
+
+    static func foregroundZoomValue(for settings: SmartFillSettings) -> String {
+        String(format: "%.2f×", settings.foregroundScale)
+    }
+
     static func outputCaption(for settings: SmartFillSettings) -> String {
         let size = "\(Int(settings.renderSize.width))×\(Int(settings.renderSize.height))"
         return "\(size) output with \(processingPriorityTitle(for: settings.processingPriority).lowercased()) processing."
     }
 
-    static func backgroundModeTitle(for settings: SmartFillSettings) -> String {
+    static func backgroundLookTitle(for settings: SmartFillSettings) -> String {
         if let mode = SmartFillWorkspaceBackgroundMode.allCases.first(where: { $0.matches(settings) }) {
             return mode.title
         }
