@@ -13,7 +13,7 @@ Rules:
 
 ---
 
-## Board State (2026-03-28)
+## Board State (2026-03-29)
 - Shipped shell truth comes from `/Users/kevinbarrett/Dev/SelfTapeStudio` and is read-only.
 - Writable flagship integration truth lives in `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`.
 - Remote rebuild truth lives at `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`.
@@ -123,6 +123,7 @@ Rules:
 | 5P | SF-REBUILD-051 | Replace duplicate SmartFill sheets with inline studio expanders | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase51_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase51_tests_rerun.log`; the workspace now keeps fill/tune/studio background adjustments plus subject precision and output processing inline in the tray, so compare viewing and save details are the only remaining real drill-ins |
 | 5Q | SF-REBUILD-052 | Flatten SmartFill tray chrome into a studio shelf | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase52_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase52_tests.log`; the workspace now uses a flatter anchored shelf, smaller controls, and one shared inset-panel language so the tray reads less like stacked mini-cards while preserving the inline ownership from phase 51 |
 | 5R | SF-REBUILD-053 | Preserve SmartFill play intent through shared preview state | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase53_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase53_tests.log`; preview transport actions now publish through the shared playback-state seam before mutating `AVPlayer`, so tap-to-play, frame-step nudging, and scrub completion stop getting paused back down by stale preview state |
+| 5S | SF-REBUILD-054 | Add inline background-subject pickers and keep workspace play intent authoritative | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase54_gateA_escalated.log`; focused parity PASS `/tmp/itfactor_smartfill_phase54_tests_final.log`; the workspace now exposes explicit inline `Background` and `Foreground` pickers and the preview wrappers now sync observed time without overwriting the parent `shouldPlay` intent |
 
 ---
 
@@ -143,6 +144,6 @@ Rules:
 ---
 
 ## Next Action
-1. Use `SF-REBUILD-053` as the next safe workspace baseline for a device smoke before choosing the next intentional studio-shell tightening slice. The current shell now keeps live playback, momentary compare, precise frame-step nudging, direct canvas precision scrubbing, one shared compare-selection seam, one top action owner, the cinematic studio shell, a visible portrait poster frame at rest, inline studio expanders for simple adjustments, a flatter studio shelf instead of stacked mini-cards, and one authoritative preview play-intent seam.
-2. Implement that slice on GM, then rerun Gate A plus focused SmartFill parity before any promotion discussion.
-3. Keep the standalone derivation ledger in sync while future shared-workspace chrome, visible preview-at-rest behavior, clearer background/subject ownership, inline studio expander ownership, flatter studio-shelf language, synchronized compare states, and any deeper preview/live-transport work lands.
+1. Use `SF-REBUILD-054` as the next safe workspace baseline for a device smoke before choosing the next intentional studio-shell tightening slice. The current shell now keeps live playback intent at the workspace level, exposes explicit inline `Background` / `Foreground` pickers, retains the flatter studio shelf, and stays aligned with the Mission 6 master-editor planner direction.
+2. Implement the next slice on GM only after the phase-54 device smoke confirms that playback starts reliably and that the new inline picker ownership closes the “missing background control” gap.
+3. Keep the standalone derivation ledger in sync while future shared-workspace chrome, visible preview-at-rest behavior, clearer background/subject ownership, inline studio expander ownership, flatter studio-shelf language, synchronized compare states, and deeper preview/live-transport work land.

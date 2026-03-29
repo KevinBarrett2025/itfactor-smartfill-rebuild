@@ -423,15 +423,20 @@ struct SmartFillWorkspaceView: View {
         VStack(alignment: .leading, spacing: 12) {
             toolSectionHeader("Background", value: SmartFillWorkspacePresentation.backgroundModeTitle(for: settings))
 
-            compactToolGroup(title: "Mode", value: SmartFillWorkspacePresentation.backgroundModeTitle(for: settings)) {
+            compactMenuPicker(
+                title: "Background",
+                value: SmartFillWorkspacePresentation.backgroundModeTitle(for: settings),
+                systemImage: "photo.on.rectangle.angled"
+            ) {
                 ForEach(SmartFillWorkspaceBackgroundMode.allCases, id: \.self) { mode in
-                    compactToolChip(
-                        title: mode.title,
-                        subtitle: nil,
-                        systemImage: activeBackgroundMode == mode ? "checkmark.circle.fill" : nil,
-                        isSelected: activeBackgroundMode == mode
-                    ) {
+                    Button {
                         applyBackgroundMode(mode)
+                    } label: {
+                        menuOptionLabel(
+                            title: mode.title,
+                            subtitle: mode.caption,
+                            systemImage: activeBackgroundMode == mode ? "checkmark.circle.fill" : nil
+                        )
                     }
                 }
             }
@@ -476,15 +481,20 @@ struct SmartFillWorkspaceView: View {
         VStack(alignment: .leading, spacing: 12) {
             toolSectionHeader("Subject", value: String(format: "%.2f×", settings.foregroundScale))
 
-            compactToolGroup(title: "Scale", value: String(format: "%.2f×", settings.foregroundScale)) {
+            compactMenuPicker(
+                title: "Foreground",
+                value: activeSubjectPreset?.title ?? String(format: "%.2f×", settings.foregroundScale),
+                systemImage: "person.crop.rectangle"
+            ) {
                 ForEach(SmartFillWorkspaceSubjectPreset.allCases, id: \.self) { preset in
-                    compactToolChip(
-                        title: preset.title,
-                        subtitle: preset.valueLabel,
-                        systemImage: nil,
-                        isSelected: preset.matches(settings.foregroundScale)
-                    ) {
+                    Button {
                         applySubjectPreset(preset)
+                    } label: {
+                        menuOptionLabel(
+                            title: preset.title,
+                            subtitle: preset.valueLabel,
+                            systemImage: preset.matches(settings.foregroundScale) ? "checkmark.circle.fill" : nil
+                        )
                     }
                 }
             }
@@ -1128,6 +1138,10 @@ struct SmartFillWorkspaceView: View {
         SmartFillWorkspaceBackgroundFillPreset.allCases.first { $0.matches(settings.backgroundScale) }
     }
 
+    private var activeSubjectPreset: SmartFillWorkspaceSubjectPreset? {
+        SmartFillWorkspaceSubjectPreset.allCases.first { $0.matches(settings.foregroundScale) }
+    }
+
     private var currentAdoptionMode: SmartFillResultAdoptionMode {
         coordinator.lastResult?.adoptionMode ?? expectedAdoptionMode
     }
@@ -1292,6 +1306,67 @@ struct SmartFillWorkspaceView: View {
                     content()
                 }
                 .padding(.horizontal, 2)
+            }
+        }
+    }
+
+    private func compactMenuPicker<Content: View>(
+        title: String,
+        value: String,
+        systemImage: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        Menu {
+            content()
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: systemImage)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(SmartFillWorkspacePalette.accent)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Text(value)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(SmartFillWorkspacePalette.textPrimary)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 10)
+            .background(Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(Color.white.opacity(0.10), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func menuOptionLabel(title: String, subtitle: String, systemImage: String?) -> some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 12)
+
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(SmartFillWorkspacePalette.accent)
             }
         }
     }
@@ -2055,6 +2130,17 @@ struct SmartFillWorkspacePreviewPlaybackState: Equatable {
         return SmartFillWorkspacePreviewPlaybackState(currentTime: safeTime, shouldPlay: shouldPlay)
     }
 
+    func syncingObservedTime(
+        _ observedCurrentTime: Double,
+        allowPlayback: Bool
+    ) -> SmartFillWorkspacePreviewPlaybackState {
+        let safeTime = observedCurrentTime.isFinite ? max(observedCurrentTime, 0) : currentTime
+        return SmartFillWorkspacePreviewPlaybackState(
+            currentTime: safeTime,
+            shouldPlay: allowPlayback ? shouldPlay : false
+        )
+    }
+
     func shouldReplace(with other: SmartFillWorkspacePreviewPlaybackState, tolerance: Double = 0.12) -> Bool {
         abs(currentTime - other.currentTime) > tolerance || shouldPlay != other.shouldPlay
     }
@@ -2252,8 +2338,7 @@ enum SmartFillWorkspaceTool: CaseIterable {
     func summaryValue(for settings: SmartFillSettings, behavior: SmartFillWorkspaceCompletionBehavior) -> String {
         switch self {
         case .background:
-            let presetName = settings.presetName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            return presetName.isEmpty ? "Custom" : presetName
+            return SmartFillWorkspacePresentation.backgroundModeTitle(for: settings)
         case .subject:
             return String(format: "%.2f×", settings.foregroundScale)
         case .output:
@@ -3156,9 +3241,9 @@ private struct SmartFillWorkspaceResultPreviewView: View {
     private func publishPlaybackState() {
         guard shouldPublishPlaybackState, let player else { return }
         onPlaybackStateChange(
-            SmartFillWorkspacePreviewPlaybackState(
-                currentTime: max(player.currentTime, 0),
-                shouldPlay: player.isPlaying
+            playbackState.syncingObservedTime(
+                max(player.currentTime, 0),
+                allowPlayback: allowPlayback
             )
         )
     }
@@ -3281,9 +3366,9 @@ private struct SmartFillSourcePreviewView: View {
     private func publishPlaybackState() {
         guard shouldPublishPlaybackState, let player else { return }
         onPlaybackStateChange(
-            SmartFillWorkspacePreviewPlaybackState(
-                currentTime: max(player.currentTime, 0),
-                shouldPlay: player.isPlaying
+            playbackState.syncingObservedTime(
+                max(player.currentTime, 0),
+                allowPlayback: allowPlayback
             )
         )
     }

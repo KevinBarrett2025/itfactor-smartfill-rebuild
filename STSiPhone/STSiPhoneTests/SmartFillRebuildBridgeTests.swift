@@ -609,6 +609,24 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertFalse(pauseIntent.shouldPlay)
     }
 
+    func testPreviewPlaybackStateSyncingObservedTimePreservesRequestedPlayIntent() {
+        let requested = SmartFillWorkspacePreviewPlaybackState(currentTime: 0.0, shouldPlay: true)
+
+        let synced = requested.syncingObservedTime(0.35, allowPlayback: true)
+
+        XCTAssertEqual(synced.currentTime, 0.35, accuracy: 0.0001)
+        XCTAssertTrue(synced.shouldPlay)
+    }
+
+    func testPreviewPlaybackStateSyncingObservedTimeClearsPlayIntentWhenPlaybackDisallowed() {
+        let requested = SmartFillWorkspacePreviewPlaybackState(currentTime: 2.0, shouldPlay: true)
+
+        let synced = requested.syncingObservedTime(2.4, allowPlayback: false)
+
+        XCTAssertEqual(synced.currentTime, 2.4, accuracy: 0.0001)
+        XCTAssertFalse(synced.shouldPlay)
+    }
+
     func testPreviewCompareStateUsesSelectedModeWhenNotHolding() {
         let result = SmartFillWorkspacePreviewCompareState(
             selectedMode: .result,

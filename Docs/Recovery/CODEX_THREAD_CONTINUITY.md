@@ -1,5 +1,70 @@
 # CODEX Thread Continuity
 
+## Ticket 054 Add Inline Background Pickers And Preserve Preview Play Intent (2026-03-29)
+- Thread Status: phase-54 is locally gated on a fresh GM worktree from anchored phase-53. The SmartFill workspace now exposes explicit inline `Background` and `Foreground` pickers in the fixed studio tray, and preview wrappers now sync observed time upward without stomping the parent play intent that should own live transport behavior.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase54`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase54`
+- Working Head SHA: `9d83504dccfbcbc847912e2f4c81a0113a2c86a8`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+1. keep the phase-53 fixed-shell SmartFill workspace intact and avoid any regression back to scroll-heavy settings chrome
+2. stop child preview observation from pushing stale `shouldPlay = false` back into the shared playback state after the user hits play
+3. expose honest inline `Background` and `Foreground` pickers so the tray shows real studio-tool ownership instead of making those controls look missing
+4. keep the slice aligned with `SMARTFILL-V3-201` and Mission 6 master-editor planning without slowing the current SmartFill execution path
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase54`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase54`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase54`
+  - `git rev-parse HEAD` -> `9d83504dccfbcbc847912e2f4c81a0113a2c86a8`
+  - `git status --porcelain` -> two intended SmartFill workspace/test edits before gates
+  - `git log -1 --oneline` -> `9d83504 SF-REBUILD-053: preserve play intent through shared preview state`
+- Truth-sync confirmed:
+  - `git -C /tmp/itfactor_smartfill_phase54 fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Planner alignment confirmed:
+  - `SMARTFILL-V3-201` is closed as the Mission 6 master-editor convergence authority in `/Users/kevinbarrett/Dev/iTFactorSmartfill/Docs/Recovery/CODEX_THREAD_CONTINUITY.md`
+  - the current SmartFill workspace remains the first proving slice of that future master editor instead of a throwaway side shell
+
+### Completed This Pass
+- `SmartFillWorkspaceView` now surfaces explicit inline `Background` and `Foreground` menu pickers in the fixed studio tray, so users can see and change the active background mode and subject preset without reopening repetitive sheets.
+- `SmartFillWorkspacePreviewPlaybackState.syncingObservedTime(...)` now keeps the parent `shouldPlay` intent authoritative while still syncing observed preview time upward from the child player wrappers.
+- Result and source preview wrappers now publish observed time through that helper instead of overwriting shared playback intent with `player.isPlaying`.
+- `SmartFillRebuildBridgeTests` now lock the new observed-time sync rules directly.
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase54/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -clonedSourcePackagesDirPath /tmp/itfactor_smartfill_phase53_gateA/SourcePackages -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase54_gateA_escalated build > /tmp/itfactor_smartfill_phase54_gateA_escalated.log 2>&1`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase54_gateA_escalated.log`
+- Focused parity command(s):
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase54/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -clonedSourcePackagesDirPath /tmp/itfactor_smartfill_phase53_tests/SourcePackages -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase54_tests build-for-testing > /tmp/itfactor_smartfill_phase54_bft_final.log 2>&1`
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase54/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -clonedSourcePackagesDirPath /tmp/itfactor_smartfill_phase53_tests/SourcePackages -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase54_tests -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test-without-building > /tmp/itfactor_smartfill_phase54_tests_final.log 2>&1`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase54_tests_final.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase54_tests/Logs/Test/Test-STSiPhone-2026.03.29_09-13-38--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Next Action
+1. anchor the play-intent plus inline-picker slice as `SF-REBUILD-054` on `gm/smartfill-itfactor-phase54`
+2. use the anchored phase-54 branch as the next safe device-test point, specifically verifying that playback starts reliably and the inline `Background` / `Foreground` pickers are visible and understandable on device
+3. after that smoke, use the Mission 6 planner output to choose the next master-editor-aligned slice without regressing back into duplicate sheets or stacked card chrome
+
 ## Ticket 053 Preserve SmartFill Play Intent Through Shared Preview State (2026-03-28)
 - Thread Status: phase-53 is locally gated on a fresh GM worktree from anchored phase-52. The SmartFill preview now keeps a visible poster frame at rest and its transport actions now publish through one shared playback-state owner before mutating the live player, making the next device smoke safer for real preview playback.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

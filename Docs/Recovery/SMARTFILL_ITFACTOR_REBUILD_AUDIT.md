@@ -1,6 +1,6 @@
 # SmartFill itFactor Rebuild Audit
 
-Date: 2026-03-28
+Date: 2026-03-29
 Repo: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
 Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only)
 
@@ -53,7 +53,9 @@ These seams are the correct architectural anchors for the rebuild:
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillReopenDestinationContext.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspacePresentation` (declared in `SmartFillWorkspaceView.swift`)
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspaceBackgroundDetail` / inline background, subject, and output expander state (declared in `SmartFillWorkspaceView.swift`)
+- `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/compactMenuPicker` / explicit inline `Background` and `Foreground` picker ownership (declared in `SmartFillWorkspaceView.swift`)
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspacePreviewCompareGroupState` / inline pinned-preview compare state (declared in `SmartFillWorkspaceView.swift`)
+- `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspacePreviewPlaybackState.syncingObservedTime(...)` / shared preview-state sync seam that preserves parent play intent while child preview wrappers publish observed current time (declared in `SmartFillWorkspaceView.swift`)
 - `STSiPhone/STSiPhone/Features/Editing/LightweightEditorViewController+ModularWiring.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillDefaultsView.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillAdvancedSettingsView.swift`
