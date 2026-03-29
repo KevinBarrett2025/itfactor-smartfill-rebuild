@@ -1,5 +1,70 @@
 # CODEX Thread Continuity
 
+## Ticket 059 Converge Player Hosts On One Shared Editor Launch Contract (2026-03-29)
+- Thread Status: phase-59 is locally gated on a clean GM worktree cut from anchored phase-58. This slice turns the shared player `Edit` chip into a real cross-host contract by routing both `ProjectDetailView` and `HomeScreenView` through one `StudioEditorLaunchRequest` object instead of parallel edit-versus-SmartFill callback wiring.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase59`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase59`
+- Working Head SHA: `c40720563cfc0a1d38e05a33047111f4b03ad35d`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+1. replace parallel player-host callbacks with one shared `StudioEditorLaunchRequest` contract so review/player surfaces stop hard-coding separate standard-edit versus SmartFill wiring
+2. make the HomeScreen player honor the same shared editor-entry seam as project detail, including standard editor launches instead of only SmartFill handoff
+3. keep SmartFill as the first live module inside the shared editor contract while leaving trim, crop, PIP, and later timeline convergence open
+4. preserve the fixed-shell SmartFill workspace and current player return behavior instead of attempting a giant editor rewrite in this slice
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase59`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase59`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase59`
+  - `git rev-parse HEAD` -> `c40720563cfc0a1d38e05a33047111f4b03ad35d`
+  - `git status --porcelain` -> five intended player-host/test edits before docs sync
+  - `git log -1 --oneline` -> `c407205 SF-REBUILD-058: unify player entry on one editor chip`
+- Truth-sync confirmed:
+  - `git -C /tmp/itfactor_smartfill_phase59 fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Planner authority confirmed from `/Users/kevinbarrett/Dev/iTFactorSmartfill/Docs/Recovery/CODEX_THREAD_CONTINUITY.md`:
+  - `SMARTFILL-V3-201` established the target as one canvas-first master-editor shell with SmartFill as the first proven module
+  - this slice applies that planning result at the host-contract layer instead of waiting for a later full editor merge
+
+### Completed This Pass
+- `SwipeableVideoPlayerView` now emits one shared `StudioEditorLaunchRequest` that carries the resolved target take plus intent (`standardEdit`, `smartFillRequest`, or `smartFillEdit`) instead of switching over separate callback seams itself.
+- `ProjectDetailView` now consumes that shared launch request and routes it into either the existing standard editor presentation or the existing SmartFill request/edit handoff without duplicating intent resolution rules.
+- `HomeScreenView` now consumes the same shared launch request and can queue either SmartFill handoff or standard editor presentation from the player, which makes the HomeScreen player the second real host on the shared master-editor seam.
+- `SwipeableMediaPlayerView` now follows the same wrapper contract without carrying dead SmartFill-only parameters.
+- `SmartFillRebuildBridgeTests` now lock the shared launch-request record and the generic player-entry resolver behavior for standard-edit plus SmartFill cases.
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase59/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -clonedSourcePackagesDirPath /tmp/itfactor_smartfill_phase58_tests/SourcePackages -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase59_gateA build | tee /tmp/itfactor_smartfill_phase59_gateA.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase59_gateA.log`
+- Focused parity command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase59/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -clonedSourcePackagesDirPath /tmp/itfactor_smartfill_phase58_tests/SourcePackages -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase59_tests_rerun -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase59_tests_rerun.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase59_tests_rerun.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase59_tests_rerun/Logs/Test/Test-STSiPhone-2026.03.29_12-39-07--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Next Action
+1. anchor this slice as `SF-REBUILD-059` on `gm/smartfill-itfactor-phase59`
+2. use the shared launch-request seam as the new convergence baseline so future trim, crop, PIP, and timeline work attach to one editor-host contract instead of adding more player-specific callback plumbing
+3. keep SmartFill as the first live module inside that contract while leaving the fixed-shell workspace intact for the later unified master-editor interior
+
 ## Ticket 058 Seed One Master-Editor Player Entry Seam (2026-03-29)
 - Thread Status: phase-58 is locally gated on a clean GM worktree cut from anchored phase-57. This slice starts the real editor convergence path by replacing separate player-entry affordances with one shared master-editor `Edit` seam that can route to SmartFill now, preserve standard editing, and keep PIP/trim/crop convergence open without dragging legacy third-party seams into the new shell.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

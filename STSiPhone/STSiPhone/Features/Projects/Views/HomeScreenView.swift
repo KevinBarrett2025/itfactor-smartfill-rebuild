@@ -1,9 +1,17 @@
 import SwiftUI
 import UIKit
+import AVFoundation
 
 struct HomeScreenPendingSmartFillOpenRequest {
     let result: SmartFillResultBridgeRecord
     let context: SmartFillSettingsContext
+}
+
+struct HomeScreenEditorContext: Identifiable {
+    let id = UUID()
+    let take: ProjectTake
+    let session: ProjectSession
+    let project: Project
 }
 
 enum HomeScreenSmartFillRoute {
@@ -352,8 +360,11 @@ public struct HomeScreenView: View {
     @State private var activeSmartFillContext: SmartFillSettingsContext?
     @State private var pendingSmartFillSettingsContext: SmartFillSettingsContext?
     @State private var pendingSmartFillOpenRequest: HomeScreenPendingSmartFillOpenRequest?
+    @State private var activeEditorContext: HomeScreenEditorContext?
+    @State private var pendingEditorContext: HomeScreenEditorContext?
     @State private var smartFillError: SmartFillErrorMessage?
     @State private var isSmartFillPresentationScheduled = false
+    @State private var isEditorPresentationScheduled = false
 
     private var takeReviewHandoffBinding: Binding<Bool> {
         Binding(
@@ -375,6 +386,7 @@ public struct HomeScreenView: View {
             }
             .sheet(item: $playerRequest, onDismiss: {
                 presentPendingSmartFillSheetIfPossible()
+                presentPendingEditorIfPossible()
             }) { request in
                 if request.prefersMediaPlayer {
                     SwipeableMediaPlayerView(
@@ -402,11 +414,8 @@ public struct HomeScreenView: View {
                             handleTakeActionFromHome(action, take: take, session: request.session, project: request.project)
                         },
                         repository: repo,
-                        onSmartFillRequest: { take in
-                            handleSmartFillRequestFromHome(take: take, session: request.session, project: request.project)
-                        },
-                        onSmartFillEditRequest: { take in
-                            handleSmartFillEditFromHome(take: take, session: request.session, project: request.project)
+                        onStudioEditorLaunchRequest: { launchRequest in
+                            handleStudioEditorLaunchRequestFromHome(launchRequest)
                         },
                         savedResultTakeID: request.savedResultTakeID,
                         savedResultContext: request.savedResultContext
@@ -432,6 +441,30 @@ public struct HomeScreenView: View {
                         activeSmartFillContext = nil
                     }
                 )
+            }
+            .fullScreenCover(item: $activeEditorContext, onDismiss: {
+                handleEditorWorkspaceDismissed()
+            }) { context in
+                LightweightEditorView(
+                    asset: AVURLAsset(url: VideoVariantResolver.effectiveURL(for: context.take)),
+                    repository: repo,
+                    take: context.take,
+                    session: context.session,
+                    project: context.project,
+                    onSave: { asset, trimRange, cropRect, rotationDegrees in
+                        handleEditorSaveFromHome(
+                            asset: asset,
+                            trimRange: trimRange,
+                            cropRect: cropRect,
+                            cropRotationDegrees: rotationDegrees,
+                            context: context
+                        )
+                    },
+                    onCancel: {
+                        activeEditorContext = nil
+                    }
+                )
+                .ignoresSafeArea()
             }
             .alert(item: $smartFillError) { error in
                 Alert(
@@ -522,6 +555,31 @@ public struct HomeScreenView: View {
         queueSmartFillPresentation(context)
     }
 
+    private func handleStudioEditorLaunchRequestFromHome(_ request: StudioEditorLaunchRequest) {
+        switch request.intent {
+        case .standardEdit(let targetTake):
+            queueEditorPresentation(
+                HomeScreenEditorContext(
+                    take: targetTake,
+                    session: request.session,
+                    project: request.project
+                )
+            )
+        case .smartFillRequest(let targetTake):
+            handleSmartFillRequestFromHome(
+                take: targetTake,
+                session: request.session,
+                project: request.project
+            )
+        case .smartFillEdit(let targetTake):
+            handleSmartFillEditFromHome(
+                take: targetTake,
+                session: request.session,
+                project: request.project
+            )
+        }
+    }
+
     private func queueSmartFillPresentation(_ context: SmartFillSettingsContext) {
         pendingSmartFillSettingsContext = context
         if playerRequest != nil {
@@ -552,11 +610,49 @@ public struct HomeScreenView: View {
         }
     }
 
+    private func queueEditorPresentation(_ context: HomeScreenEditorContext) {
+        pendingEditorContext = context
+        if playerRequest != nil {
+            playerRequest = nil
+        } else {
+            presentPendingEditorIfPossible()
+        }
+    }
+
+    private func presentPendingEditorIfPossible() {
+        guard activeEditorContext == nil,
+              activeSmartFillContext == nil,
+              playerRequest == nil,
+              pendingEditorContext != nil,
+              isEditorPresentationScheduled == false else {
+            return
+        }
+
+        isEditorPresentationScheduled = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            isEditorPresentationScheduled = false
+            guard activeEditorContext == nil,
+                  activeSmartFillContext == nil,
+                  playerRequest == nil,
+                  let pending = pendingEditorContext else {
+                return
+            }
+            pendingEditorContext = nil
+            activeEditorContext = pending
+        }
+    }
+
     private func handleSmartFillWorkspaceDismissed() {
         activeSmartFillContext = nil
         vm.reload()
         refreshHandoffSessionContext()
         _ = openPendingSmartFillResultIfPossible()
+    }
+
+    private func handleEditorWorkspaceDismissed() {
+        activeEditorContext = nil
+        vm.reload()
+        refreshHandoffSessionContext()
     }
 
     private func enqueueSmartFill(
@@ -655,6 +751,39 @@ public struct HomeScreenView: View {
             vm.reload()
             refreshHandoffSessionContext()
         }
+    }
+
+    private func handleEditorSaveFromHome(
+        asset: AVAsset,
+        trimRange: CMTimeRange?,
+        cropRect: CGRect?,
+        cropRotationDegrees: Double?,
+        context: HomeScreenEditorContext
+    ) {
+        let hasMeaningfulCrop = cropRect?.sts_hasMeaningfulCrop ?? false
+        let hasRotationChange = (cropRotationDegrees.map { abs($0) > 0.01 } ?? false)
+        let hasCropChange = hasMeaningfulCrop || hasRotationChange
+
+        let editMetadata = TakeEditMetadata(
+            hasTrimming: trimRange != nil,
+            trimStartTime: trimRange?.start.seconds,
+            trimEndTime: trimRange?.end.seconds,
+            hasCropping: hasCropChange,
+            cropRect: cropRect,
+            cropRotationDegrees: cropRotationDegrees
+        )
+
+        repo.updateTakeEditMetadata(
+            takeID: context.take.id,
+            sessionID: context.session.id,
+            projectID: context.project.id,
+            editMetadata: editMetadata
+        )
+
+        print("✅ HomeScreen editor save: persisted edit metadata for \(asset)")
+        activeEditorContext = nil
+        vm.reload()
+        refreshHandoffSessionContext()
     }
     
     private func handleTakeActionFromHome(_ action: TakeAction,

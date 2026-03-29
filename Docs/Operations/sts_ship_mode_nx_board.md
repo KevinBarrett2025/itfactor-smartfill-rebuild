@@ -68,6 +68,7 @@ Rules:
 - The SmartFill workspace now also uses a flatter anchored shelf, denser chips, and one smaller inset-panel language so the tray feels less like stacked cards and more like a reusable editor module.
 - The SmartFill workspace now also carries typed background-source ownership through settings, snapshots, preview, and export, exposing inline `Source`, `Still`, and staged `Motion` choices plus `Photos` / `Files` still pickers directly in the fixed tray.
 - The SmartFill workspace now also treats foreground framing as zoom/room around the subject, which better matches the future shared master-editor control model.
+- Player hosts now also consume one shared `StudioEditorLaunchRequest` contract, so the same generic player `Edit` seam routes through `ProjectDetailView` and `HomeScreenView` without parallel standard-edit versus SmartFill callback plumbing.
 - `authority/main` now exists remotely and locally at the untouched Jan 23 baseline.
 
 ---
@@ -130,6 +131,7 @@ Rules:
 | 5U | SF-REBUILD-056 | Restore pinned-wipe playback ownership and make foreground zoom real | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase56_gateA_rerun.log`; focused parity PASS `/tmp/itfactor_smartfill_phase56_tests_rerun.log`; pinned `Wipe` compare now keeps one active preview owner for playback/hit testing, and foreground zoom now participates in the real SmartFill composition instead of staying tray-only UI |
 | 5V | SF-REBUILD-057 | Add real foreground framing offsets to the SmartFill workspace | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase57_gateA_localpkgs.log`; focused parity PASS `/tmp/itfactor_smartfill_phase57_tests.log`; foreground framing now persists horizontal and vertical offsets through defaults, snapshots, preview, export, and reopen, and the workspace now exposes inline framing presets plus X/Y sliders instead of a zoom-only subject tool |
 | 5W | SF-REBUILD-058 | Seed one master-editor player entry seam | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase58_gateA_rerun.log`; focused parity PASS `/tmp/itfactor_smartfill_phase58_tests_rerun.log`; player overlays now expose one shared `Edit` chip that resolves to standard edit, SmartFill request, or SmartFill edit intent, which becomes the first real convergence seam toward the future all-in-one editor |
+| 5X | SF-REBUILD-059 | Converge player hosts on one shared editor launch contract | COMPLETE (LOCAL-GATED) | Gate A PASS `/tmp/itfactor_smartfill_phase59_gateA.log`; focused parity PASS `/tmp/itfactor_smartfill_phase59_tests_rerun.log`; `SwipeableVideoPlayerView` now emits one shared `StudioEditorLaunchRequest`, and both `ProjectDetailView` and `HomeScreenView` now consume it so the generic player `Edit` seam can launch standard editing or SmartFill from multiple hosts without duplicated callback plumbing |
 
 ---
 
@@ -150,6 +152,6 @@ Rules:
 ---
 
 ## Next Action
-1. Use `SF-REBUILD-058` as the next safe flagship baseline. The app now has one shared player `Edit` entry seam that can hand off to SmartFill or the standard editor without reintroducing SmartFill-only versus trim-only overlay buttons.
-2. Implement the next convergence slice on GM only by hanging more editor modules off that shared entry contract, starting with trim/PIP/crop/timeline planning and seams instead of adding more feature-specific player chips.
-3. Keep the standalone derivation ledger in sync while future shared-workspace chrome, visible preview-at-rest behavior, clearer background/foreground ownership, inline studio expander ownership, flatter studio-shelf language, synchronized compare states, real foreground zoom and framing composition, deeper preview/live-transport work, and the new shared player-entry contract land.
+1. Use `SF-REBUILD-059` as the next safe flagship baseline. The app now has one shared player `Edit` seam plus one shared `StudioEditorLaunchRequest` host contract, so HomeScreen and project detail can both hand off to SmartFill or standard editing without reintroducing feature-specific overlay buttons.
+2. Implement the next convergence slice on GM only by hanging more editor modules off that shared launch contract, starting with trim/PIP/crop/timeline planning and seams instead of adding more feature-specific player chips or host-specific callback paths.
+3. Keep the standalone derivation ledger in sync while future shared-workspace chrome, visible preview-at-rest behavior, clearer background/foreground ownership, inline studio expander ownership, flatter studio-shelf language, synchronized compare states, real foreground zoom and framing composition, deeper preview/live-transport work, the shared player `Edit` entry seam, and the shared host launch-request contract land.

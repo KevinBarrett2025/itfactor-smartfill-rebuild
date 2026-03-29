@@ -39,7 +39,9 @@ These seams are the correct architectural anchors for the rebuild:
 - `STSiPhone/STSiPhone/Shared/Models/ProjectModels.swift`
 - `STSiPhone/STSiPhone/Shared/Models/UnifiedModels.swift`
 - `STSiPhone/STSiPhone/Features/Projects/Views/ProjectDetailView.swift`
+- `STSiPhone/STSiPhone/Features/Projects/Views/HomeScreenView.swift`
 - `STSiPhone/STSiPhone/Features/Projects/Views/SwipeableVideoPlayerView.swift`
+- `STSiPhone/STSiPhone/Features/Projects/Views/SwipeableMediaPlayerView.swift`
 - `STSiPhone/STSiPhone/Shared/Flow/FlowHostView.swift`
 - `STSiPhone/STSiPhone/Core/VideoPipeline/SmartFill/SmartFillPreviewPlayer.swift`
 - `STSiPhone/STSiPhone/Core/VideoPipeline/SmartFill/SmartFillPreviewView.swift`
@@ -64,6 +66,7 @@ These seams are the correct architectural anchors for the rebuild:
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillDefaultsView.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillAdvancedSettingsView.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspacePreviewPosterPolicy` / `SmartFillWorkspacePreviewPosterRenderer` (declared in `SmartFillWorkspaceView.swift`)
+- `STSiPhone/STSiPhone/Features/Projects/Views/StudioEditorLaunchRequest` / shared host-routing helpers (declared in `SwipeableVideoPlayerView.swift`, consumed by `ProjectDetailView` and `HomeScreenView`)
 
 ## Retired Legacy UI Seams
 - `STSiPhone/STSiPhone/Features/Editing/SmartFillSettingsModal.swift`
@@ -148,3 +151,4 @@ These fields and APIs carry shipped SmartFill truth and must not be deleted duri
 49. Foreground zoom controls do not count as shipped unless they change the real SmartFill composition. If a workspace exposes zoom/framing sliders or presets, the render path must apply that scale to preview and export output instead of limiting the behavior to tray copy.
 50. Foreground framing offsets do not count as real editor capability unless horizontal and vertical placement persist through defaults, snapshots, reopen, preview, and export. Do not expose left/right/up/down framing UI that resets after save or only affects the current tray session.
 51. Master-editor convergence should start by collapsing feature-specific player chips into one shared `Edit` entry seam before the inner editor shells merge. Do not keep adding SmartFill-only, trim-only, or PIP-only player affordances once the app has enough editor modules to justify one routed editor contract.
+52. Once the shared player `Edit` seam exists, host screens must consume one shared editor-launch request object instead of parallel standard-edit versus SmartFill callback plumbing. Do not let HomeScreen, project detail, or future player hosts fork the contract back into feature-specific launch handlers.

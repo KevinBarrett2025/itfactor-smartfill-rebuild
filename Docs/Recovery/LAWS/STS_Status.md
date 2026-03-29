@@ -63,6 +63,7 @@ _Current rebuild working baseline:_ `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
 - SmartFill workspace now keeps preview play intent authoritative while exposing explicit inline background and foreground pickers: COMPLETE (LOCAL-GATED)
 - SmartFill workspace now exposes real still-image background source ownership, preserves it through settings snapshots, and clarifies foreground framing as zoom while motion backgrounds remain staged next work: COMPLETE (LOCAL-GATED)
 - SmartFill workspace now restores interactive playback in pinned `Wipe` compare and carries foreground zoom through the real SmartFill composition instead of leaving it as tray-only UI: COMPLETE (LOCAL-GATED)
+- Player hosts now consume one shared studio-editor launch request instead of parallel standard-edit versus SmartFill callbacks, and HomeScreen player can route standard editor presentation through that same contract: COMPLETE (LOCAL-GATED)
 - Standalone derivation ledger: ACTIVE
 
 If anything above is not true, it must be reflected here.
@@ -400,6 +401,13 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase58_gateA_rerun.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase58_tests_rerun.log`
   - xcresult: `/tmp/itfactor_smartfill_phase58_tests_rerun/Logs/Test/Test-STSiPhone-2026.03.29_12-15-03--0400.xcresult`
+- `SF-REBUILD-059` — converge player hosts on one shared editor launch contract — `COMPLETE (LOCAL-GATED 2026-03-29)`
+  - `SwipeableVideoPlayerView` now emits one shared `StudioEditorLaunchRequest` carrying both the resolved target take and the editor intent instead of switching across separate callback seams.
+  - `ProjectDetailView` and `HomeScreenView` now both consume that shared request, and `HomeScreenView` can now queue standard editor presentation from the shared player `Edit` seam instead of limiting that host to SmartFill-only follow-up.
+  - `SwipeableMediaPlayerView` now follows the same host contract without keeping dead SmartFill-only wrapper parameters.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase59_gateA.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase59_tests_rerun.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase59_tests_rerun/Logs/Test/Test-STSiPhone-2026.03.29_12-39-07--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -423,6 +431,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Use `SF-REBUILD-058` as the new flagship baseline. The player now has one shared `Edit` entry seam that can route to SmartFill or the standard editor, which is the first real bridge toward the future all-in-one editor.
-2. Build the next GM slice on top of that shared entry contract so PIP, trim replacement, crop replacement, and future timeline work can converge behind the same launch seam instead of adding more feature-specific player buttons.
-3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, explicit background/foreground picker ownership, still-image background-source persistence, real foreground zoom and framing composition, inline expander ownership model, flatter studio-shelf chrome, preview-focus deck, canvas-embedded live transport, synchronized source/result compare behavior, visible poster-frame-at-rest preview behavior, stable single-owner action chrome, studio-grade theming, working entry routing, shared playback-intent seam, shared player `Edit` routing contract, and tray-to-sheet split for deeper tools.
+1. Use `SF-REBUILD-059` as the new flagship baseline. Player hosts now consume one shared `StudioEditorLaunchRequest`, which means the same `Edit` seam can route through HomeScreen or project detail without duplicating standard-edit versus SmartFill callback logic.
+2. Build the next GM slice on top of that shared launch contract so PIP, trim replacement, crop replacement, and future timeline work can converge behind the same launch seam instead of adding more feature-specific player buttons or host-specific callback plumbing.
+3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, explicit background/foreground picker ownership, still-image background-source persistence, real foreground zoom and framing composition, inline expander ownership model, flatter studio-shelf chrome, preview-focus deck, canvas-embedded live transport, synchronized source/result compare behavior, visible poster-frame-at-rest preview behavior, stable single-owner action chrome, studio-grade theming, working entry routing, shared playback-intent seam, shared-host editor launch contract, and tray-to-sheet split for deeper tools.

@@ -203,6 +203,25 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         )
     }
 
+    func testStudioEditorEntryResolverRoutesPIPSlateToStandardEdit() {
+        let take = ProjectTake(
+            filePath: "/tmp/pip-slate.mov",
+            durationSeconds: 12,
+            capturedOrientation: .landscape,
+            takeType: .pipSlate
+        )
+        let session = ProjectSession(
+            type: .selfTape,
+            takes: [take],
+            primaryOrientation: .landscape
+        )
+
+        XCTAssertEqual(
+            StudioEditorPlayerEntryResolver.resolve(for: take, in: session),
+            .standardEdit(targetTake: take)
+        )
+    }
+
     func testStudioEditorEntryPresentationUsesOneGenericEditTitle() {
         let take = ProjectTake(
             filePath: "/tmp/clip.mov",
@@ -218,6 +237,37 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
             StudioEditorPlayerEntryPresentation.overlayTitle(for: .standardEdit(targetTake: take)),
             "Edit"
         )
+    }
+
+    func testStudioEditorLaunchRequestExposesResolvedTargetTake() {
+        let source = ProjectTake(
+            filePath: "/tmp/source.mov",
+            durationSeconds: 12,
+            capturedOrientation: .portrait
+        )
+        let target = ProjectTake(
+            filePath: "/tmp/source_smartfill.mov",
+            durationSeconds: 12,
+            takeNotes: "[SMARTFILL_ORIGINAL:\(source.id.uuidString)]",
+            capturedOrientation: .portrait
+        )
+        let session = ProjectSession(
+            type: .selfTape,
+            takes: [source, target],
+            primaryOrientation: .landscape
+        )
+        let project = Project(title: "Audition")
+        let request = StudioEditorLaunchRequest(
+            sourceTake: source,
+            intent: .smartFillEdit(targetTake: target),
+            session: session,
+            project: project
+        )
+
+        XCTAssertEqual(request.sourceTake.id, source.id)
+        XCTAssertEqual(request.targetTake.id, target.id)
+        XCTAssertEqual(request.session.id, session.id)
+        XCTAssertEqual(request.project.id, project.id)
     }
 
     func testHomeScreenSmartFillRouteBuildsPlayerRequestContext() {

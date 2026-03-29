@@ -1229,17 +1229,22 @@ public struct ProjectDetailView: View {
         }
     }
     
-    // PHASE 1: NEW - Handle editor request from video player
-    private func handleEditorRequest(take: ProjectTake, session: ProjectSession, project: Project) {
-        if needsSmartFillBeforeEditing(take) {
-            openSmartFillSettings(
-                for: take,
-                session: session,
-                project: project,
-                autoLaunchEditor: true
+    private func handleStudioEditorLaunchRequest(_ request: StudioEditorLaunchRequest) {
+        switch request.intent {
+        case .standardEdit(let targetTake):
+            presentEditor(for: targetTake, session: request.session, project: request.project)
+        case .smartFillRequest(let targetTake):
+            handleSmartFillRequest(
+                take: targetTake,
+                session: request.session,
+                project: request.project
             )
-        } else {
-            presentEditor(for: take, session: session, project: project)
+        case .smartFillEdit(let targetTake):
+            handleSmartFillEdit(
+                take: targetTake,
+                session: request.session,
+                project: request.project
+            )
         }
     }
     
@@ -1322,22 +1327,8 @@ public struct ProjectDetailView: View {
                     handleTakeAction(action, for: take, in: data.session, project: data.project)
                 },
                 repository: vm.repo,
-                onEditorRequest: { take in
-                    presentEditor(for: take, session: data.session, project: data.project)
-                },
-                onSmartFillRequest: { take in
-                    handleSmartFillRequest(
-                        take: take,
-                        session: data.session,
-                        project: data.project
-                    )
-                },
-                onSmartFillEditRequest: { take in
-                    handleSmartFillEdit(
-                        take: take,
-                        session: data.session,
-                        project: data.project
-                    )
+                onStudioEditorLaunchRequest: { request in
+                    handleStudioEditorLaunchRequest(request)
                 },
                 savedResultTakeID: data.savedResultTakeID,
                 savedResultContext: data.savedResultContext
@@ -1569,10 +1560,6 @@ public struct ProjectDetailView: View {
             infoMessageOverride: infoMessage,
             existingSettings: existingSettings
         )
-    }
-    
-    private func needsSmartFillBeforeEditing(_ take: ProjectTake) -> Bool {
-        take.capturedOrientation == .portrait
     }
     
     private func openSmartFillSettings(

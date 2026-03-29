@@ -137,6 +137,17 @@ enum StudioEditorPlayerEntryResolver {
     }
 }
 
+struct StudioEditorLaunchRequest {
+    let sourceTake: ProjectTake
+    let intent: StudioEditorPlayerEntryIntent
+    let session: ProjectSession
+    let project: Project
+
+    var targetTake: ProjectTake {
+        intent.targetTake
+    }
+}
+
 enum StudioEditorPlayerEntryPresentation {
     static func overlayTitle(for intent: StudioEditorPlayerEntryIntent) -> String {
         "Edit"
@@ -284,10 +295,7 @@ struct SwipeableVideoPlayerView: View {
     let onDismiss: () -> Void
     let onTakeAction: (TakeAction, ProjectTake) -> Void
     
-    // PHASE 1: NEW - Editor request callbacks for SmartFill + trim buttons
-    let onEditorRequest: ((ProjectTake) -> Void)?
-    let onSmartFillRequest: ((ProjectTake) -> Void)?
-    let onSmartFillEditRequest: ((ProjectTake) -> Void)?
+    let onStudioEditorLaunchRequest: ((StudioEditorLaunchRequest) -> Void)?
     let savedResultTakeID: UUID?
     let savedResultContext: SmartFillReopenDestinationContext?
     
@@ -325,9 +333,7 @@ struct SwipeableVideoPlayerView: View {
         onDismiss: @escaping () -> Void,
         onTakeAction: @escaping (TakeAction, ProjectTake) -> Void,
         repository: ProjectsRepository,
-        onEditorRequest: ((ProjectTake) -> Void)? = nil,  // PHASE 1: NEW - Optional editor callback
-        onSmartFillRequest: ((ProjectTake) -> Void)? = nil,
-        onSmartFillEditRequest: ((ProjectTake) -> Void)? = nil,
+        onStudioEditorLaunchRequest: ((StudioEditorLaunchRequest) -> Void)? = nil,
         savedResultTakeID: UUID? = nil,
         savedResultContext: SmartFillReopenDestinationContext? = nil
     ) {
@@ -338,9 +344,7 @@ struct SwipeableVideoPlayerView: View {
         self.onDismiss = onDismiss
         self.onTakeAction = onTakeAction
         self.repository = repository
-        self.onEditorRequest = onEditorRequest  // PHASE 1: NEW - Store editor callback
-        self.onSmartFillRequest = onSmartFillRequest
-        self.onSmartFillEditRequest = onSmartFillEditRequest
+        self.onStudioEditorLaunchRequest = onStudioEditorLaunchRequest
         self.savedResultTakeID = savedResultTakeID
         self.savedResultContext = savedResultContext
         self._currentIndex = State(initialValue: initialIndex)
@@ -385,10 +389,6 @@ struct SwipeableVideoPlayerView: View {
                                             // CRITICAL FIX: Set initial visibility correctly
                                             playerController.isCurrentlyVisible = (index == currentIndex)
                                         },
-                                        onEditorRequest: { take in
-                                            handleEditorRequestWithRefresh(take)
-                                        },
-                                        supportsSmartFillEditorEntry: onSmartFillRequest != nil || onSmartFillEditRequest != nil,
                                         onStudioEditorEntryTap: { take in
                                             handleStudioEditorEntryTap(for: take)
                                         },
@@ -507,31 +507,20 @@ struct SwipeableVideoPlayerView: View {
             return
         }
 
-        switch intent {
-        case .smartFillRequest(let targetTake):
-            guard let onSmartFillRequest else {
-                print("⚠️ Edit button tapped but no SmartFill request handler is wired")
-                return
-            }
-            print("🎛️ SwipeableVideoPlayer: unified editor entry routed to SmartFill request for \(friendlyDisplayName(for: targetTake, in: currentSession))")
-            prepareForEditorTransition()
-            onSmartFillRequest(targetTake)
-        case .smartFillEdit(let targetTake):
-            guard let onSmartFillEditRequest else {
-                print("⚠️ Edit button tapped but no SmartFill edit handler is wired")
-                return
-            }
-            print("🎛️ SwipeableVideoPlayer: unified editor entry routed to SmartFill edit for \(friendlyDisplayName(for: targetTake, in: currentSession))")
-            prepareForEditorTransition()
-            onSmartFillEditRequest(targetTake)
-        case .standardEdit(let targetTake):
-            guard onEditorRequest != nil else {
-                print("⚠️ Edit button tapped but no standard editor handler is wired")
-                return
-            }
-            print("🎛️ SwipeableVideoPlayer: unified editor entry routed to standard edit for \(friendlyDisplayName(for: targetTake, in: currentSession))")
-            handleEditorRequestWithRefresh(targetTake)
+        guard let onStudioEditorLaunchRequest else {
+            print("⚠️ Edit button tapped but no shared editor launch handler is wired")
+            return
         }
+
+        let request = StudioEditorLaunchRequest(
+            sourceTake: take,
+            intent: intent,
+            session: currentSession,
+            project: currentProject
+        )
+        print("🎛️ SwipeableVideoPlayer: unified editor entry routed to \(intent.description) for \(friendlyDisplayName(for: request.targetTake, in: currentSession))")
+        prepareForEditorTransition()
+        onStudioEditorLaunchRequest(request)
     }
 
     private func handleCompareSourceTake(_ sourceTakeID: UUID) {
@@ -605,17 +594,6 @@ struct SwipeableVideoPlayerView: View {
         case .exported:
             return "Exported Take"
         }
-    }
-    
-    // 🚨 SMARTFILL DATA REFRESH FIX: Handle editor request with automatic refresh
-    private func handleEditorRequestWithRefresh(_ take: ProjectTake) {
-        print("✨ SwipeableVideoPlayer: Editor requested for \(URL(fileURLWithPath: take.filePath).lastPathComponent)")
-        
-        // Call the original editor request
-        onEditorRequest?(take)
-        
-        // Note: We'll refresh when we receive the SmartFill completion notification
-        print("🔄 SwipeableVideoPlayer: Will refresh data when SmartFill processing completes")
     }
     
     // 🚨 SMARTFILL DATA REFRESH FIX: Handle SmartFill completion notification
@@ -948,9 +926,6 @@ struct CustomAVPlayerViewContent: View {
     let showsTitleOverlay: Bool
     let ratingsOverlayMode: RatingsOverlayMode
     
-    // PHASE 1: NEW - Editor request callback
-    let onEditorRequest: ((ProjectTake) -> Void)?
-    let supportsSmartFillEditorEntry: Bool
     let onStudioEditorEntryTap: ((ProjectTake) -> Void)?
     let onCompareSourceTake: ((UUID) -> Void)?
     
@@ -969,8 +944,6 @@ struct CustomAVPlayerViewContent: View {
         manageAudioSession: Bool = true,
         showsTitleOverlay: Bool = true,
         ratingsOverlayMode: RatingsOverlayMode = .uikit,
-        onEditorRequest: ((ProjectTake) -> Void)? = nil,
-        supportsSmartFillEditorEntry: Bool = false,
         onStudioEditorEntryTap: ((ProjectTake) -> Void)? = nil,
         onCompareSourceTake: ((UUID) -> Void)? = nil,
         refreshTrigger: Int,
@@ -986,8 +959,6 @@ struct CustomAVPlayerViewContent: View {
         self.manageAudioSession = manageAudioSession
         self.showsTitleOverlay = showsTitleOverlay
         self.ratingsOverlayMode = ratingsOverlayMode
-        self.onEditorRequest = onEditorRequest
-        self.supportsSmartFillEditorEntry = supportsSmartFillEditorEntry
         self.onStudioEditorEntryTap = onStudioEditorEntryTap
         self.onCompareSourceTake = onCompareSourceTake
         self.refreshTrigger = refreshTrigger
@@ -1005,8 +976,6 @@ struct CustomAVPlayerViewContent: View {
             manageAudioSession: manageAudioSession,
             showsTitleOverlay: showsTitleOverlay,
             ratingsOverlayMode: ratingsOverlayMode,
-            onEditorRequest: onEditorRequest,  // PHASE 1: NEW - Pass editor callback through
-            supportsSmartFillEditorEntry: supportsSmartFillEditorEntry,
             onStudioEditorEntryTap: onStudioEditorEntryTap,
             onCompareSourceTake: onCompareSourceTake,
             refreshTrigger: refreshTrigger,  // 🚨 SMARTFILL DATA REFRESH FIX: Pass refresh trigger
@@ -1031,9 +1000,6 @@ struct CustomAVPlayerViewController: UIViewControllerRepresentable {
     @Environment(\.playbackOverlayTopComfort) private var overlayTopComfort
     @Environment(\.playbackInteractionActive) private var playbackInteractionActive
     
-    // PHASE 1: NEW - Editor request callback
-    let onEditorRequest: ((ProjectTake) -> Void)?
-    let supportsSmartFillEditorEntry: Bool
     let onStudioEditorEntryTap: ((ProjectTake) -> Void)?
     let onCompareSourceTake: ((UUID) -> Void)?
     
@@ -2075,13 +2041,6 @@ struct CustomAVPlayerViewController: UIViewControllerRepresentable {
         guard let intent = StudioEditorPlayerEntryResolver.resolve(for: videoData.take, in: currentSession),
               onStudioEditorEntryTap != nil else {
             return nil
-        }
-
-        switch intent {
-        case .standardEdit:
-            guard onEditorRequest != nil else { return nil }
-        case .smartFillRequest, .smartFillEdit:
-            guard supportsSmartFillEditorEntry else { return nil }
         }
         
         let containerView = UIView()
