@@ -1,5 +1,70 @@
 # CODEX Thread Continuity
 
+## Ticket 062 Backport The Shipped PIP Editor Surface Into The Shared Host (2026-03-29)
+- Thread Status: phase-62 is active on a clean GM worktree cut from anchored phase-61. This slice keeps the new shared editor-host routing and upgrades the mounted PIP editor surface so the shared host carries the richer shipped callback/editing shape instead of a reduced wrapper.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase62`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase62`
+- Working Head SHA: `f9fa13e586ec563036e4e15a52f0c3d95a5aa56d`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+1. keep the new shared `StudioEditorHost` contract from phase-61, but stop mounting a reduced PIP wrapper behind it
+2. backport the shipped PIP editor callback surface into the writable repo so the shared host can carry richer preview/export/edit metadata
+3. make the PIP editor rows and preview path aware of resolved exported/project takes instead of only raw file URLs
+4. leave import/share/save host-specific routing open without inventing another feature-specific player seam
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase62`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase62`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase62`
+  - `git rev-parse HEAD` -> `f9fa13e586ec563036e4e15a52f0c3d95a5aa56d`
+  - `git status --porcelain` -> clean before edits
+  - `git log -1 --oneline` -> `f9fa13e SF-REBUILD-061: route PIP through the shared editor host`
+- Truth-sync confirmed:
+  - `git -C /tmp/itfactor_smartfill_phase62 fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Initial archaeology confirmed:
+  - shipped `/Users/kevinbarrett/Dev/SelfTapeStudio/STSiPhone/STSiPhone/Features/Editing/PIPSlateEditorScreen.swift` already exposes preview/share/save/import/export-take hooks
+  - shipped `PIPSlateTakeRow` already carries edited-state and richer menu actions
+  - writable repo currently mounts a thinner `PIPSlateEditorScreen` plus row/list stack behind the shared host
+
+### Next Action
+1. use `SF-REBUILD-062` as the next shared-host baseline so trim, crop, and later timeline modules converge above the same routed editor contract instead of forking new player seams
+2. keep SmartFill, standard edit, and PIP converging above the same editor host seam while preserving shipped-capable module interiors
+3. avoid reviving feature-specific player chips or long settings surfaces while this shared editor interior matures
+
+### Completed This Pass
+- Backported the richer shipped PIP editor callback surface into the writable repo’s routed PIP module instead of leaving the shared host on a reduced wrapper.
+- `StudioEditorPIPContext` now resolves exported/composite project takes for component clips and exposes edited-state truth to the shared-host PIP editor.
+- `PIPSlateEditorScreen`, `SlatePIPEditorViewLandscape`, `SlatePIPEditorViewPortrait`, and `PIPSlateTakeRow` now preserve richer preview/menu affordances and export-aware preview fallback behavior behind the shared host route.
+- `SmartFillRebuildBridgeTests` now lock the routed PIP composite-resolution and edited-state helpers directly.
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase62/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -clonedSourcePackagesDirPath /tmp/itfactor_smartfill_phase59_tests_rerun/SourcePackages -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase62_gateA_authoritative build > /tmp/itfactor_smartfill_phase62_gateA_authoritative.log 2>&1; printf 'EXIT:%s\n' $?`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase62_gateA_authoritative.log`
+- Focused parity command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase62/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -clonedSourcePackagesDirPath /tmp/itfactor_smartfill_phase59_tests_rerun/SourcePackages -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase62_tests_authoritative -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test > /tmp/itfactor_smartfill_phase62_tests_authoritative.log 2>&1; printf 'EXIT:%s\n' $?`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase62_tests_authoritative.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase62_tests_authoritative/Logs/Test/Test-STSiPhone-2026.03.29_15-30-10--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
 ## Ticket 061 Add PIP As The First Third Module On The Shared Editor Host (2026-03-29)
 - Thread Status: phase-61 is active on a clean GM worktree cut from anchored phase-60. This slice keeps the new shared editor-host contract and hangs the first third module off it by routing PIP slates through the same host seam that already owns standard edit and SmartFill.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

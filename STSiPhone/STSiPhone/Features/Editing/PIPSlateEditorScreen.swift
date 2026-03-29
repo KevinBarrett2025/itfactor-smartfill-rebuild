@@ -7,6 +7,12 @@ struct PIPSlateEditorScreen: View {
     let project: Project
     let projectSession: ProjectSession
     var onCompositeSaved: (() -> Void)?
+    var isTakeEdited: ((PIPSlateTake, VideoOrientation) -> Bool)? = nil
+    var onTakePreview: ((PIPSlateTake, VideoOrientation) -> Void)? = nil
+    var onTakeShare: ((PIPSlateTake, VideoOrientation) -> Void)? = nil
+    var onTakeSaveToPhotos: ((PIPSlateTake, VideoOrientation) -> Void)? = nil
+    var onTakeDelete: ((PIPSlateTake, VideoOrientation) -> Void)? = nil
+    var resolveExportTake: ((PIPSlateTake, VideoOrientation) -> ProjectTake?)? = nil
     
     var body: some View {
         PIPSlateEditorContainer(
@@ -14,7 +20,13 @@ struct PIPSlateEditorScreen: View {
             project: project,
             projectSession: projectSession,
             isEmbedded: false,
-            onCompositeSaved: onCompositeSaved
+            onCompositeSaved: onCompositeSaved,
+            isTakeEdited: isTakeEdited,
+            onTakePreview: onTakePreview,
+            onTakeShare: onTakeShare,
+            onTakeSaveToPhotos: onTakeSaveToPhotos,
+            onTakeDelete: onTakeDelete,
+            resolveExportTake: resolveExportTake
         )
         .navigationTitle("Picture-in-Picture Editor")
         .navigationBarTitleDisplayMode(.inline)
@@ -27,6 +39,12 @@ struct PIPSlateEditorContainer: View {
     let projectSession: ProjectSession
     var isEmbedded: Bool
     var onCompositeSaved: (() -> Void)?
+    var isTakeEdited: ((PIPSlateTake, VideoOrientation) -> Bool)? = nil
+    var onTakePreview: ((PIPSlateTake, VideoOrientation) -> Void)? = nil
+    var onTakeShare: ((PIPSlateTake, VideoOrientation) -> Void)? = nil
+    var onTakeSaveToPhotos: ((PIPSlateTake, VideoOrientation) -> Void)? = nil
+    var onTakeDelete: ((PIPSlateTake, VideoOrientation) -> Void)? = nil
+    var resolveExportTake: ((PIPSlateTake, VideoOrientation) -> ProjectTake?)? = nil
     
     var body: some View {
         Group {
@@ -37,7 +55,13 @@ struct PIPSlateEditorContainer: View {
                     projectSession: projectSession,
                     isEmbedded: isEmbedded,
                     externalSaveTrigger: nil,
-                    onCompositeSaved: onCompositeSaved
+                    onCompositeSaved: onCompositeSaved,
+                    isTakeEdited: isTakeEdited,
+                    onTakePreview: onTakePreview,
+                    onTakeShare: onTakeShare,
+                    onTakeSaveToPhotos: onTakeSaveToPhotos,
+                    onTakeDelete: onTakeDelete,
+                    resolveExportTake: resolveExportTake
                 )
             } else {
                 VStack(spacing: 12) {
@@ -69,6 +93,12 @@ struct PIPSlateEditorCore: View {
     var isEmbedded: Bool
     var externalSaveTrigger: Binding<Int>? = nil
     var onCompositeSaved: (() -> Void)?
+    var isTakeEdited: ((PIPSlateTake, VideoOrientation) -> Bool)? = nil
+    var onTakePreview: ((PIPSlateTake, VideoOrientation) -> Void)? = nil
+    var onTakeShare: ((PIPSlateTake, VideoOrientation) -> Void)? = nil
+    var onTakeSaveToPhotos: ((PIPSlateTake, VideoOrientation) -> Void)? = nil
+    var onTakeDelete: ((PIPSlateTake, VideoOrientation) -> Void)? = nil
+    var resolveExportTake: ((PIPSlateTake, VideoOrientation) -> ProjectTake?)? = nil
     
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @State private var selectedTab: EditorTab = .landscape
@@ -128,6 +158,7 @@ struct PIPSlateEditorCore: View {
             Button("Delete", role: .destructive) {
                 if let (take, orientation) = takePendingDeletion {
                     deleteTake(take, orientation: orientation)
+                    onTakeDelete?(take, orientation)
                     takePendingDeletion = nil
                 }
             }
@@ -226,14 +257,24 @@ struct PIPSlateEditorCore: View {
             case .landscape:
                 SlatePIPEditorViewLandscape(
                     session: $session,
+                    isTakeEdited: { take in
+                        isTakeEdited?(take, .landscape) ?? false
+                    },
                     onDelete: { take in takePendingDeletion = (take, .landscape) },
-                    onPreview: { take in previewURL = take.fileURL }
+                    onPreview: { take in handlePreview(for: take, orientation: .landscape) },
+                    onShare: { take in onTakeShare?(take, .landscape) },
+                    onSaveToPhotos: { take in onTakeSaveToPhotos?(take, .landscape) }
                 )
             case .portrait:
                 SlatePIPEditorViewPortrait(
                     session: $session,
+                    isTakeEdited: { take in
+                        isTakeEdited?(take, .portrait) ?? false
+                    },
                     onDelete: { take in takePendingDeletion = (take, .portrait) },
-                    onPreview: { take in previewURL = take.fileURL }
+                    onPreview: { take in handlePreview(for: take, orientation: .portrait) },
+                    onShare: { take in onTakeShare?(take, .portrait) },
+                    onSaveToPhotos: { take in onTakeSaveToPhotos?(take, .portrait) }
                 )
             }
             
@@ -288,7 +329,7 @@ struct PIPSlateEditorCore: View {
         pendingExportLandscape = landscape
         audioSelection = AudioSelectionChoice(
             usePortrait: !session.portraitAudioMuted,
-            useLandscape: true
+            useLandscape: !session.landscapeAudioMuted
         )
         showAudioSelection = true
     }
@@ -394,6 +435,19 @@ struct PIPSlateEditorCore: View {
             if session.selectedLandscapeID == take.id {
                 session.selectedLandscapeID = session.landscapeTakes.last?.id
             }
+        }
+    }
+
+    private func handlePreview(for take: PIPSlateTake, orientation: VideoOrientation) {
+        if let onTakePreview {
+            onTakePreview(take, orientation)
+            return
+        }
+
+        if let resolvedTake = resolveExportTake?(take, orientation) {
+            previewURL = VideoVariantResolver.effectiveURL(for: resolvedTake)
+        } else {
+            previewURL = take.fileURL
         }
     }
     

@@ -7,6 +7,8 @@ struct StudioEditorPIPContext: Identifiable {
     let project: Project
     let initialSession: SlatePIPSession?
     let onUpdateSession: ((SlatePIPSession?) -> Void)?
+    let isTakeEdited: ((PIPSlateTake, VideoOrientation) -> Bool)?
+    let resolveExportTake: ((PIPSlateTake, VideoOrientation) -> ProjectTake?)?
 
     static func make(
         for take: ProjectTake,
@@ -23,8 +25,43 @@ struct StudioEditorPIPContext: Identifiable {
             session: session,
             project: project,
             initialSession: session.pipSlateSession,
-            onUpdateSession: onUpdateSession
+            onUpdateSession: onUpdateSession,
+            isTakeEdited: { pipTake, orientation in
+                resolveCompositeTake(
+                    for: pipTake,
+                    orientation: orientation,
+                    in: session
+                ) != nil
+            },
+            resolveExportTake: { pipTake, orientation in
+                resolveCompositeTake(
+                    for: pipTake,
+                    orientation: orientation,
+                    in: session
+                )
+            }
         )
+    }
+
+    static func resolveCompositeTake(
+        for pipTake: PIPSlateTake,
+        orientation: VideoOrientation,
+        in session: ProjectSession
+    ) -> ProjectTake? {
+        session.takes
+            .sorted { $0.createdAt > $1.createdAt }
+            .first { take in
+                guard let metadata = take.pipSlateMetadata else {
+                    return false
+                }
+
+                switch orientation {
+                case .portrait:
+                    return metadata.portraitTakeID == pipTake.id
+                case .landscape:
+                    return metadata.landscapeTakeID == pipTake.id
+                }
+            }
     }
 }
 
@@ -53,7 +90,9 @@ struct StudioEditorPIPHostView: View {
                 projectSession: context.session,
                 onCompositeSaved: {
                     syncParentIfNeeded(force: true)
-                }
+                },
+                isTakeEdited: context.isTakeEdited,
+                resolveExportTake: context.resolveExportTake
             )
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

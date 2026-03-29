@@ -37,6 +37,10 @@ These seams are the correct architectural anchors for the rebuild:
 
 - `STSiPhone/STSiPhone/Features/Projects/Views/StudioEditorHost.swift`
 - `STSiPhone/STSiPhone/Features/Projects/Views/StudioEditorPIPHostView.swift`
+- `STSiPhone/STSiPhone/Features/Editing/PIPSlateEditorScreen.swift`
+- `STSiPhone/STSiPhone/Features/Editing/PIPSlateTakeRow.swift`
+- `STSiPhone/STSiPhone/Features/Editing/SlatePIPEditorViewLandscape.swift`
+- `STSiPhone/STSiPhone/Features/Editing/SlatePIPEditorViewPortrait.swift`
 - `STSiPhone/STSiPhone/Shared/Repositories/ProjectsRepository.swift`
 - `STSiPhone/STSiPhone/Shared/Repositories/SQLite/SQLiteProjectsRepository.swift`
 - `STSiPhone/STSiPhone/Shared/Models/ProjectModels.swift`
@@ -70,6 +74,7 @@ These seams are the correct architectural anchors for the rebuild:
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillAdvancedSettingsView.swift`
 - `STSiPhone/STSiPhone/Features/SmartFill/Rebuild/SmartFillWorkspacePreviewPosterPolicy` / `SmartFillWorkspacePreviewPosterRenderer` (declared in `SmartFillWorkspaceView.swift`)
 - `STSiPhone/STSiPhone/Features/Projects/Views/StudioEditorLaunchRequest` / shared host-routing helpers (declared in `SwipeableVideoPlayerView.swift`, consumed by `ProjectDetailView` and `HomeScreenView`)
+- `STSiPhone/STSiPhone/Features/Projects/Views/StudioEditorPIPContext.resolveCompositeTake(...)` / routed PIP export-take resolution seam (declared in `StudioEditorPIPHostView.swift`)
 
 ## Retired Legacy UI Seams
 - `STSiPhone/STSiPhone/Features/Editing/SmartFillSettingsModal.swift`
@@ -157,3 +162,4 @@ These fields and APIs carry shipped SmartFill truth and must not be deleted duri
 52. Once the shared player `Edit` seam exists, host screens must consume one shared editor-launch request object instead of parallel standard-edit versus SmartFill callback plumbing. Do not let HomeScreen, project detail, or future player hosts fork the contract back into feature-specific launch handlers.
 53. Once host screens already share one editor-launch request, they must also share one editor-host contract above that request. Do not let HomeScreen, project detail, or future hosts keep deciding between standard edit and SmartFill themselves after the player has already resolved intent, because that reintroduces duplicated module-selection logic exactly where trim, PIP, crop, and timeline convergence need one routed seam.
 54. Once the shared editor host exists, PIP should hang off that host as a real third module instead of staying outside the contract as a separate review-only or host-only edit path. Use the existing PIP editor seams as module interior truth, but keep launch routing centralized above them.
+55. Once PIP is routed through the shared editor host, that route must preserve the richer shipped PIP editor surface instead of collapsing back to a reduced wrapper. Edited-state rows, export-aware preview resolution, and future import/share/save hooks belong behind the shared host too.

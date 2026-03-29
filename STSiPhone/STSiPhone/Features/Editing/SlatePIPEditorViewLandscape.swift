@@ -2,8 +2,11 @@ import SwiftUI
 
 struct SlatePIPEditorViewLandscape: View {
     @Binding var session: SlatePIPSession
+    var isTakeEdited: (PIPSlateTake) -> Bool = { _ in false }
     var onDelete: (PIPSlateTake) -> Void = { _ in }
     var onPreview: (PIPSlateTake) -> Void = { _ in }
+    var onShare: (PIPSlateTake) -> Void = { _ in }
+    var onSaveToPhotos: (PIPSlateTake) -> Void = { _ in }
 
     var body: some View {
         List {
@@ -20,8 +23,11 @@ struct SlatePIPEditorViewLandscape: View {
                             index: index + 1,
                             orientation: .landscape,
                             isSelected: take.id == session.selectedLandscapeID,
+                            isEdited: isTakeEdited(take),
                             onSelect: { session.selectedLandscapeID = take.id },
                             onPreview: { onPreview(take) },
+                            onShare: { onShare(take) },
+                            onSaveToPhotos: { onSaveToPhotos(take) },
                             onDelete: { onDelete(take) }
                         )
                     }

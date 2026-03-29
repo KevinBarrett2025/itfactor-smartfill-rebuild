@@ -423,6 +423,67 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertEqual(context.project.id, project.id)
     }
 
+    func testStudioEditorPIPContextResolvesCompositeTakeForPortraitComponent() {
+        let portraitID = UUID(uuidString: "00000000-0000-0000-0000-000000000111")!
+        let portrait = PIPSlateTake(filePath: "portrait.mov", duration: 3, id: portraitID)
+        let composite = ProjectTake(
+            filePath: "/tmp/pip-composite.mov",
+            durationSeconds: 9,
+            capturedOrientation: .landscape,
+            takeType: .pipSlate,
+            pipSlateMetadata: PIPSlateCompositeMetadata(
+                portraitTakeID: portraitID,
+                landscapeTakeID: UUID(),
+                portraitAudioEnabled: true,
+                landscapeAudioEnabled: true
+            )
+        )
+        let session = ProjectSession(type: .selfTape, takes: [composite], primaryOrientation: .landscape)
+
+        let resolved = StudioEditorPIPContext.resolveCompositeTake(
+            for: portrait,
+            orientation: .portrait,
+            in: session
+        )
+
+        XCTAssertEqual(resolved?.id, composite.id)
+    }
+
+    func testStudioEditorPIPContextReturnsEditedStatusWhenCompositeExists() {
+        let landscapeID = UUID(uuidString: "00000000-0000-0000-0000-000000000222")!
+        let landscape = PIPSlateTake(filePath: "landscape.mov", duration: 3, id: landscapeID)
+        let componentTake = ProjectTake(
+            filePath: "/tmp/pip-component.mov",
+            durationSeconds: 3,
+            capturedOrientation: .landscape,
+            takeType: .pipComponent
+        )
+        let composite = ProjectTake(
+            filePath: "/tmp/pip-composite.mov",
+            durationSeconds: 9,
+            capturedOrientation: .landscape,
+            takeType: .pipSlate,
+            pipSlateMetadata: PIPSlateCompositeMetadata(
+                portraitTakeID: UUID(),
+                landscapeTakeID: landscapeID,
+                portraitAudioEnabled: true,
+                landscapeAudioEnabled: true
+            )
+        )
+        let session = ProjectSession(type: .selfTape, takes: [componentTake, composite], primaryOrientation: .landscape)
+        let project = Project(title: "Project", sessions: [session])
+
+        let context = StudioEditorPIPContext.make(
+            for: componentTake,
+            session: session,
+            project: project,
+            onUpdateSession: nil
+        )
+
+        XCTAssertEqual(context?.resolveExportTake?(landscape, .landscape)?.id, composite.id)
+        XCTAssertEqual(context?.isTakeEdited?(landscape, .landscape), true)
+    }
+
     func testHomeScreenSmartFillRouteBuildsPlayerRequestContext() {
         let take = ProjectTake(
             filePath: "/tmp/original.mov",
