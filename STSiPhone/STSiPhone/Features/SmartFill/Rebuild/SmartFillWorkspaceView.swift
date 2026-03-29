@@ -2031,6 +2031,24 @@ struct SmartFillWorkspacePreviewPlaybackState: Equatable {
     var currentTime: Double = 0
     var shouldPlay = false
 
+    func refreshed(
+        currentTime: Double,
+        shouldPlay: Bool
+    ) -> SmartFillWorkspacePreviewPlaybackState {
+        let safeTime = currentTime.isFinite ? max(currentTime, 0) : 0
+        return SmartFillWorkspacePreviewPlaybackState(
+            currentTime: safeTime,
+            shouldPlay: shouldPlay
+        )
+    }
+
+    func toggled(
+        currentTime: Double,
+        isPlaying: Bool
+    ) -> SmartFillWorkspacePreviewPlaybackState {
+        refreshed(currentTime: currentTime, shouldPlay: !isPlaying)
+    }
+
     func clamped(to duration: Double) -> SmartFillWorkspacePreviewPlaybackState {
         let safeDuration = max(duration, 0)
         let safeTime = currentTime.isFinite ? max(0, min(currentTime, safeDuration)) : 0
@@ -3699,7 +3717,10 @@ private struct SmartFillWorkspaceInteractivePreviewSurface: View {
                     Spacer()
                     HStack {
                         Spacer()
-                        ModernSmartFillPreviewControls(player: player)
+                        ModernSmartFillPreviewControls(
+                            player: player,
+                            onPlaybackIntentChange: publishPlaybackIntent
+                        )
                             .frame(maxWidth: 440)
                         Spacer()
                     }
@@ -3741,6 +3762,13 @@ private struct SmartFillWorkspaceInteractivePreviewSurface: View {
     }
 
     private func togglePlayback() {
+        let playbackIntent = SmartFillWorkspacePreviewPlaybackState()
+            .toggled(
+                currentTime: player.currentTime,
+                isPlaying: player.isPlaying
+            )
+        onPlaybackStateChange(playbackIntent)
+
         if player.isPlaying {
             player.pause()
         } else {
@@ -3843,6 +3871,12 @@ private struct SmartFillWorkspaceInteractivePreviewSurface: View {
         let minutes = Int(seconds) / 60
         let remainingSeconds = Int(seconds) % 60
         return String(format: "%d:%02d", minutes, remainingSeconds)
+    }
+
+    private func publishPlaybackIntent(currentTime: Double, shouldPlay: Bool) {
+        let state = SmartFillWorkspacePreviewPlaybackState()
+            .refreshed(currentTime: currentTime, shouldPlay: shouldPlay)
+        onPlaybackStateChange(state)
     }
 }
 

@@ -585,6 +585,30 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertTrue(clamped.requiresPlayerSync(currentTime: 9.0, isPlaying: false))
     }
 
+    func testPreviewPlaybackStateRefreshesFromTransportIntent() {
+        let baseline = SmartFillWorkspacePreviewPlaybackState(currentTime: 1.4, shouldPlay: false)
+
+        let refreshed = baseline.refreshed(currentTime: 2.8, shouldPlay: true)
+        let sanitized = baseline.refreshed(currentTime: .nan, shouldPlay: false)
+
+        XCTAssertEqual(refreshed.currentTime, 2.8, accuracy: 0.0001)
+        XCTAssertTrue(refreshed.shouldPlay)
+        XCTAssertEqual(sanitized.currentTime, 0, accuracy: 0.0001)
+        XCTAssertFalse(sanitized.shouldPlay)
+    }
+
+    func testPreviewPlaybackStateToggleUsesLivePlayerSnapshot() {
+        let state = SmartFillWorkspacePreviewPlaybackState(currentTime: 0.5, shouldPlay: false)
+
+        let playIntent = state.toggled(currentTime: 4.2, isPlaying: false)
+        let pauseIntent = state.toggled(currentTime: 6.1, isPlaying: true)
+
+        XCTAssertEqual(playIntent.currentTime, 4.2, accuracy: 0.0001)
+        XCTAssertTrue(playIntent.shouldPlay)
+        XCTAssertEqual(pauseIntent.currentTime, 6.1, accuracy: 0.0001)
+        XCTAssertFalse(pauseIntent.shouldPlay)
+    }
+
     func testPreviewCompareStateUsesSelectedModeWhenNotHolding() {
         let result = SmartFillWorkspacePreviewCompareState(
             selectedMode: .result,

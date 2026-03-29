@@ -1,5 +1,65 @@
 # CODEX Thread Continuity
 
+## Ticket 053 Preserve SmartFill Play Intent Through Shared Preview State (2026-03-28)
+- Thread Status: phase-53 is locally gated on a fresh GM worktree from anchored phase-52. The SmartFill preview now keeps a visible poster frame at rest and its transport actions now publish through one shared playback-state owner before mutating the live player, making the next device smoke safer for real preview playback.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase53`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase53`
+- Working Head SHA: `e1b188766cd747152ddef4487754bb7342c385c5`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+1. preserve the phase-52 studio shelf and avoid any new scroll-heavy chrome
+2. route every SmartFill preview transport action through the shared playback-state seam so play intent survives compare mode, poster-at-rest, and preview rerenders
+3. keep the fix scoped to SmartFill live preview behavior so the next device run is safer before more tool-surface work
+4. keep continuity aligned with the planner’s broader unified-editor direction without slowing the current SmartFill execution path
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase53`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase53`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase53`
+  - `git rev-parse HEAD` -> `e1b188766cd747152ddef4487754bb7342c385c5`
+  - `git status --porcelain` -> three intended SmartFill playback edits before gates
+  - `git log -1 --oneline` -> `e1b1887 SF-REBUILD-052: flatten SmartFill tray chrome into a studio shelf`
+- Truth-sync confirmed:
+  - `git -C /tmp/itfactor_smartfill_phase52 fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Completed This Pass
+- `ModernSmartFillPreviewControls` now publish transport intent through the shared playback-state seam before mutating the live preview `AVPlayer`, so transport actions stop fighting stale `shouldPlay` state during preview rerenders.
+- `SmartFillWorkspaceInteractivePreviewSurface` now routes tap-to-play, frame-step, and scrub completion through one authoritative `SmartFillWorkspacePreviewPlaybackState` instead of mutating the player in isolation.
+- `SmartFillRebuildBridgeTests` now lock the new playback-intent helper rules directly.
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase53/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase53_gateA build | tee /tmp/itfactor_smartfill_phase53_gateA.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase53_gateA.log`
+- Focused parity command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase53/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase53_tests -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test-without-building | tee /tmp/itfactor_smartfill_phase53_tests.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase53_tests.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase53_tests/Logs/Test/Test-STSiPhone-2026.03.28_20-25-18--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Next Action
+1. anchor the shared playback-state fix as `SF-REBUILD-053` on `gm/smartfill-itfactor-phase53`
+2. use the anchored phase-53 branch as the next safe device-test point, because the preview transport now routes play intent through one shared state owner instead of getting paused back down by stale state
+3. after that smoke, queue the next planner follow-on so the planner stays in the loop without blocking SmartFill execution
+
 ## Ticket 052 Flatten SmartFill Tray Chrome Into A Studio Shelf (2026-03-28)
 - Thread Status: phase-52 is locally gated on a fresh GM worktree from anchored phase-51; the SmartFill workspace now flattens the remaining tray chrome into a denser studio shelf so the editor reads less like stacked mini-cards and more like a reusable master-editor module. Planner task `SMARTFILL-V3-200` completed separately and reinforces this direction: keep current SmartFill moving while shaping the shell as a future all-in-one editor seam instead of another SmartFill-only surface.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`

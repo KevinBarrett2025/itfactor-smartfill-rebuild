@@ -255,12 +255,17 @@ struct SmartFillPreviewFrameStep {
 public struct ModernSmartFillPreviewControls: View {
     
     @ObservedObject private var player: ModernSmartFillPlayer
+    private let onPlaybackIntentChange: ((Double, Bool) -> Void)?
     @State private var isDraggingSlider = false
     @State private var scrubPosition: Double?
     @State private var shouldResumeAfterScrub = false
     
-    public init(player: ModernSmartFillPlayer) {
+    public init(
+        player: ModernSmartFillPlayer,
+        onPlaybackIntentChange: ((Double, Bool) -> Void)? = nil
+    ) {
         self.player = player
+        self.onPlaybackIntentChange = onPlaybackIntentChange
     }
     
     public var body: some View {
@@ -326,6 +331,12 @@ public struct ModernSmartFillPreviewControls: View {
     }
 
     private func togglePlayback() {
+        let targetShouldPlay = !player.isPlaying
+        publishPlaybackIntent(
+            currentTime: max(player.currentTime, 0),
+            shouldPlay: targetShouldPlay
+        )
+
         if player.isPlaying {
             player.pause()
         } else {
@@ -336,11 +347,19 @@ public struct ModernSmartFillPreviewControls: View {
     private func stepBackward() {
         cancelScrubState()
         player.stepBackwardOneFrame()
+        publishPlaybackIntent(
+            currentTime: max(player.currentTime, 0),
+            shouldPlay: false
+        )
     }
 
     private func stepForward() {
         cancelScrubState()
         player.stepForwardOneFrame()
+        publishPlaybackIntent(
+            currentTime: max(player.currentTime, 0),
+            shouldPlay: false
+        )
     }
 
     private func updateScrubPosition(_ newValue: Double) {
@@ -354,6 +373,10 @@ public struct ModernSmartFillPreviewControls: View {
             guard !isDraggingSlider else { return }
             shouldResumeAfterScrub = player.isPlaying
             if player.isPlaying {
+                publishPlaybackIntent(
+                    currentTime: max(player.currentTime, 0),
+                    shouldPlay: false
+                )
                 player.pause()
             }
             isDraggingSlider = true
@@ -368,7 +391,12 @@ public struct ModernSmartFillPreviewControls: View {
             player.seek(to: time)
         }
 
+        let resolvedTime = max(scrubPosition ?? player.currentTime, 0)
         scrubPosition = nil
+        publishPlaybackIntent(
+            currentTime: resolvedTime,
+            shouldPlay: shouldResumeAfterScrub
+        )
 
         if shouldResumeAfterScrub {
             player.play()
@@ -380,6 +408,10 @@ public struct ModernSmartFillPreviewControls: View {
         isDraggingSlider = false
         scrubPosition = nil
         shouldResumeAfterScrub = false
+    }
+
+    private func publishPlaybackIntent(currentTime: Double, shouldPlay: Bool) {
+        onPlaybackIntentChange?(currentTime, shouldPlay)
     }
 
     private func formatTime(_ seconds: Double) -> String {

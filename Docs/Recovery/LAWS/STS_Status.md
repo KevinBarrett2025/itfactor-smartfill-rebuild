@@ -357,6 +357,12 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase52_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase52_tests.log`
   - xcresult: `/tmp/itfactor_smartfill_phase52_tests/Logs/Test/Test-STSiPhone-2026.03.28_19-44-46--0400.xcresult`
+- `SF-REBUILD-053` — preserve SmartFill play intent through shared preview state — `COMPLETE (LOCAL-GATED 2026-03-28)`
+  - `ModernSmartFillPreviewControls` now publish transport intent through the shared SmartFill playback-state seam before mutating the live `AVPlayer`, so tap-to-play, frame-step nudging, and scrub completion stop fighting stale `shouldPlay` state during preview rerenders.
+  - `SmartFillWorkspaceInteractivePreviewSurface` now derives play/pause plus seek updates from one authoritative `SmartFillWorkspacePreviewPlaybackState`, which keeps the phase-52 studio shelf intact while making the next device smoke safer for real preview playback.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase53_gateA.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase53_tests.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase53_tests/Logs/Test/Test-STSiPhone-2026.03.28_20-25-18--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -380,6 +386,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Use `SF-REBUILD-052` as the new SmartFill workspace baseline and take the next device smoke from there, because the shell now keeps phase-51’s inline ownership while reducing the remaining stacked-card feel into a flatter studio shelf.
-2. Implement the next studio-shell tightening slice on GM with Gate A and focused SmartFill parity before any promotion discussion.
-3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, inline expander ownership model, flatter studio-shelf chrome, preview-focus deck, canvas-embedded live transport, synchronized source/result compare behavior, visible poster-frame-at-rest preview behavior, stable single-owner action chrome, studio-grade theming, working entry routing, and tray-to-sheet split for deeper tools.
+1. Use `SF-REBUILD-053` as the new SmartFill workspace baseline and take the next device smoke from there, because the shell now keeps phase-52’s flatter studio shelf while routing preview play intent through one shared playback-state seam.
+2. Implement the next studio-shell tightening slice on GM only after the phase-53 device smoke confirms that tap-to-play, frame-step, and scrub completion now survive real preview rerenders.
+3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, inline expander ownership model, flatter studio-shelf chrome, preview-focus deck, canvas-embedded live transport, synchronized source/result compare behavior, visible poster-frame-at-rest preview behavior, stable single-owner action chrome, studio-grade theming, working entry routing, shared playback-intent seam, and tray-to-sheet split for deeper tools.
