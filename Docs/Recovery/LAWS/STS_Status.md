@@ -408,6 +408,13 @@ If anything above is not true, it must be reflected here.
   - Gate A PASS: `/tmp/itfactor_smartfill_phase59_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase59_tests_rerun.log`
   - xcresult: `/tmp/itfactor_smartfill_phase59_tests_rerun/Logs/Test/Test-STSiPhone-2026.03.29_12-39-07--0400.xcresult`
+- `SF-REBUILD-060` — introduce one shared editor host above the player launch contract — `COMPLETE (LOCAL-GATED 2026-03-29)`
+  - `StudioEditorHost` now resolves one `StudioEditorLaunchRequest` into either standard-editor context or SmartFill context so host screens no longer duplicate module-selection logic after the player resolves intent.
+  - `HomeScreenView` and `ProjectDetailView` now both route through that shared host contract, which keeps SmartFill as module one, standard edit as module two, and leaves future trim/PIP/crop/timeline modules free to attach above the same seam.
+  - `SmartFillRebuildBridgeTests` now lock the shared host-routing rules directly.
+  - Gate A PASS: `/tmp/itfactor_smartfill_phase60_gateA_escalated2.log`
+  - Focused parity PASS: `/tmp/itfactor_smartfill_phase60_tests.log`
+  - xcresult: `/tmp/itfactor_smartfill_phase60_tests/Logs/Test/Test-STSiPhone-2026.03.29_13-43-44--0400.xcresult`
 - `SF-REBUILD-008` — editor-origin SmartFill entry unification on rebuild workspace — `COMPLETE (LOCAL-GATED 2026-03-26)`
   - Gate A PASS: `/tmp/itfactor_smartfill_phase4_gateA.log`
   - Focused parity PASS: `/tmp/itfactor_smartfill_phase4_tests.log`
@@ -431,6 +438,6 @@ If anything above is not true, it must be reflected here.
 
 ## NEXT ACTION
 
-1. Use `SF-REBUILD-059` as the new flagship baseline. Player hosts now consume one shared `StudioEditorLaunchRequest`, which means the same `Edit` seam can route through HomeScreen or project detail without duplicating standard-edit versus SmartFill callback logic.
-2. Build the next GM slice on top of that shared launch contract so PIP, trim replacement, crop replacement, and future timeline work can converge behind the same launch seam instead of adding more feature-specific player buttons or host-specific callback plumbing.
-3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, explicit background/foreground picker ownership, still-image background-source persistence, real foreground zoom and framing composition, inline expander ownership model, flatter studio-shelf chrome, preview-focus deck, canvas-embedded live transport, synchronized source/result compare behavior, visible poster-frame-at-rest preview behavior, stable single-owner action chrome, studio-grade theming, working entry routing, shared playback-intent seam, shared-host editor launch contract, and tray-to-sheet split for deeper tools.
+1. Use `SF-REBUILD-060` as the new flagship baseline. The app now has one shared player `Edit` seam, one shared `StudioEditorLaunchRequest`, and one shared editor-host contract above that request, so host screens no longer need to decide between standard edit and SmartFill themselves.
+2. Build the next GM slice on top of that shared host seam so PIP, trim replacement, crop replacement, and future timeline work can converge behind the same routed editor host instead of adding more feature-specific player buttons or host-specific callback plumbing.
+3. Keep the standalone derivation ledger updated in every phase so the utility app inherits the same fixed preview + tray/rail shell, explicit background/foreground picker ownership, still-image background-source persistence, real foreground zoom and framing composition, inline expander ownership model, flatter studio-shelf chrome, preview-focus deck, canvas-embedded live transport, synchronized source/result compare behavior, visible poster-frame-at-rest preview behavior, stable single-owner action chrome, studio-grade theming, working entry routing, shared playback-intent seam, shared player launch contract, shared editor-host contract, and tray-to-sheet split for deeper tools.

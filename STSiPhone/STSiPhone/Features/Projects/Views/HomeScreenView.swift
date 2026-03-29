@@ -7,13 +7,6 @@ struct HomeScreenPendingSmartFillOpenRequest {
     let context: SmartFillSettingsContext
 }
 
-struct HomeScreenEditorContext: Identifiable {
-    let id = UUID()
-    let take: ProjectTake
-    let session: ProjectSession
-    let project: Project
-}
-
 enum HomeScreenSmartFillRoute {
     static func requestContext(
         for take: ProjectTake,
@@ -360,8 +353,8 @@ public struct HomeScreenView: View {
     @State private var activeSmartFillContext: SmartFillSettingsContext?
     @State private var pendingSmartFillSettingsContext: SmartFillSettingsContext?
     @State private var pendingSmartFillOpenRequest: HomeScreenPendingSmartFillOpenRequest?
-    @State private var activeEditorContext: HomeScreenEditorContext?
-    @State private var pendingEditorContext: HomeScreenEditorContext?
+    @State private var activeEditorContext: StudioEditorStandardEditContext?
+    @State private var pendingEditorContext: StudioEditorStandardEditContext?
     @State private var smartFillError: SmartFillErrorMessage?
     @State private var isSmartFillPresentationScheduled = false
     @State private var isEditorPresentationScheduled = false
@@ -521,62 +514,38 @@ public struct HomeScreenView: View {
         handoffSession = session
     }
 
-    private func handleSmartFillRequestFromHome(
-        take: ProjectTake,
-        session: ProjectSession,
-        project: Project
-    ) {
-        let context = HomeScreenSmartFillRoute.requestContext(
-            for: take,
-            session: session,
-            project: project,
-            onUpdatePIPSession: makePIPSessionUpdater(for: session, project: project)
+    private func handleStudioEditorLaunchRequestFromHome(_ request: StudioEditorLaunchRequest) {
+        let didRoute = StudioEditorHost.route(
+            request: request,
+            requestSmartFillContext: { take, session, project in
+                HomeScreenSmartFillRoute.requestContext(
+                    for: take,
+                    session: session,
+                    project: project,
+                    onUpdatePIPSession: makePIPSessionUpdater(for: session, project: project)
+                )
+            },
+            editSmartFillContext: { take, session, project in
+                HomeScreenSmartFillRoute.editContext(
+                    for: take,
+                    session: session,
+                    project: project,
+                    onUpdatePIPSession: makePIPSessionUpdater(for: session, project: project)
+                )
+            },
+            onStandardEdit: { context in
+                queueEditorPresentation(context)
+            },
+            onSmartFill: { context in
+                queueSmartFillPresentation(context)
+            }
         )
-        queueSmartFillPresentation(context)
-    }
 
-    private func handleSmartFillEditFromHome(
-        take: ProjectTake,
-        session: ProjectSession,
-        project: Project
-    ) {
-        guard let context = HomeScreenSmartFillRoute.editContext(
-            for: take,
-            session: session,
-            project: project,
-            onUpdatePIPSession: makePIPSessionUpdater(for: session, project: project)
-        ) else {
+        guard didRoute else {
             smartFillError = SmartFillErrorMessage(
                 message: "We couldn't find the original portrait take for this SmartFill. Please restore the original take to edit it again."
             )
             return
-        }
-
-        queueSmartFillPresentation(context)
-    }
-
-    private func handleStudioEditorLaunchRequestFromHome(_ request: StudioEditorLaunchRequest) {
-        switch request.intent {
-        case .standardEdit(let targetTake):
-            queueEditorPresentation(
-                HomeScreenEditorContext(
-                    take: targetTake,
-                    session: request.session,
-                    project: request.project
-                )
-            )
-        case .smartFillRequest(let targetTake):
-            handleSmartFillRequestFromHome(
-                take: targetTake,
-                session: request.session,
-                project: request.project
-            )
-        case .smartFillEdit(let targetTake):
-            handleSmartFillEditFromHome(
-                take: targetTake,
-                session: request.session,
-                project: request.project
-            )
         }
     }
 
@@ -610,7 +579,7 @@ public struct HomeScreenView: View {
         }
     }
 
-    private func queueEditorPresentation(_ context: HomeScreenEditorContext) {
+    private func queueEditorPresentation(_ context: StudioEditorStandardEditContext) {
         pendingEditorContext = context
         if playerRequest != nil {
             playerRequest = nil
@@ -758,7 +727,7 @@ public struct HomeScreenView: View {
         trimRange: CMTimeRange?,
         cropRect: CGRect?,
         cropRotationDegrees: Double?,
-        context: HomeScreenEditorContext
+        context: StudioEditorStandardEditContext
     ) {
         let hasMeaningfulCrop = cropRect?.sts_hasMeaningfulCrop ?? false
         let hasRotationChange = (cropRotationDegrees.map { abs($0) > 0.01 } ?? false)
@@ -813,7 +782,14 @@ public struct HomeScreenView: View {
         case .export:
             repo.exportTake(takeID: take.id, from: session.id, in: project.id)
         case .editSmartFill:
-            handleSmartFillEditFromHome(take: take, session: session, project: project)
+            handleStudioEditorLaunchRequestFromHome(
+                StudioEditorLaunchRequest(
+                    sourceTake: take,
+                    intent: .smartFillEdit(targetTake: take),
+                    session: session,
+                    project: project
+                )
+            )
             return
         case .addNote:
             print("ℹ️ HomeScreen: action \(action.debugName) not implemented in lobby flow")

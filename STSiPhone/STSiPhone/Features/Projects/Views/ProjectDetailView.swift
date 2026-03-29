@@ -1230,20 +1230,35 @@ public struct ProjectDetailView: View {
     }
     
     private func handleStudioEditorLaunchRequest(_ request: StudioEditorLaunchRequest) {
-        switch request.intent {
-        case .standardEdit(let targetTake):
-            presentEditor(for: targetTake, session: request.session, project: request.project)
-        case .smartFillRequest(let targetTake):
-            handleSmartFillRequest(
-                take: targetTake,
-                session: request.session,
-                project: request.project
-            )
-        case .smartFillEdit(let targetTake):
-            handleSmartFillEdit(
-                take: targetTake,
-                session: request.session,
-                project: request.project
+        let didRoute = StudioEditorHost.route(
+            request: request,
+            requestSmartFillContext: { take, session, project in
+                makeSmartFillRequestContext(
+                    for: take,
+                    session: session,
+                    project: project,
+                    autoLaunchEditor: false
+                )
+            },
+            editSmartFillContext: { take, session, project in
+                makeSmartFillEditContext(
+                    for: take,
+                    session: session,
+                    project: project,
+                    autoLaunchEditor: false
+                )
+            },
+            onStandardEdit: { context in
+                presentEditor(for: context.take, session: context.session, project: context.project)
+            },
+            onSmartFill: { context in
+                presentSmartFillSettingsContext(context)
+            }
+        )
+
+        if didRoute == false, smartFillError == nil {
+            smartFillError = SmartFillErrorMessage(
+                message: "We couldn't find the original portrait video for this SmartFill. Please record or restore the original take to reprocess it."
             )
         }
     }
@@ -1531,38 +1546,72 @@ public struct ProjectDetailView: View {
     }
     
     private func handleSmartFillRequest(take: ProjectTake, session: ProjectSession, project: Project) {
-        openSmartFillSettings(
+        handleStudioEditorLaunchRequest(
+            StudioEditorLaunchRequest(
+                sourceTake: take,
+                intent: .smartFillRequest(targetTake: take),
+                session: session,
+                project: project
+            )
+        )
+    }
+
+    private func handleSmartFillEdit(take: ProjectTake, session: ProjectSession, project: Project) {
+        handleStudioEditorLaunchRequest(
+            StudioEditorLaunchRequest(
+                sourceTake: take,
+                intent: .smartFillEdit(targetTake: take),
+                session: session,
+                project: project
+            )
+        )
+    }
+
+    private func makeSmartFillRequestContext(
+        for take: ProjectTake,
+        session: ProjectSession,
+        project: Project,
+        autoLaunchEditor: Bool
+    ) -> SmartFillSettingsContext? {
+        makeSmartFillSettingsContext(
             for: take,
             session: session,
             project: project,
-            autoLaunchEditor: false,
+            autoLaunchEditor: autoLaunchEditor,
             allowExistingSmartFill: false
         )
     }
-    
-    private func handleSmartFillEdit(take: ProjectTake, session: ProjectSession, project: Project) {
+
+    private func makeSmartFillEditContext(
+        for take: ProjectTake,
+        session: ProjectSession,
+        project: Project,
+        autoLaunchEditor: Bool
+    ) -> SmartFillSettingsContext? {
         guard let original = resolveOriginalTake(for: take, in: session) else {
-            smartFillError = SmartFillErrorMessage(message: "We couldn't find the original portrait video for this SmartFill. Please record or restore the original take to reprocess it.")
-            return
+            smartFillError = SmartFillErrorMessage(
+                message: "We couldn't find the original portrait video for this SmartFill. Please record or restore the original take to reprocess it."
+            )
+            return nil
         }
-        
+
         let infoTitle = "Fine-Tune SmartFill"
         let infoMessage = "Adjust the SmartFill look for “\(friendlyTakeDisplayName(for: original, in: session))”."
         let existingSettings = take.smartFillSettings.map { SmartFillTakeBridge.settings(from: $0) }
-        
-        openSmartFillSettings(
+
+        return makeSmartFillSettingsContext(
             for: original,
             session: session,
             project: project,
-            autoLaunchEditor: false,
+            autoLaunchEditor: autoLaunchEditor,
             allowExistingSmartFill: true,
             infoTitleOverride: infoTitle,
             infoMessageOverride: infoMessage,
             existingSettings: existingSettings
         )
     }
-    
-    private func openSmartFillSettings(
+
+    private func makeSmartFillSettingsContext(
         for take: ProjectTake,
         session: ProjectSession,
         project: Project,
@@ -1571,17 +1620,17 @@ public struct ProjectDetailView: View {
         infoTitleOverride: String? = nil,
         infoMessageOverride: String? = nil,
         existingSettings: SmartFillSettings? = nil
-    ) {
+    ) -> SmartFillSettingsContext? {
         if smartFillInFlight != nil {
             smartFillError = SmartFillErrorMessage(message: "Please wait for the current SmartFill conversion to finish.")
-            return
+            return nil
         }
         
         if !allowExistingSmartFill,
            let existing = existingSmartFillTake(for: take, in: session) {
             let message = "“\(friendlyTakeDisplayName(for: take, in: session))” already has a SmartFill version. Use “Edit SmartFill” on \(friendlyTakeDisplayName(for: existing, in: session)) to tweak the background."
             smartFillError = SmartFillErrorMessage(message: message)
-            return
+            return nil
         }
         
         let displayName = friendlyTakeDisplayName(for: take, in: session)
@@ -1606,8 +1655,8 @@ public struct ProjectDetailView: View {
                 vm.reload()
             }
         )
-        
-        presentSmartFillSettingsContext(context)
+
+        return context
     }
     
     private func enqueueSmartFill(

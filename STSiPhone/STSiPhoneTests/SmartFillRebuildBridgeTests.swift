@@ -270,6 +270,117 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertEqual(request.project.id, project.id)
     }
 
+    func testStudioEditorHostResolvesStandardEditDestination() {
+        let take = ProjectTake(
+            filePath: "/tmp/landscape.mov",
+            durationSeconds: 12,
+            capturedOrientation: .landscape
+        )
+        let session = ProjectSession(type: .selfTape, takes: [take], primaryOrientation: .landscape)
+        let project = Project(title: "Project", sessions: [session])
+        let request = StudioEditorLaunchRequest(
+            sourceTake: take,
+            intent: .standardEdit(targetTake: take),
+            session: session,
+            project: project
+        )
+
+        let destination = StudioEditorHost.resolveDestination(
+            for: request,
+            requestSmartFillContext: { _, _, _ in
+                XCTFail("standard edit should not request SmartFill context")
+                return nil
+            },
+            editSmartFillContext: { _, _, _ in
+                XCTFail("standard edit should not request SmartFill edit context")
+                return nil
+            }
+        )
+
+        guard case .standardEdit(let context)? = destination else {
+            return XCTFail("Expected standard edit destination")
+        }
+
+        XCTAssertEqual(context.take.id, take.id)
+        XCTAssertEqual(context.session.id, session.id)
+        XCTAssertEqual(context.project.id, project.id)
+    }
+
+    func testStudioEditorHostResolvesSmartFillRequestDestination() {
+        let take = ProjectTake(
+            filePath: "/tmp/portrait.mov",
+            durationSeconds: 12,
+            capturedOrientation: .portrait
+        )
+        let session = ProjectSession(type: .selfTape, takes: [take], primaryOrientation: .landscape)
+        let project = Project(title: "Project", sessions: [session])
+        let expected = SmartFillSettingsContext(
+            take: take,
+            session: session,
+            project: project,
+            launchSource: .swipeablePlayer,
+            returnTarget: .swipeablePlayer,
+            autoLaunchEditor: false,
+            displayName: "Take 1",
+            infoTitle: nil,
+            infoMessage: nil,
+            existingSettings: nil,
+            onUpdatePIPSession: nil
+        )
+        let request = StudioEditorLaunchRequest(
+            sourceTake: take,
+            intent: .smartFillRequest(targetTake: take),
+            session: session,
+            project: project
+        )
+
+        let destination = StudioEditorHost.resolveDestination(
+            for: request,
+            requestSmartFillContext: { _, _, _ in expected },
+            editSmartFillContext: { _, _, _ in
+                XCTFail("request flow should not ask for SmartFill edit context")
+                return nil
+            }
+        )
+
+        guard case .smartFill(let context)? = destination else {
+            return XCTFail("Expected SmartFill destination")
+        }
+
+        XCTAssertEqual(context.take.id, expected.take.id)
+        XCTAssertEqual(context.session.id, expected.session.id)
+        XCTAssertEqual(context.project.id, expected.project.id)
+        XCTAssertEqual(context.launchSource, expected.launchSource)
+        XCTAssertEqual(context.returnTarget, expected.returnTarget)
+    }
+
+    func testStudioEditorHostReturnsNilWhenSmartFillEditContextIsMissing() {
+        let take = ProjectTake(
+            filePath: "/tmp/smartfill.mov",
+            durationSeconds: 12,
+            capturedOrientation: .portrait
+        )
+        let session = ProjectSession(type: .selfTape, takes: [take], primaryOrientation: .landscape)
+        let project = Project(title: "Project", sessions: [session])
+        let request = StudioEditorLaunchRequest(
+            sourceTake: take,
+            intent: .smartFillEdit(targetTake: take),
+            session: session,
+            project: project
+        )
+
+        let destination = StudioEditorHost.resolveDestination(
+            for: request,
+            requestSmartFillContext: { _, _, _ in
+                XCTFail("edit flow should not ask for SmartFill request context")
+                return nil
+            },
+            editSmartFillContext: { _, _, _ in nil }
+        )
+
+        XCTAssertNil(destination)
+    }
+
     func testHomeScreenSmartFillRouteBuildsPlayerRequestContext() {
         let take = ProjectTake(
             filePath: "/tmp/original.mov",

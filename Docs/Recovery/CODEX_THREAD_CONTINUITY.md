@@ -1,5 +1,66 @@
 # CODEX Thread Continuity
 
+## Ticket 060 Introduce One Shared Editor Host Above The Player Launch Contract (2026-03-29)
+- Thread Status: phase-60 is locally gated on a clean GM worktree cut from anchored phase-59. This slice lifts module selection above the shared player launch request so HomeScreen and ProjectDetail stop deciding between `LightweightEditorView` and SmartFill themselves and instead route through one shared editor-host contract.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase60`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase60`
+- Working Head SHA: `718365fc15203809d070c0535673293e7987198f`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` matches `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+1. introduce one shared editor-host seam above `StudioEditorLaunchRequest` so player hosts stop switching over standard-edit versus SmartFill themselves
+2. keep SmartFill as module one and standard editing as module two without attempting trim/PIP/timeline interior convergence yet
+3. preserve the current fixed-shell SmartFill workspace and standard editor destinations while making future unified-editor modules easier to hang off the same host contract
+4. keep the standalone derivation and macOS-editor convergence path aligned with the same shared host seam
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase60`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase60`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase60`
+  - `git rev-parse HEAD` -> `718365fc15203809d070c0535673293e7987198f`
+  - `git status --porcelain` -> clean before edits
+  - `git log -1 --oneline` -> `718365f SF-REBUILD-059: converge player hosts on one shared editor launch contract`
+- Truth-sync confirmed:
+  - `git -C /tmp/itfactor_smartfill_phase59 fetch origin --prune`
+  - local `authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main`: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Completed This Pass
+- Added `StudioEditorHost.swift` so one shared host contract now resolves a `StudioEditorLaunchRequest` into either standard-editor context or SmartFill context instead of making each host screen switch over feature-specific follow-up paths.
+- `HomeScreenView` now routes the shared player request through `StudioEditorHost.route(...)`, which means HomeScreen no longer owns separate standard-edit versus SmartFill branching logic after the player resolves the request.
+- `ProjectDetailView` now uses the same shared host routing contract for both `smartFillRequest` and `smartFillEdit`, so the project detail path no longer duplicates module-selection logic that already lives above the player contract.
+- `SmartFillRebuildBridgeTests` now lock the shared editor-host destination rules directly, covering standard-edit routing, SmartFill request routing, and missing-context behavior.
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase60/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -clonedSourcePackagesDirPath /tmp/itfactor_smartfill_phase59_tests_rerun/SourcePackages -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase60_gateA_escalated2 -quiet build > /tmp/itfactor_smartfill_phase60_gateA_escalated2.log 2>&1; printf 'EXIT:%s\n' $?`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase60_gateA_escalated2.log`
+- Focused parity command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase60/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -clonedSourcePackagesDirPath /tmp/itfactor_smartfill_phase59_tests_rerun/SourcePackages -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase60_tests -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test > /tmp/itfactor_smartfill_phase60_tests.log 2>&1; printf 'EXIT:%s\n' $?`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase60_tests.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase60_tests/Logs/Test/Test-STSiPhone-2026.03.29_13-43-44--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Next Action
+1. anchor this slice as `SF-REBUILD-060` on `gm/smartfill-itfactor-phase60`
+2. use the shared editor-host seam as the next flagship baseline so future trim, crop, PIP, and timeline modules hang off one routed editor host instead of reintroducing host-specific post-player branching
+3. keep SmartFill as the first live module inside that host contract while preserving the current fixed-shell workspace and the standalone/macOS derivation path
+
 ## Ticket 059 Converge Player Hosts On One Shared Editor Launch Contract (2026-03-29)
 - Thread Status: phase-59 is locally gated on a clean GM worktree cut from anchored phase-58. This slice turns the shared player `Edit` chip into a real cross-host contract by routing both `ProjectDetailView` and `HomeScreenView` through one `StudioEditorLaunchRequest` object instead of parallel edit-versus-SmartFill callback wiring.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
