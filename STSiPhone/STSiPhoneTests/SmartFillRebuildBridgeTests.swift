@@ -662,22 +662,81 @@ final class SmartFillRebuildBridgeTests: XCTestCase {
         XCTAssertFalse(pauseIntent.shouldPlay)
     }
 
-    func testPreviewPlaybackStateSyncingObservedTimePreservesRequestedPlayIntent() {
+    func testPreviewPlaybackStateSyncingObservedPlaybackPreservesRequestedPlayIntent() {
         let requested = SmartFillWorkspacePreviewPlaybackState(currentTime: 0.0, shouldPlay: true)
 
-        let synced = requested.syncingObservedTime(0.35, allowPlayback: true)
+        let synced = requested.syncingObservedPlayback(
+            0.35,
+            observedIsPlaying: false,
+            allowPlayback: true
+        )
 
         XCTAssertEqual(synced.currentTime, 0.35, accuracy: 0.0001)
         XCTAssertTrue(synced.shouldPlay)
     }
 
-    func testPreviewPlaybackStateSyncingObservedTimeClearsPlayIntentWhenPlaybackDisallowed() {
+    func testPreviewPlaybackStateSyncingObservedPlaybackUsesObservedPlayStateWhenActive() {
+        let requested = SmartFillWorkspacePreviewPlaybackState(currentTime: 2.0, shouldPlay: false)
+
+        let synced = requested.syncingObservedPlayback(
+            2.4,
+            observedIsPlaying: true,
+            allowPlayback: true
+        )
+
+        XCTAssertEqual(synced.currentTime, 2.4, accuracy: 0.0001)
+        XCTAssertTrue(synced.shouldPlay)
+    }
+
+    func testPreviewPlaybackStateSyncingObservedPlaybackClearsPlayIntentWhenPlaybackDisallowed() {
         let requested = SmartFillWorkspacePreviewPlaybackState(currentTime: 2.0, shouldPlay: true)
 
-        let synced = requested.syncingObservedTime(2.4, allowPlayback: false)
+        let synced = requested.syncingObservedPlayback(
+            2.4,
+            observedIsPlaying: true,
+            allowPlayback: false
+        )
 
         XCTAssertEqual(synced.currentTime, 2.4, accuracy: 0.0001)
         XCTAssertFalse(synced.shouldPlay)
+    }
+
+    func testPinnedPreviewTransportOwnershipLetsResultOwnPlaybackWhenWipeIsPinned() {
+        let ownership = SmartFillWorkspacePreviewTransportOwnership.pinnedPreview(
+            effectiveMode: .result,
+            isPinnedWipeMode: true,
+            compareViewerPresented: false
+        )
+
+        XCTAssertTrue(ownership.resultAllowsHitTesting)
+        XCTAssertFalse(ownership.sourceAllowsHitTesting)
+        XCTAssertTrue(ownership.resultPublishesPlaybackState)
+        XCTAssertFalse(ownership.sourcePublishesPlaybackState)
+    }
+
+    func testCompareViewerTransportOwnershipLetsResultOwnPlaybackWhenWipeIsPinned() {
+        let ownership = SmartFillWorkspacePreviewTransportOwnership.compareViewer(
+            effectiveMode: .source,
+            isShowingWipeCompare: true
+        )
+
+        XCTAssertTrue(ownership.resultAllowsHitTesting)
+        XCTAssertFalse(ownership.sourceAllowsHitTesting)
+        XCTAssertTrue(ownership.resultPublishesPlaybackState)
+        XCTAssertFalse(ownership.sourcePublishesPlaybackState)
+    }
+
+    func testResolvedForegroundScaleUsesWorkspaceForegroundZoom() {
+        let settings = SmartFillSettings(foregroundScale: 1.25)
+
+        XCTAssertEqual(
+            SmartFillCIBuilder.resolvedForegroundScale(
+                baseScale: 0.8,
+                settings: settings
+            ),
+            1.0,
+            accuracy: 0.0001
+        )
     }
 
     func testPreviewCompareStateUsesSelectedModeWhenNotHolding() {

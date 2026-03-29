@@ -84,8 +84,14 @@ public final class SmartFillCIBuilder {
             print("🧪 SmartFillCIBuilder: srcExtent =", srcExtent, " renderRect =", renderRect)
 
             // FOREGROUND: aspect-fit into renderRect
-            let fgScale = min(renderSize.width / srcExtent.width,
-                              renderSize.height / srcExtent.height)
+            let fgBaseScale = min(
+                renderSize.width / srcExtent.width,
+                renderSize.height / srcExtent.height
+            )
+            let fgScale = resolvedForegroundScale(
+                baseScale: fgBaseScale,
+                settings: settings
+            )
             let fgScaled = src.transformed(by: CGAffineTransform(scaleX: fgScale, y: fgScale))
             let fgRect = fgScaled.extent
             let fgDx = (renderSize.width  - fgRect.width)  * 0.5 - fgRect.minX
@@ -211,6 +217,15 @@ public final class SmartFillCIBuilder {
         rect.size.height.isFinite &&
         rect.size.width > 0 &&
         rect.size.height > 0
+    }
+
+    static func resolvedForegroundScale(
+        baseScale: CGFloat,
+        settings: SmartFillSettings
+    ) -> CGFloat {
+        let safeBaseScale = max(baseScale, 0.1)
+        let configuredForegroundScale = max(settings.foregroundScale, 0.1)
+        return min(safeBaseScale * configuredForegroundScale, safeBaseScale * 2.5)
     }
 }
 

@@ -298,7 +298,13 @@ struct SmartFillWorkspaceView: View {
         width: CGFloat,
         compareViewerPresented: Bool
     ) -> some View {
-        ZStack {
+        let transportOwnership = SmartFillWorkspacePreviewTransportOwnership.pinnedPreview(
+            effectiveMode: effectivePreviewMode,
+            isPinnedWipeMode: previewSelectionState.isPinnedWipeMode,
+            compareViewerPresented: compareViewerPresented
+        )
+
+        return ZStack {
             SmartFillWorkspaceResultPreviewView(
                 videoURL: context.previewURL,
                 settings: settings,
@@ -306,7 +312,7 @@ struct SmartFillWorkspaceView: View {
                 playbackState: previewPlaybackState,
                 shouldRender: previewSelectionState.isPinnedWipeMode || effectivePreviewMode == .result || compareViewerPresented,
                 allowPlayback: (previewSelectionState.isPinnedWipeMode || effectivePreviewMode == .result) && !compareViewerPresented,
-                shouldPublishPlaybackState: !compareViewerPresented,
+                shouldPublishPlaybackState: transportOwnership.resultPublishesPlaybackState,
                 allowsCanvasScrub: !previewSelectionState.isPinnedWipeMode,
                 allowsHoldCompare: !previewSelectionState.isPinnedWipeMode,
                 onComparePressingChanged: updatePreviewComparePressing,
@@ -315,21 +321,21 @@ struct SmartFillWorkspaceView: View {
                 previewErrorMessage = error.localizedDescription
             }
             .opacity(previewSelectionState.isPinnedWipeMode || effectivePreviewMode == .result ? 1 : 0)
-            .allowsHitTesting(!previewSelectionState.isPinnedWipeMode && effectivePreviewMode == .result)
+            .allowsHitTesting(transportOwnership.resultAllowsHitTesting)
 
             SmartFillSourcePreviewView(
                 videoURL: context.previewURL,
                 playbackState: previewPlaybackState,
                 shouldRender: previewSelectionState.isPinnedWipeMode || effectivePreviewMode == .source || compareViewerPresented,
                 allowPlayback: (previewSelectionState.isPinnedWipeMode || effectivePreviewMode == .source) && !compareViewerPresented,
-                shouldPublishPlaybackState: !compareViewerPresented,
+                shouldPublishPlaybackState: transportOwnership.sourcePublishesPlaybackState,
                 allowsCanvasScrub: !previewSelectionState.isPinnedWipeMode,
                 allowsHoldCompare: !previewSelectionState.isPinnedWipeMode,
                 onComparePressingChanged: updatePreviewComparePressing,
                 onPlaybackStateChange: updatePreviewPlaybackState
             )
             .opacity(previewSelectionState.isPinnedWipeMode ? 1 : (effectivePreviewMode == .source ? 1 : 0))
-            .allowsHitTesting(!previewSelectionState.isPinnedWipeMode && effectivePreviewMode == .source)
+            .allowsHitTesting(transportOwnership.sourceAllowsHitTesting)
             .mask(alignment: .leading) {
                 if previewSelectionState.isPinnedWipeMode {
                     Rectangle()
@@ -2333,14 +2339,15 @@ struct SmartFillWorkspacePreviewPlaybackState: Equatable {
         return SmartFillWorkspacePreviewPlaybackState(currentTime: safeTime, shouldPlay: shouldPlay)
     }
 
-    func syncingObservedTime(
+    func syncingObservedPlayback(
         _ observedCurrentTime: Double,
+        observedIsPlaying: Bool,
         allowPlayback: Bool
     ) -> SmartFillWorkspacePreviewPlaybackState {
         let safeTime = observedCurrentTime.isFinite ? max(observedCurrentTime, 0) : currentTime
         return SmartFillWorkspacePreviewPlaybackState(
             currentTime: safeTime,
-            shouldPlay: allowPlayback ? shouldPlay : false
+            shouldPlay: allowPlayback ? (shouldPlay || observedIsPlaying) : false
         )
     }
 
@@ -2350,6 +2357,85 @@ struct SmartFillWorkspacePreviewPlaybackState: Equatable {
 
     func requiresPlayerSync(currentTime: Double, isPlaying: Bool, tolerance: Double = 0.12) -> Bool {
         abs(self.currentTime - currentTime) > tolerance || shouldPlay != isPlaying
+    }
+}
+
+struct SmartFillWorkspacePreviewTransportOwnership: Equatable {
+    let resultAllowsHitTesting: Bool
+    let sourceAllowsHitTesting: Bool
+    let resultPublishesPlaybackState: Bool
+    let sourcePublishesPlaybackState: Bool
+
+    static func pinnedPreview(
+        effectiveMode: SmartFillWorkspacePreviewMode,
+        isPinnedWipeMode: Bool,
+        compareViewerPresented: Bool
+    ) -> SmartFillWorkspacePreviewTransportOwnership {
+        guard compareViewerPresented == false else {
+            return SmartFillWorkspacePreviewTransportOwnership(
+                resultAllowsHitTesting: false,
+                sourceAllowsHitTesting: false,
+                resultPublishesPlaybackState: false,
+                sourcePublishesPlaybackState: false
+            )
+        }
+
+        if isPinnedWipeMode {
+            return SmartFillWorkspacePreviewTransportOwnership(
+                resultAllowsHitTesting: true,
+                sourceAllowsHitTesting: false,
+                resultPublishesPlaybackState: true,
+                sourcePublishesPlaybackState: false
+            )
+        }
+
+        switch effectiveMode {
+        case .result:
+            return SmartFillWorkspacePreviewTransportOwnership(
+                resultAllowsHitTesting: true,
+                sourceAllowsHitTesting: false,
+                resultPublishesPlaybackState: true,
+                sourcePublishesPlaybackState: false
+            )
+        case .source:
+            return SmartFillWorkspacePreviewTransportOwnership(
+                resultAllowsHitTesting: false,
+                sourceAllowsHitTesting: true,
+                resultPublishesPlaybackState: false,
+                sourcePublishesPlaybackState: true
+            )
+        }
+    }
+
+    static func compareViewer(
+        effectiveMode: SmartFillWorkspacePreviewMode,
+        isShowingWipeCompare: Bool
+    ) -> SmartFillWorkspacePreviewTransportOwnership {
+        if isShowingWipeCompare {
+            return SmartFillWorkspacePreviewTransportOwnership(
+                resultAllowsHitTesting: true,
+                sourceAllowsHitTesting: false,
+                resultPublishesPlaybackState: true,
+                sourcePublishesPlaybackState: false
+            )
+        }
+
+        switch effectiveMode {
+        case .result:
+            return SmartFillWorkspacePreviewTransportOwnership(
+                resultAllowsHitTesting: true,
+                sourceAllowsHitTesting: false,
+                resultPublishesPlaybackState: true,
+                sourcePublishesPlaybackState: false
+            )
+        case .source:
+            return SmartFillWorkspacePreviewTransportOwnership(
+                resultAllowsHitTesting: false,
+                sourceAllowsHitTesting: true,
+                resultPublishesPlaybackState: false,
+                sourcePublishesPlaybackState: true
+            )
+        }
     }
 }
 
@@ -3474,8 +3560,9 @@ private struct SmartFillWorkspaceResultPreviewView: View {
     private func publishPlaybackState() {
         guard shouldPublishPlaybackState, let player else { return }
         onPlaybackStateChange(
-            playbackState.syncingObservedTime(
+            playbackState.syncingObservedPlayback(
                 max(player.currentTime, 0),
+                observedIsPlaying: player.isPlaying,
                 allowPlayback: allowPlayback
             )
         )
@@ -3599,8 +3686,9 @@ private struct SmartFillSourcePreviewView: View {
     private func publishPlaybackState() {
         guard shouldPublishPlaybackState, let player else { return }
         onPlaybackStateChange(
-            playbackState.syncingObservedTime(
+            playbackState.syncingObservedPlayback(
                 max(player.currentTime, 0),
+                observedIsPlaying: player.isPlaying,
                 allowPlayback: allowPlayback
             )
         )
@@ -3765,7 +3853,12 @@ private struct SmartFillWorkspaceCompareViewer: View {
     }
 
     private func baseCompareSurface(width: CGFloat) -> some View {
-        ZStack {
+        let transportOwnership = SmartFillWorkspacePreviewTransportOwnership.compareViewer(
+            effectiveMode: effectiveMode,
+            isShowingWipeCompare: isShowingWipeCompare
+        )
+
+        return ZStack {
             SmartFillWorkspaceResultPreviewView(
                 videoURL: videoURL,
                 settings: settings,
@@ -3773,7 +3866,7 @@ private struct SmartFillWorkspaceCompareViewer: View {
                 playbackState: comparePlaybackState,
                 shouldRender: isShowingWipeCompare || effectiveMode == .result,
                 allowPlayback: isShowingWipeCompare || effectiveMode == .result,
-                shouldPublishPlaybackState: true,
+                shouldPublishPlaybackState: transportOwnership.resultPublishesPlaybackState,
                 allowsCanvasScrub: !isShowingWipeCompare,
                 allowsHoldCompare: !isShowingWipeCompare,
                 onComparePressingChanged: updateComparePressing,
@@ -3781,21 +3874,21 @@ private struct SmartFillWorkspaceCompareViewer: View {
                 onError: onError
             )
             .opacity(isShowingWipeCompare || effectiveMode == .result ? 1 : 0)
-            .allowsHitTesting(!isShowingWipeCompare && effectiveMode == .result)
+            .allowsHitTesting(transportOwnership.resultAllowsHitTesting)
 
             SmartFillSourcePreviewView(
                 videoURL: videoURL,
                 playbackState: comparePlaybackState,
                 shouldRender: isShowingWipeCompare || effectiveMode == .source,
                 allowPlayback: isShowingWipeCompare || effectiveMode == .source,
-                shouldPublishPlaybackState: true,
+                shouldPublishPlaybackState: transportOwnership.sourcePublishesPlaybackState,
                 allowsCanvasScrub: !isShowingWipeCompare,
                 allowsHoldCompare: !isShowingWipeCompare,
                 onComparePressingChanged: updateComparePressing,
                 onPlaybackStateChange: onPlaybackStateChange
             )
             .opacity(isShowingWipeCompare ? 1 : (effectiveMode == .source ? 1 : 0))
-            .allowsHitTesting(!isShowingWipeCompare && effectiveMode == .source)
+            .allowsHitTesting(transportOwnership.sourceAllowsHitTesting)
             .mask(alignment: .leading) {
                 if let activeWipeState {
                     Rectangle()

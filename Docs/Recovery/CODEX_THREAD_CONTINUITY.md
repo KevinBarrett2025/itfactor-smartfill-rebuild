@@ -1,5 +1,66 @@
 # CODEX Thread Continuity
 
+## Ticket 056 Restore Pinned-Wipe Playback And Make Foreground Zoom Real (2026-03-29)
+- Thread Status: phase-56 is locally gated on a clean GM worktree cut from anchored phase-55. Device feedback drove this slice, and the resulting workspace now restores interactive playback when pinned `Wipe` compare is active while carrying foreground zoom through the real SmartFill composition.
+- Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
+- Active Worktree Truth: `/tmp/itfactor_smartfill_phase56`
+- Remote Truth: `git@github.com:KevinBarrett2025/itfactor-smartfill-rebuild.git`
+- Working Branch: `gm/smartfill-itfactor-phase56`
+- Working Head SHA: `02768e27f9bcea90b480d36297a703a68d57cbe8`
+- Working Baseline SHA: `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+- Shipped Reference Truth: `/Users/kevinbarrett/Dev/SelfTapeStudio` (read-only only)
+- Standalone Engine Reference: `/Users/kevinbarrett/Dev/iTFactorSmartfill`
+- Authority Branch State:
+  - local `authority/main` expected to match `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+  - remote `origin/authority/main` expected to match `94883522cfa9a76c6fd779de8bac2afe5a4bb79b`
+
+### Objective
+1. restore real playback interaction when the pinned preview is in `Wipe` compare mode so the visible play affordance is not a dead control
+2. carry `foregroundScale` through the SmartFill CI preview/export composition so tray zoom controls change the rendered result instead of only updating labels
+3. preserve the new phase-55 still-image background source ownership unchanged while tightening the preview/editor feel
+4. keep the phase aligned with the future unified master-editor plan without regressing into larger sheets or scroll-heavy chrome
+
+### Preflight
+- Thread continuity protocol confirmed in `/tmp/itfactor_smartfill_phase56`:
+  - `git rev-parse --show-toplevel` -> `/private/tmp/itfactor_smartfill_phase56`
+  - `git branch --show-current` -> `gm/smartfill-itfactor-phase56`
+  - `git rev-parse HEAD` -> `02768e27f9bcea90b480d36297a703a68d57cbe8`
+  - `git status --porcelain` -> clean before edits
+  - `git log -1 --oneline` -> `02768e2 SF-REBUILD-055: add still-image background source ownership to the SmartFill workspace`
+- Device feedback driving this phase:
+  - still-image background attachment now works
+  - pinned preview video is still not playing
+  - foreground zoom slider/menu is visible, but the rendered result does not respond
+
+### Completed This Pass
+- `SmartFillWorkspacePreviewTransportOwnership` now gives the pinned preview one active playback/hit-testing owner when `Wipe` compare is pinned, so the visible play affordance is no longer left on a dead surface.
+- `SmartFillWorkspacePreviewPlaybackState.syncingObservedPlayback(...)` now preserves real play intent while still accepting meaningful observed playback/time updates from the active preview owner.
+- `SmartFillCIBuilder` now resolves `foregroundScale` against the real composition base scale, so foreground zoom/framing controls change the rendered SmartFill preview/export instead of only updating tray UI.
+- `SmartFillRebuildBridgeTests` now lock pinned-wipe transport ownership, observed-playback sync behavior, and real foreground-scale composition math.
+
+### Validation
+- Gate A command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase56/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -clonedSourcePackagesDirPath /tmp/itfactor_smartfill_phase55_tests_clean3/SourcePackages -destination 'generic/platform=iOS Simulator' -derivedDataPath /tmp/itfactor_smartfill_phase56_gateA_rerun build | tee /tmp/itfactor_smartfill_phase56_gateA_rerun.log`
+- Gate A result:
+  - `PASS`
+- Gate A log:
+  - `/tmp/itfactor_smartfill_phase56_gateA_rerun.log`
+- Focused parity command:
+  - `xcodebuild -project /tmp/itfactor_smartfill_phase56/STSiPhone/ITFactoriPhone.xcodeproj -scheme STSiPhone -clonedSourcePackagesDirPath /tmp/itfactor_smartfill_phase55_tests_clean3/SourcePackages -destination 'platform=iOS Simulator,id=AF7E7F7C-C0BD-4BEA-AD51-74505E6853DD' -derivedDataPath /tmp/itfactor_smartfill_phase56_tests_rerun -only-testing:STSiPhoneTests/SmartFillRebuildBridgeTests test | tee /tmp/itfactor_smartfill_phase56_tests_rerun.log`
+- Focused parity result:
+  - `PASS`
+- Focused parity log:
+  - `/tmp/itfactor_smartfill_phase56_tests_rerun.log`
+- Focused parity xcresult:
+  - `/tmp/itfactor_smartfill_phase56_tests_rerun/Logs/Test/Test-STSiPhone-2026.03.29_11-14-24--0400.xcresult`
+- `project.pbxproj` drift:
+  - `NONE`
+
+### Next Action
+1. anchor this slice as `SF-REBUILD-056` on `gm/smartfill-itfactor-phase56`
+2. use the anchored phase-56 branch as the next safe implementation baseline while future work tightens motion backgrounds plus richer foreground crop/pan/zoom seams
+3. keep the Mission 6 master-editor thread aligned while SmartFill keeps moving forward inside the fixed-shell workspace
+
 ## Ticket 055 Add Still-Image Background Source Ownership And Clarify Foreground Framing (2026-03-29)
 - Thread Status: phase-55 is locally gated on a fresh GM worktree from anchored phase-54. The SmartFill workspace now exposes real background source ownership for `Source`, `Still`, and staged `Motion`, persists custom still selection through settings snapshots, renders still-image backgrounds through the shared SmartFill CI pipeline, and clarifies foreground framing as subject zoom instead of a vague legacy subject sheet.
 - Repo Truth: `/Users/kevinbarrett/Dev/itFactor_1.23.26_git`
